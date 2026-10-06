@@ -5,6 +5,7 @@ use crate::{
 use formality_core::{judgment_fn, Downcast};
 
 use crate::prove::{
+    binder_scope::enter_existentially_with_constraints,
     combinators::zip,
     decls::{AliasEqDeclBoundData, Program},
     env::Env,
@@ -36,15 +37,12 @@ judgment_fn! {
 
         (
             (decl in decls.alias_eq_decls(&a.name))
-            (let (env, subst) = env.existential_substitution(&decl.binder))
-            (let decl = decl.binder.instantiate_with(&subst).unwrap())
-            (let AliasEqDeclBoundData { alias: AliasTy { name, parameters }, ty, where_clause } = decl)
-            (assert a.name == *name)
-            (prove(decls, env, assumptions, Wcs::all_eq(&a.parameters, &parameters)) => c)
-            (prove_after(decls, c, assumptions, &where_clause) => c)
-            (let ty = c.substitution().apply(ty))
-            (let c = c.pop_subst(&subst))
-            (assert c.env().encloses(&ty))
+            (scope(enter_existentially_with_constraints(decls, env, assumptions, &decl.binder)
+                => (env, AliasEqDeclBoundData { alias: AliasTy { name, parameters }, ty, where_clause })) with(ty, c)
+                (assert a.name == *name)
+                (prove(decls, env, assumptions, Wcs::all_eq(&a.parameters, &parameters)) => c)
+                (prove_after(decls, c, assumptions, &where_clause) => c)
+                (let ty = c.substitution().apply(ty)))
             ----------------------------- ("normalize-via-impl")
             (prove_normalize(decls, env, assumptions, Ty::AliasTy(a)) => Constrained(ty, c))
         )
@@ -110,11 +108,8 @@ judgment_fn! {
         // These rules handle the the ∀ and ⇒ cases.
 
         (
-            (let (env, subst) = env.existential_substitution(binder))
-            (let via1 = binder.instantiate_with(&subst).unwrap())
-            (prove_normalize_via(decls, env, assumptions, via1, goal) => Constrained(p, c))
-            (let c = c.pop_subst(&subst))
-            (assert c.env().encloses(&p))
+            (scope(enter_existentially_with_constraints(decls, env, assumptions, binder) => (env, via1)) with(p, c)
+                (prove_normalize_via(decls, env, assumptions, via1, goal) => Constrained(p, c)))
             ----------------------------- ("forall")
             (prove_normalize_via(decls, env, assumptions, Wc::ForAll(binder), goal) => Constrained(p, c))
         )

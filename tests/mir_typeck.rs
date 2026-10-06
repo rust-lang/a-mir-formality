@@ -166,13 +166,13 @@ fn if_else_different_return_types() {
             error: could not compile `Foo` (lib) due to 1 previous error
         "#]])
         .err(expect_test::expect![[r#"
-                crates/formality-rust/src/prove/prove_normalize.rs:18:1: no applicable rules for prove_normalize { p: bool, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+                crates/formality-rust/src/prove/prove_normalize.rs:19:1: no applicable rules for prove_normalize { p: bool, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-                crates/formality-rust/src/prove/prove_normalize.rs:18:1: no applicable rules for prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+                crates/formality-rust/src/prove/prove_normalize.rs:19:1: no applicable rules for prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-                crates/formality-rust/src/prove/prove_normalize.rs:18:1: no applicable rules for prove_normalize { p: bool, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+                crates/formality-rust/src/prove/prove_normalize.rs:19:1: no applicable rules for prove_normalize { p: bool, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-                crates/formality-rust/src/prove/prove_normalize.rs:18:1: no applicable rules for prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }"#]])
+                crates/formality-rust/src/prove/prove_normalize.rs:19:1: no applicable rules for prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }"#]])
 }
 
 /// Test valid call: bar calls foo.
@@ -390,13 +390,13 @@ fn test_pass_non_subtype_arg() {
             error: could not compile `Foo` (lib) due to 2 previous errors
         "#]])
         .err(expect_test::expect![[r#"
-                crates/formality-rust/src/prove/prove_normalize.rs:18:1: no applicable rules for prove_normalize { p: (), assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+                crates/formality-rust/src/prove/prove_normalize.rs:19:1: no applicable rules for prove_normalize { p: (), assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-                crates/formality-rust/src/prove/prove_normalize.rs:18:1: no applicable rules for prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+                crates/formality-rust/src/prove/prove_normalize.rs:19:1: no applicable rules for prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-                crates/formality-rust/src/prove/prove_normalize.rs:18:1: no applicable rules for prove_normalize { p: (), assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+                crates/formality-rust/src/prove/prove_normalize.rs:19:1: no applicable rules for prove_normalize { p: (), assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-                crates/formality-rust/src/prove/prove_normalize.rs:18:1: no applicable rules for prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }"#]])
+                crates/formality-rust/src/prove/prove_normalize.rs:19:1: no applicable rules for prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }"#]])
 }
 
 /// Test calling a generic function without turbofish (wrong number of type args: 0 vs 1).
@@ -486,13 +486,13 @@ fn test_call_generic_fn_wrong_type_with_turbofish() {
             error: could not compile `Foo` (lib) due to 2 previous errors
         "#]])
         .err(expect_test::expect![[r#"
-                crates/formality-rust/src/prove/prove_normalize.rs:18:1: no applicable rules for prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+                crates/formality-rust/src/prove/prove_normalize.rs:19:1: no applicable rules for prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-                crates/formality-rust/src/prove/prove_normalize.rs:18:1: no applicable rules for prove_normalize { p: bool, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+                crates/formality-rust/src/prove/prove_normalize.rs:19:1: no applicable rules for prove_normalize { p: bool, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-                crates/formality-rust/src/prove/prove_normalize.rs:18:1: no applicable rules for prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+                crates/formality-rust/src/prove/prove_normalize.rs:19:1: no applicable rules for prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-                crates/formality-rust/src/prove/prove_normalize.rs:18:1: no applicable rules for prove_normalize { p: bool, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }"#]])
+                crates/formality-rust/src/prove/prove_normalize.rs:19:1: no applicable rules for prove_normalize { p: bool, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }"#]])
 }
 
 /// Test calling a generic function using turbofish syntax with an incorrect number of parameters.
@@ -599,13 +599,13 @@ fn test_incompatible_return_type() {
             error: could not compile `Foo` (lib) due to 1 previous error
         "#]])
         .err(expect_test::expect![[r#"
-                crates/formality-rust/src/prove/prove_normalize.rs:18:1: no applicable rules for prove_normalize { p: (), assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+                crates/formality-rust/src/prove/prove_normalize.rs:19:1: no applicable rules for prove_normalize { p: (), assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-                crates/formality-rust/src/prove/prove_normalize.rs:18:1: no applicable rules for prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+                crates/formality-rust/src/prove/prove_normalize.rs:19:1: no applicable rules for prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-                crates/formality-rust/src/prove/prove_normalize.rs:18:1: no applicable rules for prove_normalize { p: (), assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+                crates/formality-rust/src/prove/prove_normalize.rs:19:1: no applicable rules for prove_normalize { p: (), assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-                crates/formality-rust/src/prove/prove_normalize.rs:18:1: no applicable rules for prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }"#]])
+                crates/formality-rust/src/prove/prove_normalize.rs:19:1: no applicable rules for prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }"#]])
 }
 
 // Test the behaviour of having unitialised return local variable.
@@ -846,9 +846,9 @@ fn test_struct_wrong_type_in_initialisation() {
             error: could not compile `Foo` (lib) due to 1 previous error
         "#]])
         .err(expect_test::expect![[r#"
-                crates/formality-rust/src/prove/prove_normalize.rs:18:1: no applicable rules for prove_normalize { p: bool, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+                crates/formality-rust/src/prove/prove_normalize.rs:19:1: no applicable rules for prove_normalize { p: bool, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-                crates/formality-rust/src/prove/prove_normalize.rs:18:1: no applicable rules for prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }"#]])
+                crates/formality-rust/src/prove/prove_normalize.rs:19:1: no applicable rules for prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }"#]])
 }
 
 /// Test the behaviour of having non-adt as the type for struct construction.
@@ -1018,9 +1018,9 @@ fn test_break_nonexistent_label() {
             error: could not compile `Foo` (lib) due to 1 previous error
         "#]])
         .err(expect_test::expect![[r#"
-                crates/formality-rust/src/check/borrow_check/nll.rs:177:1: no applicable rules for borrow_check_statement { state: flow_state([scope(none, None, {}, None, [], []), scope(none, None, {}, None, [], []), scope(none, None, {}, Some({}), [], []), scope(none, None, {}, None, [], [])], point_flow_state({}, {}, {}), {}, {}, {}), statement: break 'nonexistent ;, places_live_on_exit: {}, assumptions: {}, env: TypeckEnv { env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: false }, output_ty: Some(u32) } }
+                crates/formality-rust/src/check/borrow_check/nll.rs:174:1: no applicable rules for borrow_check_statement { state: flow_state([scope(none, None, {}, None, [], []), scope(none, None, {}, None, [], []), scope(none, None, {}, Some({}), [], []), scope(none, None, {}, None, [], [])], point_flow_state({}, {}, {}), {}, {}, {}), statement: break 'nonexistent ;, places_live_on_exit: {}, assumptions: {}, env: TypeckEnv { env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: false }, output_ty: Some(u32) } }
 
-                crates/formality-rust/src/check/borrow_check/nll.rs:177:1: no applicable rules for borrow_check_statement { state: flow_state([scope(none, None, {}, None, [], []), scope(none, None, {}, None, [], []), scope(none, None, {}, Some({}), [], []), scope(none, None, {}, None, [], [])], point_flow_state({}, {}, {}), {}, {}, {}), statement: break 'nonexistent ;, places_live_on_exit: {}, assumptions: {}, env: TypeckEnv { env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: false }, output_ty: Some(u32) } }"#]])
+                crates/formality-rust/src/check/borrow_check/nll.rs:174:1: no applicable rules for borrow_check_statement { state: flow_state([scope(none, None, {}, None, [], []), scope(none, None, {}, None, [], []), scope(none, None, {}, Some({}), [], []), scope(none, None, {}, None, [], [])], point_flow_state({}, {}, {}), {}, {}, {}), statement: break 'nonexistent ;, places_live_on_exit: {}, assumptions: {}, env: TypeckEnv { env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: false }, output_ty: Some(u32) } }"#]])
 }
 
 /// `continue` targeting a valid loop label should pass.
@@ -1140,4 +1140,201 @@ fn test_break_block_label() {
     .skip_execute()
     .rustc_ok()
     .ok()
+}
+
+// A proof of a `for<'a>` bound may defer a region constraint on the
+// placeholder `'a`. Leaving the binder, the constraint must hold for every
+// `'a` (see `BinderScope::pop`).
+
+/// `'a: 'static` does not hold for every `'a`.
+#[test]
+fn for_all_placeholder_outlives_static() {
+    FormalityTest::new(crates![crate foo {
+        fn needs_all() -> () where for<'a> 'a: 'static { }
+        fn main() -> () {
+            needs_all();
+        }
+    }])
+    .err(expect_test::expect![[r#"
+        failed at (proven_set.rs) because
+          `!lt_1 : ' static` cannot be restated without `!lt_1`"#]])
+}
+
+/// The impl needs `'r: 'a`, which holds for every `'a` iff `'r: 'static`:
+/// the loan of `v0` never ends.
+#[test]
+fn for_all_local_outlives_placeholder() {
+    FormalityTest::new(crates![crate foo {
+        trait Tr<'a> {}
+        impl<'a, 'b> Tr<'a> for &'b u32 where 'b: 'a {}
+        fn needs_all<T>(t: T) -> () where for<'a> T: Tr<'a> { }
+        fn main() -> () {
+            let v0: u32 = 0_u32;
+            exists<'r> {
+                let v1: &'r u32 = &'r v0;
+                needs_all::<&'r u32>(v1);
+                v0 = 1_u32;
+            }
+        }
+    }])
+    .rustc_err(expect_test::expect![[r#"
+        error[E0597]: `v0` does not live long enough
+          --> lib.rs
+           |
+        12 |     let mut v0: u32 = 0_u32;
+           |         ------ binding `v0` declared here
+        13 |     {
+        14 |         let mut v1: &'_ u32 = &v0;
+           |                               ^^^ borrowed value does not live long enough
+        15 |         needs_all::<&'_ u32>(v1);
+           |         ------------------------ argument requires that `v0` is borrowed for `'static`
+        ...
+        18 | }
+           | - `v0` dropped here while still borrowed
+           |
+        note: due to a current limitation of the type system, this implies a `'static` lifetime
+          --> lib.rs
+           |
+         7 |     for<'a10> T00: Tr<'a10>,
+           |     ^^^^^^^^^^^^^^^^^^^^^^^
+
+        error[E0506]: cannot assign to `v0` because it is borrowed
+          --> lib.rs
+           |
+        14 |         let mut v1: &'_ u32 = &v0;
+           |                               --- `v0` is borrowed here
+        15 |         needs_all::<&'_ u32>(v1);
+           |         ------------------------ argument requires that `v0` is borrowed for `'static`
+        16 |         v0 = 1_u32;
+           |         ^^^^^^^^^^ `v0` is assigned to here but it was already borrowed
+           |
+        note: due to a current limitation of the type system, this implies a `'static` lifetime
+          --> lib.rs
+           |
+         7 |     for<'a10> T00: Tr<'a10>,
+           |     ^^^^^^^^^^^^^^^^^^^^^^^
+
+        Some errors have detailed explanations: E0506, E0597.
+        For more information about an error, try `rustc --explain E0506`.
+        error: could not compile `foo` (lib) due to 2 previous errors
+    "#]])
+    .err(expect_test::expect![[r#"
+        the rule "borrow of disjoint places" at (nll.rs) failed because
+          condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
+            &loan.place = v0 : u32
+            &access.place = v0 : u32
+
+        the rule "loan_not_required_by_universal_regions" at (nll.rs) failed because
+          condition evaluated to false: `outlived_by_loan.iter().all(|p| match p
+          {
+              Parameter::Ty(_) => false, Parameter::Lt(lt) => match lt.as_ref()
+              {
+                  Lt::Static => false, Lt::Variable(Variable::UniversalVar(_)) => false,
+                  Lt::Variable(Variable::ExistentialVar(_)) => true,
+                  Lt::Variable(Variable::BoundVar(_)) =>
+                  panic!("cannot outlive a bound var"), Lt::Erased => true,
+              }, Parameter::Const(_) => panic!("cannot outlive a constant"),
+          })`
+
+        the rule "write-indirect" at (nll.rs) failed because
+          pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `v0`"#]])
+}
+
+/// ...whereas with no constraint on the placeholder, it ends after the call.
+#[test]
+fn for_all_no_constraint_on_placeholder() {
+    FormalityTest::new(crates![crate foo {
+        trait Tr<'a> {}
+        impl<'a, 'b> Tr<'a> for &'b u32 {}
+        fn needs_all<T>(t: T) -> () where for<'a> T: Tr<'a> { }
+        fn main() -> () {
+            let v0: u32 = 0_u32;
+            exists<'r> {
+                let v1: &'r u32 = &'r v0;
+                needs_all::<&'r u32>(v1);
+                v0 = 1_u32;
+            }
+        }
+    }])
+    .rustc_ok()
+    .ok()
+}
+
+/// `'x: 'a` for every `'a` iff `'x: 'static`, which the caller assumes.
+#[test]
+fn for_all_universal_outlives_placeholder_given_static() {
+    FormalityTest::new(crates![crate foo {
+        trait Tr<'a> {}
+        impl<'a, 'b> Tr<'a> for &'b u32 where 'b: 'a {}
+        fn needs_all<T>(t: T) -> () where for<'a> T: Tr<'a> { }
+        fn caller<'x>(v: &'x u32) -> () where 'x: 'static {
+            needs_all::<&'x u32>(v);
+        }
+    }])
+    .skip_execute()
+    .rustc_ok()
+    .ok()
+}
+
+/// ...and without that assumption does not hold.
+#[test]
+fn for_all_universal_outlives_placeholder() {
+    FormalityTest::new(crates![crate foo {
+        trait Tr<'a> {}
+        impl<'a, 'b> Tr<'a> for &'b u32 where 'b: 'a {}
+        fn needs_all<T>(t: T) -> () where for<'a> T: Tr<'a> { }
+        fn caller<'x>(v: &'x u32) -> () {
+            needs_all::<&'x u32>(v);
+        }
+    }])
+    .rustc_err(expect_test::expect![[r#"
+        error: lifetime may not live long enough
+          --> lib.rs
+           |
+        11 | pub fn caller<'a00>(mut v: &'a00 u32) -> () {
+           |               ---- lifetime `'a00` defined here
+        12 |     needs_all::<&'a00 u32>(v);
+           |     ^^^^^^^^^^^^^^^^^^^^^^ requires that `'a00` must outlive `'static`
+           |
+        note: due to a current limitation of the type system, this implies a `'static` lifetime
+          --> lib.rs
+           |
+         7 |     for<'a10> T00: Tr<'a10>,
+           |     ^^^^^^^^^^^^^^^^^^^^^^^
+
+        error: could not compile `foo` (lib) due to 1 previous error
+    "#]])
+    .err(expect_test::expect!["crates/formality-rust/src/check/borrow_check/outlives.rs:56:1: no applicable rules for can_outlive { param_a: !lt_1, param_b: ' static, assumptions: {}, env: TypeckEnv { env: Env { variables: [!lt_1], bias: Soundness, pending: [], allow_pending_outlives: false }, output_ty: Some(()) }, outlives: {pending_outlives(!lt_1, ' static)} }"])
+}
+
+/// The impl needs `'a: 'r`, which fails for an `'a` shorter than `'r`.
+#[test]
+fn for_all_placeholder_outlives_local() {
+    FormalityTest::new(crates![crate foo {
+        trait Tr<'a> {}
+        impl<'a, 'b> Tr<'a> for &'b u32 where 'a: 'b {}
+        fn needs_all<T>(t: T) -> () where for<'a> T: Tr<'a> { }
+        fn main() -> () {
+            let v0: u32 = 0_u32;
+            exists<'r> {
+                let v1: &'r u32 = &'r v0;
+                needs_all::<&'r u32>(v1);
+            }
+        }
+    }])
+    .rustc_err(expect_test::expect![[r#"
+        error: implementation of `Tr` is not general enough
+          --> lib.rs
+           |
+        15 |         needs_all::<&'_ u32>(v1);
+           |         ^^^^^^^^^^^^^^^^^^^^^^^^ implementation of `Tr` is not general enough
+           |
+           = note: `&u32` must implement `Tr<'0>`, for any lifetime `'0`...
+           = note: ...but `&u32` actually implements `Tr<'1>`, for some specific lifetime `'1`
+
+        error: could not compile `foo` (lib) due to 1 previous error
+    "#]])
+    .err(expect_test::expect![[r#"
+        failed at (proven_set.rs) because
+          `!lt_1 : ?lt_0` cannot be restated without `!lt_1`"#]])
 }

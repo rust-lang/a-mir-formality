@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use crate::check::{prove_goal, where_clauses::prove_where_clauses_well_formed};
 use crate::grammar::Fallible;
 use crate::grammar::{Adt, AdtBoundData, Field, Predicate, Variant};
-use crate::prove::{Env, Program};
+use crate::prove::{enter_universally, Env, Program};
 use anyhow::bail;
 use formality_core::judgment::ProofTree;
 use formality_core::judgment_fn;
@@ -16,14 +16,13 @@ judgment_fn! {
         debug(adt)
         (
             (check_adt_variant_names_unique(adt) => ())
-            (let (env, bound_data) = Env::default().instantiate_universally(&adt.binder))
-            (let AdtBoundData { where_clauses, variants } = bound_data)
-            (prove_where_clauses_well_formed(program, env, where_clauses, where_clauses) => ())
-            (for_all(variant in variants)
-                (let Variant { fields, .. } = variant)
-                (for_all(field in fields)
-                    (let Field { ty, .. } = field)
-                    (prove_goal(program, env, where_clauses, Predicate::well_formed(ty)) => ())))
+            (scope(enter_universally(Env::default(), &adt.binder) => (env, AdtBoundData { where_clauses, variants })) with()
+                (prove_where_clauses_well_formed(program, env, where_clauses, where_clauses) => ())
+                (for_all(variant in variants)
+                    (let Variant { fields, .. } = variant)
+                    (for_all(field in fields)
+                        (let Field { ty, .. } = field)
+                        (prove_goal(program, env, where_clauses, Predicate::well_formed(ty)) => ()))))
             ------------------------------------------------------------ ("check adt")
             (check_adt(program, adt) => ())
         )

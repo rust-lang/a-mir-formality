@@ -7,8 +7,8 @@ use crate::{
 use formality_core::judgment_fn;
 
 use crate::prove::{
-    combinators::for_all, decls::Program, env::Bias, negation::may_not_be_provable,
-    prove_normalize::prove_normalize, Constraints, Env,
+    binder_scope::enter_existentially, combinators::for_all, decls::Program, env::Bias,
+    negation::may_not_be_provable, prove_normalize::prove_normalize, Constraints, Env,
 };
 
 // From https://rust-lang.github.io/rfcs/2451-re-rebalancing-coherence.html:
@@ -166,8 +166,8 @@ judgment_fn! {
 
         // ForAll predicates: open existentially and check
         (
-            (let (env, ty) = env.instantiate_existentially(binder))
-            (may_contain_downstream_type(decls, env, assumptions, ty) => ())
+            (scope(enter_existentially(env, binder) => (env, ty)) with()
+                (may_contain_downstream_type(decls, env, assumptions, ty) => ()))
             --- ("forall")
             (may_contain_downstream_type(decls, env, assumptions,
                 Ty::PredicateTy(PredicateTy::ForAll(binder))) => ())

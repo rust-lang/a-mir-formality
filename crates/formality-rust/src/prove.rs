@@ -6,6 +6,8 @@
 //!
 //! * [`prove`][] -- prove a set of where-clauses to be true
 //! * [`prove_normalize`][] -- normalize a type one step (typically used in a recursive setup)
+//! * [`enter_universally`][] and [`enter_existentially`][] -- enter a binder
+//!   through a [`BinderScope`][], for the `scope` condition of a rule
 
 use crate::grammar::{Binder, Crates, Predicate, Ty, Wc, Wcs, WhereBound, WhereClause};
 use crate::rust::FormalityLang;
@@ -15,6 +17,7 @@ use formality_core::{map, set, ProvenSet, Upcast};
 use std::sync::Arc;
 use tracing::Level;
 
+mod binder_scope;
 pub mod combinators;
 mod constraints;
 mod db;
@@ -38,6 +41,11 @@ pub mod test_util;
 #[cfg(test)]
 mod test;
 
+pub use binder_scope::{
+    enter_existentially, enter_existentially_with_constraints, enter_universally,
+    enter_universally_with_constraints, with_variables, without_var, BinderScope,
+    BinderScopeWithConstraints,
+};
 pub use constraints::{Constrained, Constraints};
 pub use decls::*;
 pub use env::{Bias, Env, MaxUniverse, Universe};

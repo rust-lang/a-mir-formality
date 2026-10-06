@@ -1,5 +1,5 @@
 use crate::grammar::{Crate, NegTraitImpl, Predicate, TraitImpl, Wcs};
-use crate::prove::{Env, Program};
+use crate::prove::{enter_universally, Env, Program};
 
 use super::{prove_goal, prove_not_goal};
 use formality_core::judgment_fn;
@@ -32,9 +32,9 @@ judgment_fn! {
         debug(program, impl_a)
 
         (
-            (let (env, a) = Env::default().instantiate_universally(&impl_a.binder))
-            (let trait_ref = a.trait_ref())
-            (prove_goal(program, env, &a.where_clauses, Predicate::is_local(trait_ref)) => ())
+            (scope(enter_universally(Env::default(), &impl_a.binder) => (env, a)) with()
+                (let trait_ref = a.trait_ref())
+                (prove_goal(program, env, &a.where_clauses, Predicate::is_local(trait_ref)) => ()))
             --- ("orphan_check")
             (orphan_check(program, impl_a) => ())
         )
@@ -52,9 +52,9 @@ judgment_fn! {
         // and universals and the coherence mode
         // self.prove_not_goal(&env, &(Wcs::wf)) // ??
         (
-            (let (env, a) = Env::default().instantiate_universally(&impl_a.binder))
-            (let trait_ref = a.trait_ref())
-            (prove_goal(program, env, &a.where_clauses, Predicate::is_local(trait_ref)) => ())
+            (scope(enter_universally(Env::default(), &impl_a.binder) => (env, a)) with()
+                (let trait_ref = a.trait_ref())
+                (prove_goal(program, env, &a.where_clauses, Predicate::is_local(trait_ref)) => ()))
             --- ("orphan_check_neg")
             (orphan_check_neg(program, impl_a) => ())
         )
@@ -101,9 +101,9 @@ judgment_fn! {
         (
             (if impl_a != impl_b)
             (if impl_a.trait_id() == impl_b.trait_id())
-            (let (env, a) = Env::default().instantiate_universally(&impl_a.binder))
-            (let (env, b) = env.instantiate_universally(&impl_b.binder))
-            (prove_not_goal(program, env, (), (Wcs::all_eq(&a.trait_ref().parameters, &b.trait_ref().parameters), &a.where_clauses, &b.where_clauses)) => ())
+            (scope(enter_universally(Env::default(), &impl_a.binder) => (env, a)) with()
+                (scope(enter_universally(env, &impl_b.binder) => (env, b)) with()
+                    (prove_not_goal(program, env, (), (Wcs::all_eq(&a.trait_ref().parameters, &b.trait_ref().parameters), &a.where_clauses, &b.where_clauses)) => ())))
             --- ("not goal")
             (overlap_check_impl(program, impl_a, impl_b) => ())
         )
@@ -113,10 +113,10 @@ judgment_fn! {
         (
             (if impl_a != impl_b)
             (if impl_a.trait_id() == impl_b.trait_id())
-            (let (env, a) = Env::default().instantiate_universally(&impl_a.binder))
-            (let (env, b) = env.instantiate_universally(&impl_b.binder))
-            (wc in a.where_clauses.iter().chain(&b.where_clauses).flat_map(|wc| wc.invert()))
-            (prove_goal(program, env, (Wcs::all_eq(&a.trait_ref().parameters, &b.trait_ref().parameters), &a.where_clauses, &b.where_clauses), wc) => ())
+            (scope(enter_universally(Env::default(), &impl_a.binder) => (env, a)) with()
+                (scope(enter_universally(env, &impl_b.binder) => (env, b)) with()
+                    (wc in a.where_clauses.iter().chain(&b.where_clauses).flat_map(|wc| wc.invert()))
+                    (prove_goal(program, env, (Wcs::all_eq(&a.trait_ref().parameters, &b.trait_ref().parameters), &a.where_clauses, &b.where_clauses), wc) => ())))
             --- ("inverted")
             (overlap_check_impl(program, impl_a, impl_b) => ())
         )
