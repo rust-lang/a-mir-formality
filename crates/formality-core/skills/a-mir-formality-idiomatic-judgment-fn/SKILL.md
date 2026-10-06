@@ -177,6 +177,44 @@ currently retains one successful accumulator outcome per iteration; a custom
 combinator may instead explore multiple outcomes or apply substitutions to later
 inputs. For example, a-mir-formality's solver `combinators::for_all` does both.
 
+## Enter and leave a scope through the DSL
+
+When a rule proves something inside a scope -- a binder's variables, an
+extended environment, anything whose contents must not escape -- use the
+`scope` condition rather than entering and leaving by hand. The DSL then owns
+the leaving: the rule cannot forget it, nor use what was inside afterwards.
+
+```rust,ignore
+// Avoid: entering and leaving by hand. Nothing checks that the rule leaves,
+// that it leaves once, or that the result does not mention what was inside.
+(let (env, vars) = env.fresh_variables(binder))
+(let body = binder.instantiate_with(&vars).unwrap())
+(prove(env, body) => c)
+(let c = c.pop_variables(&vars))
+
+// Prefer: the condition enters, and every proof inside leaves.
+(scope(enter_forall(env, binder) => (env, body)) with(c)
+    (prove(env, body) => c))
+```
+
+Name in `with(...)` only what must come out, and `with()` when nothing must.
+Each proof of the nested conditions leaves the scope with its values for those
+names, and what leaving means for them -- dropping what is no longer in scope,
+restating what mentioned it, failing when it cannot be restated -- belongs in
+the scope's own `leave`, not in premises after the `scope`.
+
+Give the scope only what leaving it needs. Where some rules take values out
+and others take nothing, a scope type per case keeps a rule from supplying
+something that leaving would never read, and from omitting something it would.
+
+Keep the whole obligation inside. A premise left after the `scope` is proven
+where the scope's contents are gone, which is usually an oversight rather than
+a choice.
+
+Destructure what is inside at the `=> <pat>` site, as at any other match site.
+A match commit point `!` belongs before the `scope`, not nested in it: it
+records how far the rule got before entering.
+
 ## Make helpers fit the rules
 
 Accept `&Foo` or `impl Upcast<Foo>`. Prefer the latter when it avoids explicit

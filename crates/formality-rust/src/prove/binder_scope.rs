@@ -17,6 +17,11 @@ use formality_core::judgment::{FailureLocation, ProofTree, Scope};
 use formality_core::visit::CoreVisit;
 use formality_core::{Downcast, ProvenSet, Upcast};
 
+/// The scope of a binder's variables, entered with [`enter_universally`][]
+/// or [`enter_existentially`][]. What leaves it leaves without those
+/// variables: constraints have them popped, and a where-clause still
+/// pending on one is restated without it, then proven or deferred again
+/// outside.
 pub struct BinderScope {
     decls: Program,
     assumptions: Wcs,

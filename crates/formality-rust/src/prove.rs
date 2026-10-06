@@ -6,6 +6,8 @@
 //!
 //! * [`prove`][] -- prove a set of where-clauses to be true
 //! * [`prove_normalize`][] -- normalize a type one step (typically used in a recursive setup)
+//! * [`enter_universally`][] and [`enter_existentially`][] -- enter a binder
+//!   through a [`BinderScope`][], for the `scope` condition of a rule
 
 use crate::grammar::{Binder, Crates, Predicate, Ty, Wc, Wcs, WhereBound, WhereClause};
 use crate::rust::FormalityLang;
