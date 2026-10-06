@@ -42,7 +42,9 @@ pub mod test_util;
 mod test;
 
 pub use binder_scope::{
-    enter_existentially, enter_universally, with_variables, without_var, BinderScope,
+    enter_existentially, enter_existentially_with_constraints, enter_universally,
+    enter_universally_with_constraints, with_variables, without_var, BinderScope,
+    BinderScopeWithConstraints,
 };
 pub use constraints::{Constrained, Constraints};
 pub use decls::*;

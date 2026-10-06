@@ -45,7 +45,7 @@ judgment_fn! {
         assert(env.only_universal_variables() && env.encloses((assumptions, f)))
 
         (
-            (scope(enter_universally(program, env, assumptions, &f.binder) => (env, FnBoundData { input_args, output_ty, where_clauses, body })) with()
+            (scope(enter_universally(env, &f.binder) => (env, FnBoundData { input_args, output_ty, where_clauses, body })) with()
                 (let assumptions: Wcs = (assumptions, where_clauses).to_wcs())
                 (prove_where_clauses_well_formed(program, env, assumptions, where_clauses) => ())
                 (for_all(input_arg in input_args)

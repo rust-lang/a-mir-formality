@@ -5,7 +5,7 @@ use crate::{
 use formality_core::{judgment_fn, Downcast};
 
 use crate::prove::{
-    binder_scope::enter_existentially,
+    binder_scope::enter_existentially_with_constraints,
     combinators::zip,
     decls::{AliasEqDeclBoundData, Program},
     env::Env,
@@ -37,7 +37,7 @@ judgment_fn! {
 
         (
             (decl in decls.alias_eq_decls(&a.name))
-            (scope(enter_existentially(decls, env, assumptions, &decl.binder)
+            (scope(enter_existentially_with_constraints(decls, env, assumptions, &decl.binder)
                 => (env, AliasEqDeclBoundData { alias: AliasTy { name, parameters }, ty, where_clause })) with(ty, c)
                 (assert a.name == *name)
                 (prove(decls, env, assumptions, Wcs::all_eq(&a.parameters, &parameters)) => c)
@@ -108,7 +108,7 @@ judgment_fn! {
         // These rules handle the the ∀ and ⇒ cases.
 
         (
-            (scope(enter_existentially(decls, env, assumptions, binder) => (env, via1)) with(p, c)
+            (scope(enter_existentially_with_constraints(decls, env, assumptions, binder) => (env, via1)) with(p, c)
                 (prove_normalize_via(decls, env, assumptions, via1, goal) => Constrained(p, c)))
             ----------------------------- ("forall")
             (prove_normalize_via(decls, env, assumptions, Wc::ForAll(binder), goal) => Constrained(p, c))

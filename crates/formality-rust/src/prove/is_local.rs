@@ -166,7 +166,7 @@ judgment_fn! {
 
         // ForAll predicates: open existentially and check
         (
-            (scope(enter_existentially(decls, env, assumptions, binder) => (env, ty)) with()
+            (scope(enter_existentially(env, binder) => (env, ty)) with()
                 (may_contain_downstream_type(decls, env, assumptions, ty) => ()))
             --- ("forall")
             (may_contain_downstream_type(decls, env, assumptions,

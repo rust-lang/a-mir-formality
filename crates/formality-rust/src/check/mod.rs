@@ -230,7 +230,7 @@ judgment_fn! {
 fn check_test(program: &Program, test: &Test) -> Fallible<ProofTree> {
     // Nothing proven here is taken out of the binder, so it is never left.
     let (_, (env, TestBoundData { assumptions, goals })) =
-        enter_universally(program, Env::default(), (), &test.binder);
+        enter_universally(Env::default(), &test.binder);
     prove_goal(program, &env, assumptions, goals)
 }
 

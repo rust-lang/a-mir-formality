@@ -1,14 +1,21 @@
 //! The scope of a binder's variables, for the `scope` condition of a rule:
 //!
 //! ```ignore
-//! (scope(enter_universally(decls, env, assumptions, binder) => (env, body)) with(c)
+//! (scope(enter_universally_with_constraints(decls, env, assumptions, binder) => (env, body)) with(c)
 //!     (prove_wc(decls, env, assumptions, body) => c))
 //! ```
 //!
 //! Inside are the body of the binder, with a fresh variable for each of its
-//! variables, and the environment with those in scope. The constraints `c`
-//! come out without them: see [`BinderScope::pop`]. A rule that proves
-//! nothing to take out leaves with `with()`.
+//! variables, and the environment with those in scope.
+//!
+//! A rule that takes constraints out of the binder enters it with
+//! [`enter_universally_with_constraints`][] or
+//! [`enter_existentially_with_constraints`][]: leaving may have to prove the
+//! where-clauses that were pending on its variables, which needs the
+//! declarations and the assumptions to prove them under. A rule that proves
+//! nothing to take out enters with [`enter_universally`][] or
+//! [`enter_existentially`][] and leaves with `with()`; it cannot pass an
+//! assumption set that leaving would never use.
 
 use crate::grammar::{Binder, Lt, Parameter, Predicate, Variable, Wc, Wcs};
 use crate::prove::{constraints::Constraints, decls::Program, env::Env, prove_after::prove_after};
@@ -18,52 +25,80 @@ use formality_core::visit::CoreVisit;
 use formality_core::{Downcast, ProvenSet, Upcast};
 
 /// The scope of a binder's variables, entered with [`enter_universally`][]
-/// or [`enter_existentially`][]. What leaves it leaves without those
-/// variables: constraints have them popped, and a where-clause still
-/// pending on one is restated without it, then proven or deferred again
-/// outside.
+/// or [`enter_existentially`][]. Nothing that mentions those variables
+/// leaves it: see [`BinderScopeWithConstraints`][] for a scope that
+/// constraints leave.
 pub struct BinderScope {
-    decls: Program,
-    assumptions: Wcs,
-
     /// The fresh variables, in scope inside.
     vars: Vec<Variable>,
+}
+
+/// A [`BinderScope`][] that constraints leave, entered with
+/// [`enter_universally_with_constraints`][] or
+/// [`enter_existentially_with_constraints`][]. They leave without the
+/// binder's variables: those are popped, and a where-clause still pending
+/// on one is restated without it, then proven or deferred again outside --
+/// which is what the declarations and assumptions are for.
+pub struct BinderScopeWithConstraints {
+    scope: BinderScope,
+    decls: Program,
+    assumptions: Wcs,
 }
 
 /// Enter `binder` with fresh universal variables: what is proven inside
 /// holds for every value of the binder's variables.
 pub fn enter_universally<T: Term>(
-    decls: impl Upcast<Program>,
     env: impl Upcast<Env>,
-    assumptions: impl Upcast<Wcs>,
     binder: &Binder<T>,
 ) -> (BinderScope, (Env, T)) {
     let (env, vars) = env.upcast().universal_substitution(binder);
     let body = binder.instantiate_with(&vars).unwrap();
-    let scope = BinderScope {
-        decls: decls.upcast(),
-        assumptions: assumptions.upcast(),
-        vars: vars.upcast(),
-    };
-    (scope, (env, body))
+    (
+        BinderScope {
+            vars: vars.upcast(),
+        },
+        (env, body),
+    )
 }
 
 /// Enter `binder` with fresh existential variables: what is proven inside
 /// holds for some value of the binder's variables.
 pub fn enter_existentially<T: Term>(
-    decls: impl Upcast<Program>,
     env: impl Upcast<Env>,
-    assumptions: impl Upcast<Wcs>,
     binder: &Binder<T>,
 ) -> (BinderScope, (Env, T)) {
     let (env, vars) = env.upcast().existential_substitution(binder);
     let body = binder.instantiate_with(&vars).unwrap();
-    let scope = BinderScope {
-        decls: decls.upcast(),
-        assumptions: assumptions.upcast(),
-        vars: vars.upcast(),
-    };
-    (scope, (env, body))
+    (
+        BinderScope {
+            vars: vars.upcast(),
+        },
+        (env, body),
+    )
+}
+
+/// [`enter_universally`][], for a rule that takes constraints out of the
+/// binder.
+pub fn enter_universally_with_constraints<T: Term>(
+    decls: impl Upcast<Program>,
+    env: impl Upcast<Env>,
+    assumptions: impl Upcast<Wcs>,
+    binder: &Binder<T>,
+) -> (BinderScopeWithConstraints, (Env, T)) {
+    let (scope, inside) = enter_universally(env, binder);
+    (scope.with_constraints(decls, assumptions), inside)
+}
+
+/// [`enter_existentially`][], for a rule that takes constraints out of the
+/// binder.
+pub fn enter_existentially_with_constraints<T: Term>(
+    decls: impl Upcast<Program>,
+    env: impl Upcast<Env>,
+    assumptions: impl Upcast<Wcs>,
+    binder: &Binder<T>,
+) -> (BinderScopeWithConstraints, (Env, T)) {
+    let (scope, inside) = enter_existentially(env, binder);
+    (scope.with_constraints(decls, assumptions), inside)
 }
 
 /// `binder` with its variables alongside its body, for a rule that needs
@@ -81,14 +116,14 @@ impl Scope<()> for BinderScope {
     }
 }
 
-impl Scope<(Constraints,)> for BinderScope {
+impl Scope<(Constraints,)> for BinderScopeWithConstraints {
     fn leave(&self, (c,): (Constraints,)) -> ProvenSet<(Constraints,)> {
         self.pop(c).map(|(c, proof_tree)| ((c,), proof_tree))
     }
 }
 
 /// A value proven along with the constraints must not mention the variables.
-impl<V: Term> Scope<(V, Constraints)> for BinderScope {
+impl<V: Term> Scope<(V, Constraints)> for BinderScopeWithConstraints {
     fn leave(&self, (value, c): (V, Constraints)) -> ProvenSet<(V, Constraints)> {
         self.pop(c).map(|(c, proof_tree)| {
             assert!(c.env().encloses(&value));
@@ -103,6 +138,21 @@ impl BinderScope {
         &self.vars
     }
 
+    /// This scope, for a rule that takes constraints out of the binder.
+    fn with_constraints(
+        self,
+        decls: impl Upcast<Program>,
+        assumptions: impl Upcast<Wcs>,
+    ) -> BinderScopeWithConstraints {
+        BinderScopeWithConstraints {
+            scope: self,
+            decls: decls.upcast(),
+            assumptions: assumptions.upcast(),
+        }
+    }
+}
+
+impl BinderScopeWithConstraints {
     /// `c` without the scope's variables, and any created since, in its
     /// environment and substitution.
     ///
@@ -111,11 +161,11 @@ impl BinderScope {
     /// scope. So it is restated without the variable (`without_var`), then
     /// proven, or deferred again, outside.
     fn pop(&self, mut c: Constraints) -> ProvenSet<Constraints> {
-        let popped = c.env.variables_since(&self.vars);
+        let popped = c.env.variables_since(self.scope.vars());
 
         // The substitution may bind a variable the where-clauses mention.
         let pending = c.substitution.apply(&c.env.take_pending_on(&popped));
-        c.substitution -= c.env.pop_vars(&self.vars);
+        c.substitution -= c.env.pop_vars(self.scope.vars());
         c.assert_valid();
 
         if pending.is_empty() {
