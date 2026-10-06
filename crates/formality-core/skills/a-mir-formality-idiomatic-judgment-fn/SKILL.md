@@ -3,6 +3,7 @@ name: a-mir-formality-idiomatic-judgment-fn
 description: Write, refactor, or review judgment_fn! definitions and their helpers in any project using formality-core. Express judgments as inference rules with conclusion patterns, implicit casting, proof premises, and explicit state threading.
 ---
 
+<!-- ANCHOR: mdbook -->
 # Idiomatic formality-core judgments
 
 Make judgments read like type-system inference rules. These conventions apply to
@@ -270,3 +271,4 @@ expected rejection. Give rules descriptive labels and useful `debug(...)` inputs
   judgments, run relevant tests, including failure-output expectations when
   diagnostics change. Check that confirmation removes irrelevant noise while
   retaining the failures needed to understand an unsuccessful proof.
+<!-- ANCHOR_END: mdbook -->
