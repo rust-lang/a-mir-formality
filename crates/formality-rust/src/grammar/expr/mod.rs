@@ -21,16 +21,6 @@ pub struct Block {
     pub stmts: Vec<Stmt>,
 }
 
-/// `42_u32`
-///
-/// A scalar literal.
-#[term($value _ $ty)]
-#[customize(parse, debug)]
-pub struct Literal {
-    pub value: usize,
-    pub ty: ScalarId,
-}
-
 impl Block {
     // Used as the default else branch.
     pub fn empty() -> Self {
@@ -39,6 +29,24 @@ impl Block {
             stmts: vec![],
         }
     }
+}
+
+/// `42_u32`
+///
+/// A scalar literal.
+#[term($value _ $ty)]
+#[customize(parse, debug)]
+pub struct Literal {
+    pub value: IntegerValue,
+    pub ty: ScalarId,
+}
+
+#[term]
+pub enum IntegerValue {
+    #[grammar($v0)]
+    Signed(i128),
+    #[grammar($v0)]
+    Unsigned(u128),
 }
 
 /// An optional initializer expression, parsed as `= $expr`.

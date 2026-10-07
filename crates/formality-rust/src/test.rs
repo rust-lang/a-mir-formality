@@ -3,7 +3,7 @@
 use crate::rust::{term, try_term};
 use formality_macros::test;
 
-use crate::grammar::expr::{Expr, Literal, PlaceExpr};
+use crate::grammar::expr::{Expr, IntegerValue, Literal, PlaceExpr};
 use crate::grammar::{Crates, Fallible, ScalarId};
 
 #[test]
@@ -277,11 +277,14 @@ fn test_parse_literals() {
     let expr_data: Fallible<Expr> = try_term("0_bool");
     assert!(expr_data.is_err());
 
+    let expr_data: Fallible<Expr> = try_term("-2_u8");
+    assert!(expr_data.is_err());
+
     let expr_data: Expr = try_term("0_u8").unwrap();
     assert!(matches!(
         expr_data,
         Expr::Literal(Literal {
-            value: 0,
+            value: IntegerValue::Unsigned(0),
             ty: ScalarId::U8
         })
     ));
@@ -291,8 +294,17 @@ fn test_parse_literals() {
     assert!(matches!(
         expr_data,
         Expr::Literal(Literal {
-            value: 0,
+            value: IntegerValue::Unsigned(0),
             ty: ScalarId::U8
+        })
+    ));
+
+    let expr_data: Expr = try_term("-2_i8").unwrap();
+    assert!(matches!(
+        expr_data,
+        Expr::Literal(Literal {
+            value: IntegerValue::Signed(-2),
+            ty: ScalarId::I8
         })
     ));
 
@@ -301,4 +313,46 @@ fn test_parse_literals() {
 
     let expr_data: Expr = try_term("true").unwrap();
     assert!(matches!(expr_data, Expr::True));
+}
+
+#[test]
+fn test_parse_128_bit_integers_extreme_values() {
+    let expr_data: Expr = term("-170141183460469231731687303715884105728 _ i128");
+    assert!(matches!(
+        expr_data,
+        Expr::Literal(Literal {
+            value: IntegerValue::Signed(i128::MIN),
+            ty: ScalarId::I128
+        })
+    ));
+
+    let expr_data: Expr = term("170141183460469231731687303715884105727 _ i128");
+    assert!(matches!(
+        expr_data,
+        Expr::Literal(Literal {
+            value: IntegerValue::Signed(i128::MAX),
+            ty: ScalarId::I128
+        })
+    ));
+
+    let expr_data: Expr = term("0 _ u128");
+    assert!(matches!(
+        expr_data,
+        Expr::Literal(Literal {
+            value: IntegerValue::Unsigned(u128::MIN),
+            ty: ScalarId::U128
+        })
+    ));
+
+    let expr_data: Expr = term("340282366920938463463374607431768211455 _ u128");
+    assert!(matches!(
+        expr_data,
+        Expr::Literal(Literal {
+            value: IntegerValue::Unsigned(u128::MAX),
+            ty: ScalarId::U128
+        })
+    ));
+
+    let expr_data: Fallible<Expr> = try_term("170141183460469231731687303715884105728 _ i128");
+    assert!(expr_data.is_err());
 }

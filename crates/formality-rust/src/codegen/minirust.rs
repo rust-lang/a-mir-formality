@@ -1,7 +1,7 @@
 //! Newtypes wrapping MiniRust types, plus value/terminator constructors
 //! and type translation from formality-rust types to MiniRust types.
 
-use crate::grammar::{Crates, Fallible, Parameter, RigidName, ScalarId, Ty};
+use crate::grammar::{expr::Literal, Crates, Fallible, Parameter, RigidName, ScalarId, Ty};
 use formality_core::Upcast;
 use libspecr::hidden::GcCow;
 use libspecr::list;
@@ -76,12 +76,10 @@ impl formality_core::UpcastFrom<MiniRustLocal> for MiniRustPlace {
 // Value and terminator constructors
 // ===========================================================================
 
-pub(super) fn constant(value: &usize, ty: &ScalarId) -> MiniRustValue {
-    let mr_ty = scalar_minirust_ty(ty).expect("scalar type always valid");
-    MiniRustValue(lang::ValueExpr::Constant(
-        lang::Constant::Int(Int::from(*value)),
-        mr_ty,
-    ))
+pub(super) fn constant(literal: &Literal) -> MiniRustValue {
+    let mr_constant = literal_minirust_constant(&literal).expect("integer literal always valid");
+    let mr_ty = scalar_minirust_ty(&literal.ty).expect("scalar type always valid");
+    MiniRustValue(lang::ValueExpr::Constant(mr_constant, mr_ty))
 }
 
 pub(super) fn bool_constant(val: bool) -> MiniRustValue {
@@ -204,10 +202,12 @@ fn scalar_minirust_ty(s: &ScalarId) -> Fallible<lang::Type> {
         ScalarId::U16 => (Signedness::Unsigned, 2),
         ScalarId::U32 => (Signedness::Unsigned, 4),
         ScalarId::U64 => (Signedness::Unsigned, 8),
+        ScalarId::U128 => (Signedness::Unsigned, 16),
         ScalarId::I8 => (Signedness::Signed, 1),
         ScalarId::I16 => (Signedness::Signed, 2),
         ScalarId::I32 => (Signedness::Signed, 4),
         ScalarId::I64 => (Signedness::Signed, 8),
+        ScalarId::I128 => (Signedness::Signed, 16),
         ScalarId::Bool => return Ok(lang::Type::Bool),
         ScalarId::Usize => (Signedness::Unsigned, 8),
         ScalarId::Isize => (Signedness::Signed, 8),
@@ -215,6 +215,14 @@ fn scalar_minirust_ty(s: &ScalarId) -> Fallible<lang::Type> {
     Ok(lang::Type::Int(lang::IntType {
         signed,
         size: libspecr::Size::from_bytes_const(size),
+    }))
+}
+
+fn literal_minirust_constant(literal: &Literal) -> Fallible<lang::Constant> {
+    Ok(lang::Constant::Int(match literal.value {
+        crate::grammar::expr::IntegerValue::Signed(n) if literal.ty.is_signed() => Int::from(n),
+        crate::grammar::expr::IntegerValue::Unsigned(n) if !literal.ty.is_signed() => Int::from(n),
+        _ => anyhow::bail!("signess mismatch"),
     }))
 }
 

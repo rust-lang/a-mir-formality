@@ -476,3 +476,27 @@ fn break_from_labeled_block() {
     .expect_output("1\n3\n")
     .ok()
 }
+
+#[test]
+fn parse_and_run_with_128_bit_integers() {
+    FormalityTest::new(crates![crate test {
+        fn main() -> () {
+            let i_min: i128 = -170141183460469231731687303715884105728 _ i128;
+            let i_max: i128 = 170141183460469231731687303715884105727 _ i128;
+            let u_min: u128 = 0 _ u128;
+            let u_max: u128 = 340282366920938463463374607431768211455 _ u128;
+            println!(i_min);
+            println!(i_max);
+            println!(u_min);
+            println!(u_max);
+        }
+    }])
+    .expect_output(format!(
+        "{}\n{}\n{}\n{}\n",
+        i128::MIN,
+        i128::MAX,
+        u128::MIN,
+        u128::MAX
+    ))
+    .ok()
+}

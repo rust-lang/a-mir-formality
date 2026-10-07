@@ -135,6 +135,14 @@ impl<L: Language> CoreFold<L> for u64 {
     }
 }
 
+impl<L: Language> CoreFold<L> for u128 {
+    type Output = Self;
+
+    fn substitute(&self, _substitution_fn: SubstitutionFn<'_, L>) -> Self {
+        *self
+    }
+}
+
 impl<L: Language> CoreFold<L> for i8 {
     type Output = Self;
 
@@ -160,6 +168,14 @@ impl<L: Language> CoreFold<L> for i32 {
 }
 
 impl<L: Language> CoreFold<L> for i64 {
+    type Output = Self;
+
+    fn substitute(&self, _substitution_fn: SubstitutionFn<'_, L>) -> Self {
+        *self
+    }
+}
+
+impl<L: Language> CoreFold<L> for i128 {
     type Output = Self;
 
     fn substitute(&self, _substitution_fn: SubstitutionFn<'_, L>) -> Self {
