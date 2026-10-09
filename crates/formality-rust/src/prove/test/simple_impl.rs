@@ -1,4 +1,4 @@
-use crate::grammar::Wc;
+use crate::grammar::Goal;
 use crate::rust::term;
 use expect_test::expect;
 use formality_macros::test;
@@ -20,12 +20,12 @@ fn decls() -> Program {
 
 #[test]
 fn vec_u32_debug() {
-    let goal: Wc = term("Debug(Vec<u32>)");
+    let goal: Goal = term("Debug(Vec<u32>)");
     prove(decls(), (), (), goal).assert_ok(expect!["{Constraints { env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: false }, known_true: true, substitution: {} }}"]);
 }
 
 #[test]
 fn vec_vec_u32_debug() {
-    let goal: Wc = term("Debug(Vec<Vec<u32>>)");
+    let goal: Goal = term("Debug(Vec<Vec<u32>>)");
     prove(decls(), (), (), goal).assert_ok(expect!["{Constraints { env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: false }, known_true: true, substitution: {} }}"]);
 }

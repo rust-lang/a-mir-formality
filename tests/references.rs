@@ -17,7 +17,7 @@ fn recursive_reference_validity() {
 
                 crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Trait(!ty_0), via: !ty_0 : !lt_1, assumptions: {!ty_0 : !lt_1}, env: Env { variables: [!lt_1, !ty_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
 
-                the rule "trait implied bound" at (prove_wc.rs) failed because
+                the rule "trait implied bound" at (prove_goal.rs) failed because
                   expression evaluated to an empty collection: `decls.trait_invariants()`"#]]);
 }
 

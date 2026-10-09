@@ -4,10 +4,10 @@
 //!
 //! The base operations we export are:
 //!
-//! * [`prove`][] -- prove a set of where-clauses to be true
+//! * [`prove`][] -- prove a set of goals to be true
 //! * [`prove_normalize`][] -- normalize a type one step (typically used in a recursive setup)
 
-use crate::grammar::{Binder, Crates, Predicate, Ty, Wc, Wcs, WhereBound, WhereClause};
+use crate::grammar::{Binder, Crates, Goal, Goals, Predicate, Ty, WhereBound, WhereClause};
 use crate::rust::FormalityLang;
 use formality_core::judgment::{EachProof, FailedRule, FailureLocation, ProofTree};
 use formality_core::visit::CoreVisit;
@@ -26,12 +26,12 @@ mod negation;
 mod prove_after;
 mod prove_const_has_type;
 mod prove_eq;
+mod prove_goal;
+mod prove_goal_list;
 pub mod prove_normalize;
 mod prove_outlives;
 mod prove_sub;
 mod prove_via;
-mod prove_wc;
-mod prove_wc_list;
 mod prove_wf;
 pub mod test_util;
 
@@ -44,7 +44,7 @@ pub use env::{Bias, Env, MaxUniverse, Universe};
 pub use negation::{is_definitely_not_proveable, may_not_be_provable, negation_via_failure};
 pub use prove_normalize::prove_normalize;
 
-use self::prove_wc_list::prove_wc_list;
+use self::prove_goal_list::prove_goal_list;
 
 impl Crates {
     pub fn to_prove_decls(&self) -> Program {
@@ -60,13 +60,13 @@ impl Crates {
 pub fn prove(
     decls: impl Upcast<Program>,
     env: impl Upcast<Env>,
-    assumptions: impl Upcast<Wcs>,
-    goal: impl Upcast<Wcs>,
+    assumptions: impl Upcast<Goals>,
+    goal: impl Upcast<Goals>,
 ) -> ProvenSet<Constraints> {
     let decls: Program = decls.upcast();
     let env: Env = env.upcast();
-    let assumptions: Wcs = assumptions.upcast();
-    let goal: Wcs = goal.upcast();
+    let assumptions: Goals = assumptions.upcast();
+    let goal: Goals = goal.upcast();
 
     // "Minimize" the env/assumptions/goals so that we better detect cycles.
     let (env, (assumptions, goal), min) = minimize::minimize(env, (assumptions, goal));
@@ -98,7 +98,7 @@ pub fn prove(
     // Assert the term we are trying to prove should not have any variables that are not in the environment.
     assert!(env.encloses(term_in));
 
-    // Call `prove_wc_list` to do the real work.
+    // Call `prove_goal_list` to do the real work.
     struct ProveFailureLabel(String);
     let label = ProveFailureLabel(format!(
         "prove {{ goal: {goal:?}, assumptions: {assumptions:?}, env: {env:?}, decls: {decls:?} }}"
@@ -110,7 +110,7 @@ pub fn prove(
     }
     let mut results = map![];
     let result_set = if let Err(e) =
-        prove_wc_list(decls, &env, assumptions, goal).each_proof(|(result, proof_tree)| {
+        prove_goal_list(decls, &env, assumptions, goal).each_proof(|(result, proof_tree)| {
             results.insert(result, proof_tree);
         }) {
         ProvenSet::failed_rules(label, FailureLocation::caller(), set![FailedRule::new(e)])
@@ -131,21 +131,21 @@ pub fn prove(
     maxified
 }
 
-pub trait ToWcs {
-    fn to_wcs(&self) -> Wcs;
+pub trait ToGoals {
+    fn to_goals(&self) -> Goals;
 }
 
-impl<T: ?Sized + ToWcs> ToWcs for &T {
-    fn to_wcs(&self) -> Wcs {
-        T::to_wcs(self)
+impl<T: ?Sized + ToGoals> ToGoals for &T {
+    fn to_goals(&self) -> Goals {
+        T::to_goals(self)
     }
 }
 
-macro_rules! upcast_to_wcs {
+macro_rules! upcast_to_goals {
     ($($t:ty,)*) => {
         $(
-            impl ToWcs for $t {
-                fn to_wcs(&self) -> Wcs {
+            impl ToGoals for $t {
+                fn to_goals(&self) -> Goals {
                     self.upcast()
                 }
             }
@@ -153,60 +153,60 @@ macro_rules! upcast_to_wcs {
     }
 }
 
-upcast_to_wcs! {
-    Wc,
-    Wcs,
+upcast_to_goals! {
+    Goal,
+    Goals,
     Predicate,
 }
 
-impl ToWcs for () {
-    fn to_wcs(&self) -> Wcs {
-        Wcs::t()
+impl ToGoals for () {
+    fn to_goals(&self) -> Goals {
+        Goals::t()
     }
 }
 
-impl<A, B> ToWcs for (A, B)
+impl<A, B> ToGoals for (A, B)
 where
-    A: ToWcs,
-    B: ToWcs,
+    A: ToGoals,
+    B: ToGoals,
 {
-    fn to_wcs(&self) -> Wcs {
+    fn to_goals(&self) -> Goals {
         let (a, b) = self;
-        let a = a.to_wcs();
-        let b = b.to_wcs();
+        let a = a.to_goals();
+        let b = b.to_goals();
         (a, b).upcast()
     }
 }
 
-impl<A, B, C> ToWcs for (A, B, C)
+impl<A, B, C> ToGoals for (A, B, C)
 where
-    A: ToWcs,
-    B: ToWcs,
-    C: ToWcs,
+    A: ToGoals,
+    B: ToGoals,
+    C: ToGoals,
 {
-    fn to_wcs(&self) -> Wcs {
+    fn to_goals(&self) -> Goals {
         let (a, b, c) = self;
-        let a = a.to_wcs();
-        let b = b.to_wcs();
-        let c = c.to_wcs();
+        let a = a.to_goals();
+        let b = b.to_goals();
+        let c = c.to_goals();
         (a, b, c).upcast()
     }
 }
 
-impl ToWcs for Vec<WhereClause> {
-    fn to_wcs(&self) -> Wcs {
-        self.iter().flat_map(|wc| wc.to_wcs()).collect()
+impl ToGoals for Vec<WhereClause> {
+    fn to_goals(&self) -> Goals {
+        self.iter().flat_map(|wc| wc.to_goals()).collect()
     }
 }
 
-impl ToWcs for [WhereClause] {
-    fn to_wcs(&self) -> Wcs {
-        self.iter().flat_map(|wc| wc.to_wcs()).collect()
+impl ToGoals for [WhereClause] {
+    fn to_goals(&self) -> Goals {
+        self.iter().flat_map(|wc| wc.to_goals()).collect()
     }
 }
 
-impl ToWcs for WhereClause {
-    fn to_wcs(&self) -> Wcs {
+impl ToGoals for WhereClause {
+    fn to_goals(&self) -> Goals {
         match self {
             WhereClause::IsImplemented(self_ty, trait_id, parameters) => {
                 trait_id.with(self_ty, parameters).upcast()
@@ -217,9 +217,9 @@ impl ToWcs for WhereClause {
             WhereClause::Outlives(a, b) => Predicate::outlives(a, b).upcast(),
             WhereClause::ForAll(binder) => {
                 let (vars, wc) = binder.open();
-                wc.to_wcs()
+                wc.to_goals()
                     .into_iter()
-                    .map(|wc| Wc::for_all(Binder::new(&vars, wc)))
+                    .map(|goal| Goal::for_all(Binder::new(&vars, goal)))
                     .collect()
             }
             WhereClause::TypeOfConst(ct, ty) => {
@@ -230,7 +230,7 @@ impl ToWcs for WhereClause {
 }
 
 impl WhereBound {
-    pub fn to_wc(&self, self_ty: impl Upcast<Ty>) -> Wc {
+    pub fn to_goal(&self, self_ty: impl Upcast<Ty>) -> Goal {
         let self_ty: Ty = self_ty.upcast();
 
         match self {
@@ -240,7 +240,7 @@ impl WhereBound {
             WhereBound::Outlives(lt) => Predicate::outlives(self_ty, lt).upcast(),
             WhereBound::ForAll(binder) => {
                 let (vars, bound) = binder.open();
-                Wc::for_all(Binder::new(&vars, bound.to_wc(self_ty)))
+                Goal::for_all(Binder::new(&vars, bound.to_goal(self_ty)))
             }
         }
     }

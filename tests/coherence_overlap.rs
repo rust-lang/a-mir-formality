@@ -61,14 +61,14 @@ fn test_overlap_normalize_alias_to_LocalType() {
                           the rule "inverted" at (coherence.rs) failed because
                             judgment `prove { goal: {! Iterator(!ty_0)}, assumptions: {!ty_0 = <LocalType as Mirror>::T, Iterator(!ty_0)}, env: Env { variables: [!ty_0], bias: Soundness, pending: [], allow_pending_outlives: false }, decls: program([crate core { trait Iterator <ty> { } trait Mirror <ty> { type T : [] ; } impl <ty> Mirror for ^ty0_0 { type T = ^ty1_0 ; } struct LocalType { } trait LocalTrait <ty> { } impl <ty> LocalTrait for ^ty0_0 where ^ty0_0 : Iterator { } impl LocalTrait for <LocalType as Mirror>::T { } impl Iterator for LocalType { } }], 222) }` failed at the following rule(s):
                               failed at (function.rs) because
-                                judgment `prove_wc_list { goals: {! Iterator(!ty_0)}, assumptions: {!ty_0 = <LocalType as Mirror>::T, Iterator(!ty_0)}, env: Env { variables: [!ty_0], bias: Soundness, pending: [], allow_pending_outlives: false } }` failed at the following rule(s):
-                                  the rule "some" at (prove_wc_list.rs) failed because
-                                    judgment `prove_wc { goal: ! Iterator(!ty_0), assumptions: {!ty_0 = <LocalType as Mirror>::T, Iterator(!ty_0)}, env: Env { variables: [!ty_0], bias: Soundness, pending: [], allow_pending_outlives: false } }` failed at the following rule(s):
-                                      the rule "assumption" at (prove_wc.rs) failed because
+                                judgment `prove_goal_list { goals: {! Iterator(!ty_0)}, assumptions: {!ty_0 = <LocalType as Mirror>::T, Iterator(!ty_0)}, env: Env { variables: [!ty_0], bias: Soundness, pending: [], allow_pending_outlives: false } }` failed at the following rule(s):
+                                  the rule "some" at (prove_goal_list.rs) failed because
+                                    judgment `prove_goal { goal: ! Iterator(!ty_0), assumptions: {!ty_0 = <LocalType as Mirror>::T, Iterator(!ty_0)}, env: Env { variables: [!ty_0], bias: Soundness, pending: [], allow_pending_outlives: false } }` failed at the following rule(s):
+                                      the rule "assumption" at (prove_goal.rs) failed because
                                         crates/formality-rust/src/prove/prove_via.rs:8:1: judgment had no applicable rules: `prove_via { goal: ! Iterator(!ty_0), via: !ty_0 = <LocalType as Mirror>::T, assumptions: {!ty_0 = <LocalType as Mirror>::T, Iterator(!ty_0)}, env: Env { variables: [!ty_0], bias: Soundness, pending: [], allow_pending_outlives: false } }`
-                                      the rule "assumption" at (prove_wc.rs) failed because
+                                      the rule "assumption" at (prove_goal.rs) failed because
                                         crates/formality-rust/src/prove/prove_via.rs:8:1: judgment had no applicable rules: `prove_via { goal: ! Iterator(!ty_0), via: Iterator(!ty_0), assumptions: {!ty_0 = <LocalType as Mirror>::T, Iterator(!ty_0)}, env: Env { variables: [!ty_0], bias: Soundness, pending: [], allow_pending_outlives: false } }`
-                                      the rule "negative impl" at (prove_wc.rs) failed because
+                                      the rule "negative impl" at (prove_goal.rs) failed because
                                         expression evaluated to an empty collection: `decls.neg_impl_decls(&trait_ref.trait_id)`
                           the rule "not goal" at (coherence.rs) failed because
                             failed to prove {!ty_1 = <LocalType as Mirror>::T, Iterator(!ty_1)} given {}, got [Constraints { env: Env { variables: [!ty_1], bias: Soundness, pending: [], allow_pending_outlives: false }, known_true: false, substitution: {} }]
@@ -129,30 +129,30 @@ fn test_overlap_alias_not_normalizable() {
                       the rule "inverted" at (coherence.rs) failed because
                         judgment `prove { goal: {! Iterator(!ty_0)}, assumptions: {!ty_0 = <!ty_1 as Mirror>::T, Iterator(!ty_0), Mirror(!ty_1)}, env: Env { variables: [!ty_0, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false }, decls: program([crate core { trait Iterator <ty> { } trait Mirror <ty> { type T : [] ; } impl <ty> Mirror for ^ty0_0 { type T = ^ty1_0 ; } struct LocalType { } trait LocalTrait <ty> { } impl <ty> LocalTrait for ^ty0_0 where ^ty0_0 : Iterator { } impl <ty> LocalTrait for <^ty0_0 as Mirror>::T where ^ty0_0 : Mirror { } }], 222) }` failed at the following rule(s):
                           failed at (function.rs) because
-                            judgment `prove_wc_list { goals: {! Iterator(!ty_0)}, assumptions: {!ty_0 = <!ty_1 as Mirror>::T, Iterator(!ty_0), Mirror(!ty_1)}, env: Env { variables: [!ty_0, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false } }` failed at the following rule(s):
-                              the rule "some" at (prove_wc_list.rs) failed because
-                                judgment `prove_wc { goal: ! Iterator(!ty_0), assumptions: {!ty_0 = <!ty_1 as Mirror>::T, Iterator(!ty_0), Mirror(!ty_1)}, env: Env { variables: [!ty_0, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false } }` failed at the following rule(s):
-                                  the rule "assumption" at (prove_wc.rs) failed because
+                            judgment `prove_goal_list { goals: {! Iterator(!ty_0)}, assumptions: {!ty_0 = <!ty_1 as Mirror>::T, Iterator(!ty_0), Mirror(!ty_1)}, env: Env { variables: [!ty_0, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false } }` failed at the following rule(s):
+                              the rule "some" at (prove_goal_list.rs) failed because
+                                judgment `prove_goal { goal: ! Iterator(!ty_0), assumptions: {!ty_0 = <!ty_1 as Mirror>::T, Iterator(!ty_0), Mirror(!ty_1)}, env: Env { variables: [!ty_0, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false } }` failed at the following rule(s):
+                                  the rule "assumption" at (prove_goal.rs) failed because
                                     crates/formality-rust/src/prove/prove_via.rs:8:1: judgment had no applicable rules: `prove_via { goal: ! Iterator(!ty_0), via: !ty_0 = <!ty_1 as Mirror>::T, assumptions: {!ty_0 = <!ty_1 as Mirror>::T, Iterator(!ty_0), Mirror(!ty_1)}, env: Env { variables: [!ty_0, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false } }`
-                                  the rule "assumption" at (prove_wc.rs) failed because
+                                  the rule "assumption" at (prove_goal.rs) failed because
                                     crates/formality-rust/src/prove/prove_via.rs:8:1: judgment had no applicable rules: `prove_via { goal: ! Iterator(!ty_0), via: Iterator(!ty_0), assumptions: {!ty_0 = <!ty_1 as Mirror>::T, Iterator(!ty_0), Mirror(!ty_1)}, env: Env { variables: [!ty_0, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false } }`
-                                  the rule "assumption" at (prove_wc.rs) failed because
+                                  the rule "assumption" at (prove_goal.rs) failed because
                                     crates/formality-rust/src/prove/prove_via.rs:8:1: judgment had no applicable rules: `prove_via { goal: ! Iterator(!ty_0), via: Mirror(!ty_1), assumptions: {!ty_0 = <!ty_1 as Mirror>::T, Iterator(!ty_0), Mirror(!ty_1)}, env: Env { variables: [!ty_0, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false } }`
-                                  the rule "negative impl" at (prove_wc.rs) failed because
+                                  the rule "negative impl" at (prove_goal.rs) failed because
                                     expression evaluated to an empty collection: `decls.neg_impl_decls(&trait_ref.trait_id)`
                       the rule "inverted" at (coherence.rs) failed because
                         judgment `prove { goal: {! Mirror(!ty_1)}, assumptions: {!ty_0 = <!ty_1 as Mirror>::T, Iterator(!ty_0), Mirror(!ty_1)}, env: Env { variables: [!ty_0, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false }, decls: program([crate core { trait Iterator <ty> { } trait Mirror <ty> { type T : [] ; } impl <ty> Mirror for ^ty0_0 { type T = ^ty1_0 ; } struct LocalType { } trait LocalTrait <ty> { } impl <ty> LocalTrait for ^ty0_0 where ^ty0_0 : Iterator { } impl <ty> LocalTrait for <^ty0_0 as Mirror>::T where ^ty0_0 : Mirror { } }], 222) }` failed at the following rule(s):
                           failed at (function.rs) because
-                            judgment `prove_wc_list { goals: {! Mirror(!ty_1)}, assumptions: {!ty_0 = <!ty_1 as Mirror>::T, Iterator(!ty_0), Mirror(!ty_1)}, env: Env { variables: [!ty_0, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false } }` failed at the following rule(s):
-                              the rule "some" at (prove_wc_list.rs) failed because
-                                judgment `prove_wc { goal: ! Mirror(!ty_1), assumptions: {!ty_0 = <!ty_1 as Mirror>::T, Iterator(!ty_0), Mirror(!ty_1)}, env: Env { variables: [!ty_0, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false } }` failed at the following rule(s):
-                                  the rule "assumption" at (prove_wc.rs) failed because
+                            judgment `prove_goal_list { goals: {! Mirror(!ty_1)}, assumptions: {!ty_0 = <!ty_1 as Mirror>::T, Iterator(!ty_0), Mirror(!ty_1)}, env: Env { variables: [!ty_0, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false } }` failed at the following rule(s):
+                              the rule "some" at (prove_goal_list.rs) failed because
+                                judgment `prove_goal { goal: ! Mirror(!ty_1), assumptions: {!ty_0 = <!ty_1 as Mirror>::T, Iterator(!ty_0), Mirror(!ty_1)}, env: Env { variables: [!ty_0, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false } }` failed at the following rule(s):
+                                  the rule "assumption" at (prove_goal.rs) failed because
                                     crates/formality-rust/src/prove/prove_via.rs:8:1: judgment had no applicable rules: `prove_via { goal: ! Mirror(!ty_1), via: !ty_0 = <!ty_1 as Mirror>::T, assumptions: {!ty_0 = <!ty_1 as Mirror>::T, Iterator(!ty_0), Mirror(!ty_1)}, env: Env { variables: [!ty_0, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false } }`
-                                  the rule "assumption" at (prove_wc.rs) failed because
+                                  the rule "assumption" at (prove_goal.rs) failed because
                                     crates/formality-rust/src/prove/prove_via.rs:8:1: judgment had no applicable rules: `prove_via { goal: ! Mirror(!ty_1), via: Iterator(!ty_0), assumptions: {!ty_0 = <!ty_1 as Mirror>::T, Iterator(!ty_0), Mirror(!ty_1)}, env: Env { variables: [!ty_0, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false } }`
-                                  the rule "assumption" at (prove_wc.rs) failed because
+                                  the rule "assumption" at (prove_goal.rs) failed because
                                     crates/formality-rust/src/prove/prove_via.rs:8:1: judgment had no applicable rules: `prove_via { goal: ! Mirror(!ty_1), via: Mirror(!ty_1), assumptions: {!ty_0 = <!ty_1 as Mirror>::T, Iterator(!ty_0), Mirror(!ty_1)}, env: Env { variables: [!ty_0, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false } }`
-                                  the rule "negative impl" at (prove_wc.rs) failed because
+                                  the rule "negative impl" at (prove_goal.rs) failed because
                                     expression evaluated to an empty collection: `decls.neg_impl_decls(&trait_ref.trait_id)`
                       the rule "not goal" at (coherence.rs) failed because
                         failed to prove {!ty_1 = <!ty_2 as Mirror>::T, Iterator(!ty_1), Mirror(!ty_2)} given {}, got [Constraints { env: Env { variables: [!ty_1, !ty_2], bias: Soundness, pending: [], allow_pending_outlives: false }, known_true: false, substitution: {} }]
@@ -176,30 +176,30 @@ fn test_overlap_alias_not_normalizable() {
                       the rule "inverted" at (coherence.rs) failed because
                         judgment `prove { goal: {! Iterator(!ty_0)}, assumptions: {!ty_0 = <!ty_1 as Mirror>::T, Iterator(!ty_0), Mirror(!ty_1)}, env: Env { variables: [!ty_0, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false }, decls: program([crate core { trait Iterator <ty> { } trait Mirror <ty> { type T : [] ; } impl <ty> Mirror for ^ty0_0 { type T = ^ty1_0 ; } struct LocalType { } trait LocalTrait <ty> { } impl <ty> LocalTrait for ^ty0_0 where ^ty0_0 : Iterator { } impl <ty> LocalTrait for <^ty0_0 as Mirror>::T where ^ty0_0 : Mirror { } impl Iterator for u32 { } }], 222) }` failed at the following rule(s):
                           failed at (function.rs) because
-                            judgment `prove_wc_list { goals: {! Iterator(!ty_0)}, assumptions: {!ty_0 = <!ty_1 as Mirror>::T, Iterator(!ty_0), Mirror(!ty_1)}, env: Env { variables: [!ty_0, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false } }` failed at the following rule(s):
-                              the rule "some" at (prove_wc_list.rs) failed because
-                                judgment `prove_wc { goal: ! Iterator(!ty_0), assumptions: {!ty_0 = <!ty_1 as Mirror>::T, Iterator(!ty_0), Mirror(!ty_1)}, env: Env { variables: [!ty_0, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false } }` failed at the following rule(s):
-                                  the rule "assumption" at (prove_wc.rs) failed because
+                            judgment `prove_goal_list { goals: {! Iterator(!ty_0)}, assumptions: {!ty_0 = <!ty_1 as Mirror>::T, Iterator(!ty_0), Mirror(!ty_1)}, env: Env { variables: [!ty_0, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false } }` failed at the following rule(s):
+                              the rule "some" at (prove_goal_list.rs) failed because
+                                judgment `prove_goal { goal: ! Iterator(!ty_0), assumptions: {!ty_0 = <!ty_1 as Mirror>::T, Iterator(!ty_0), Mirror(!ty_1)}, env: Env { variables: [!ty_0, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false } }` failed at the following rule(s):
+                                  the rule "assumption" at (prove_goal.rs) failed because
                                     crates/formality-rust/src/prove/prove_via.rs:8:1: judgment had no applicable rules: `prove_via { goal: ! Iterator(!ty_0), via: !ty_0 = <!ty_1 as Mirror>::T, assumptions: {!ty_0 = <!ty_1 as Mirror>::T, Iterator(!ty_0), Mirror(!ty_1)}, env: Env { variables: [!ty_0, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false } }`
-                                  the rule "assumption" at (prove_wc.rs) failed because
+                                  the rule "assumption" at (prove_goal.rs) failed because
                                     crates/formality-rust/src/prove/prove_via.rs:8:1: judgment had no applicable rules: `prove_via { goal: ! Iterator(!ty_0), via: Iterator(!ty_0), assumptions: {!ty_0 = <!ty_1 as Mirror>::T, Iterator(!ty_0), Mirror(!ty_1)}, env: Env { variables: [!ty_0, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false } }`
-                                  the rule "assumption" at (prove_wc.rs) failed because
+                                  the rule "assumption" at (prove_goal.rs) failed because
                                     crates/formality-rust/src/prove/prove_via.rs:8:1: judgment had no applicable rules: `prove_via { goal: ! Iterator(!ty_0), via: Mirror(!ty_1), assumptions: {!ty_0 = <!ty_1 as Mirror>::T, Iterator(!ty_0), Mirror(!ty_1)}, env: Env { variables: [!ty_0, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false } }`
-                                  the rule "negative impl" at (prove_wc.rs) failed because
+                                  the rule "negative impl" at (prove_goal.rs) failed because
                                     expression evaluated to an empty collection: `decls.neg_impl_decls(&trait_ref.trait_id)`
                       the rule "inverted" at (coherence.rs) failed because
                         judgment `prove { goal: {! Mirror(!ty_1)}, assumptions: {!ty_0 = <!ty_1 as Mirror>::T, Iterator(!ty_0), Mirror(!ty_1)}, env: Env { variables: [!ty_0, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false }, decls: program([crate core { trait Iterator <ty> { } trait Mirror <ty> { type T : [] ; } impl <ty> Mirror for ^ty0_0 { type T = ^ty1_0 ; } struct LocalType { } trait LocalTrait <ty> { } impl <ty> LocalTrait for ^ty0_0 where ^ty0_0 : Iterator { } impl <ty> LocalTrait for <^ty0_0 as Mirror>::T where ^ty0_0 : Mirror { } impl Iterator for u32 { } }], 222) }` failed at the following rule(s):
                           failed at (function.rs) because
-                            judgment `prove_wc_list { goals: {! Mirror(!ty_1)}, assumptions: {!ty_0 = <!ty_1 as Mirror>::T, Iterator(!ty_0), Mirror(!ty_1)}, env: Env { variables: [!ty_0, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false } }` failed at the following rule(s):
-                              the rule "some" at (prove_wc_list.rs) failed because
-                                judgment `prove_wc { goal: ! Mirror(!ty_1), assumptions: {!ty_0 = <!ty_1 as Mirror>::T, Iterator(!ty_0), Mirror(!ty_1)}, env: Env { variables: [!ty_0, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false } }` failed at the following rule(s):
-                                  the rule "assumption" at (prove_wc.rs) failed because
+                            judgment `prove_goal_list { goals: {! Mirror(!ty_1)}, assumptions: {!ty_0 = <!ty_1 as Mirror>::T, Iterator(!ty_0), Mirror(!ty_1)}, env: Env { variables: [!ty_0, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false } }` failed at the following rule(s):
+                              the rule "some" at (prove_goal_list.rs) failed because
+                                judgment `prove_goal { goal: ! Mirror(!ty_1), assumptions: {!ty_0 = <!ty_1 as Mirror>::T, Iterator(!ty_0), Mirror(!ty_1)}, env: Env { variables: [!ty_0, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false } }` failed at the following rule(s):
+                                  the rule "assumption" at (prove_goal.rs) failed because
                                     crates/formality-rust/src/prove/prove_via.rs:8:1: judgment had no applicable rules: `prove_via { goal: ! Mirror(!ty_1), via: !ty_0 = <!ty_1 as Mirror>::T, assumptions: {!ty_0 = <!ty_1 as Mirror>::T, Iterator(!ty_0), Mirror(!ty_1)}, env: Env { variables: [!ty_0, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false } }`
-                                  the rule "assumption" at (prove_wc.rs) failed because
+                                  the rule "assumption" at (prove_goal.rs) failed because
                                     crates/formality-rust/src/prove/prove_via.rs:8:1: judgment had no applicable rules: `prove_via { goal: ! Mirror(!ty_1), via: Iterator(!ty_0), assumptions: {!ty_0 = <!ty_1 as Mirror>::T, Iterator(!ty_0), Mirror(!ty_1)}, env: Env { variables: [!ty_0, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false } }`
-                                  the rule "assumption" at (prove_wc.rs) failed because
+                                  the rule "assumption" at (prove_goal.rs) failed because
                                     crates/formality-rust/src/prove/prove_via.rs:8:1: judgment had no applicable rules: `prove_via { goal: ! Mirror(!ty_1), via: Mirror(!ty_1), assumptions: {!ty_0 = <!ty_1 as Mirror>::T, Iterator(!ty_0), Mirror(!ty_1)}, env: Env { variables: [!ty_0, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false } }`
-                                  the rule "negative impl" at (prove_wc.rs) failed because
+                                  the rule "negative impl" at (prove_goal.rs) failed because
                                     expression evaluated to an empty collection: `decls.neg_impl_decls(&trait_ref.trait_id)`
                       the rule "not goal" at (coherence.rs) failed because
                         failed to prove {!ty_1 = <!ty_2 as Mirror>::T, Iterator(!ty_1), Mirror(!ty_2)} given {}, got [Constraints { env: Env { variables: [!ty_1, !ty_2], bias: Soundness, pending: [], allow_pending_outlives: false }, known_true: false, substitution: {} }]
@@ -256,7 +256,7 @@ fn foo_crate_cannot_assume_CoreStruct_does_not_impl_CoreTrait() {
 
         crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: ! CoreTrait(!ty_0), via: CoreTrait(!ty_0), assumptions: {!ty_0 = CoreStruct, CoreTrait(!ty_0)}, env: Env { variables: [!ty_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
 
-        the rule "negative impl" at (prove_wc.rs) failed because
+        the rule "negative impl" at (prove_goal.rs) failed because
           expression evaluated to an empty collection: `decls.neg_impl_decls(&trait_ref.trait_id)`
 
         the rule "not goal" at (coherence.rs) failed because
@@ -297,7 +297,7 @@ fn u32_T_where_T_Is_impls() {
 
         crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: ! Is(!ty_0), via: u32 = !ty_0, assumptions: {u32 = !ty_0, Is(!ty_0)}, env: Env { variables: [!ty_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
 
-        the rule "negative impl" at (prove_wc.rs) failed because
+        the rule "negative impl" at (prove_goal.rs) failed because
           expression evaluated to an empty collection: `decls.neg_impl_decls(&trait_ref.trait_id)`
 
         the rule "not goal" at (coherence.rs) failed because
@@ -387,7 +387,7 @@ fn T_and_T_bar() {
 
         crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: ! Bar(!ty_1), via: Bar(!ty_1), assumptions: {!ty_0 = !ty_1, Bar(!ty_1)}, env: Env { variables: [!ty_0, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
 
-        the rule "negative impl" at (prove_wc.rs) failed because
+        the rule "negative impl" at (prove_goal.rs) failed because
           expression evaluated to an empty collection: `decls.neg_impl_decls(&trait_ref.trait_id)`
 
         the rule "not goal" at (coherence.rs) failed because
@@ -420,7 +420,7 @@ fn T_and_Local_Bar_T() {
 
         crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: ! Bar(LocalType, !ty_1), via: Bar(LocalType, !ty_1), assumptions: {!ty_0 = !ty_1, Bar(LocalType, !ty_1)}, env: Env { variables: [!ty_0, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
 
-        the rule "negative impl" at (prove_wc.rs) failed because
+        the rule "negative impl" at (prove_goal.rs) failed because
           expression evaluated to an empty collection: `decls.neg_impl_decls(&trait_ref.trait_id)`
 
         the rule "not goal" at (coherence.rs) failed because
@@ -491,7 +491,7 @@ fn is_local_with_unconstrained_self_ty_blanket_impl() {
 
                 crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: ! Foo(<!ty_0 as Project>::Assoc, !ty_2), via: Foo(<!ty_0 as Project>::Assoc, !ty_2), assumptions: {!ty_0 = !ty_1, !ty_2 = LocalType, Foo(<!ty_0 as Project>::Assoc, !ty_2)}, env: Env { variables: [!ty_0, !ty_2, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
 
-                the rule "negative impl" at (prove_wc.rs) failed because
+                the rule "negative impl" at (prove_goal.rs) failed because
                   expression evaluated to an empty collection: `decls.neg_impl_decls(&trait_ref.trait_id)`
 
                 the rule "not goal" at (coherence.rs) failed because

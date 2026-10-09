@@ -1,4 +1,4 @@
-use crate::grammar::{Binder, Wcs};
+use crate::grammar::{Binder, Goals};
 use crate::prove::Bias;
 use formality_core::ProvenSet;
 use formality_macros::term;
@@ -14,7 +14,7 @@ pub enum TestAssertionPart {
     #[grammar(exists $v0)]
     Exists(Binder<Arc<TestAssertionPart>>),
     #[grammar($v0 => $v1)]
-    Prove(Wcs, Wcs),
+    Prove(Goals, Goals),
 }
 
 #[term]
