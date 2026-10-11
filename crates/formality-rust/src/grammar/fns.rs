@@ -1,4 +1,4 @@
-use crate::grammar::expr::Block;
+use crate::grammar::expr::{Block, Mutability};
 use crate::grammar::{Binder, Ty, ValueId, WhereClause};
 use crate::prove::Safety;
 use formality_core::term;
@@ -18,8 +18,9 @@ pub struct FnBoundData {
     pub body: MaybeFnBody,
 }
 
-#[term($id : $ty)]
+#[term($mutability $id : $ty)]
 pub struct InputArg {
+    pub mutability: Mutability,
     pub id: ValueId,
     pub ty: Ty,
 }

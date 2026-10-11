@@ -40,7 +40,7 @@ fn let_bindings() {
 fn assignment() {
     FormalityTest::new(crates![crate test {
         fn main() -> () {
-            let x: i32 = 1_i32;
+            let mut x: i32 = 1_i32;
             x = 2 _ i32;
             println!(x);
         }
@@ -360,7 +360,7 @@ fn if_else_inside_loop_with_breaks() {
 fn multiple_breaks_same_label() {
     FormalityTest::new(crates![crate test {
         fn main() -> () {
-            let x: i32 = 0_i32;
+            let mut x: i32 = 0_i32;
             'a: loop {
                 if false {
                     x = 1_i32;
@@ -431,7 +431,7 @@ fn exists_with_lifetime_parameterized_type() {
 fn return_from_inside_loop() {
     FormalityTest::new(crates![crate test {
         fn main() -> () {
-            let x: i32 = 0_i32;
+            let mut x: i32 = 0_i32;
             'a: loop {
                 x = 77_i32;
                 break 'a;
@@ -447,7 +447,7 @@ fn return_from_inside_loop() {
 fn return_from_nested_block_inside_loop() {
     FormalityTest::new(crates![crate test {
         fn main() -> () {
-            let x: i32 = 0_i32;
+            let mut x: i32 = 0_i32;
             'a: loop {
                 {
                     x = 88_i32;

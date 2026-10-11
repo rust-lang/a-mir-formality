@@ -2,7 +2,10 @@
 
 use crate::check::borrow_check::env::TypeckEnv;
 use crate::check::borrow_check::flow_state::FlowState;
-use crate::grammar::{expr::LabelId, Crates, Fallible, Parameter, Ty, ValueId, Wcs};
+use crate::grammar::{
+    expr::{LabelId, Mutability},
+    Crates, Fallible, Parameter, Ty, ValueId, Wcs,
+};
 use crate::prove::{Env, Program};
 use formality_core::Upcast;
 use libspecr::prelude::Map;
@@ -236,14 +239,15 @@ impl CodegenScope {
         id: impl Upcast<ValueId>,
         local: impl Upcast<MiniRustLocal>,
         ty: impl Upcast<Ty>,
+        mutability: &Mutability,
     ) -> Fallible<Self> {
         let id: ValueId = id.upcast();
         let local: MiniRustLocal = local.upcast();
         let ty: Ty = ty.upcast();
         let mut s = self.clone();
-        s.flow_state = s
-            .flow_state
-            .with_local_in_scope(&Env::default(), &None, &id, &ty)?;
+        s.flow_state =
+            s.flow_state
+                .with_local_in_scope(&Env::default(), &None, mutability, &id, &ty)?;
         s.vars.push((id, local, ty));
         Ok(s)
     }

@@ -3,7 +3,7 @@
 use crate::rust::{term, try_term};
 use formality_macros::test;
 
-use crate::grammar::expr::{Expr, Literal, PlaceExpr};
+use crate::grammar::expr::{Expr, Literal, PlaceExpr, Stmt};
 use crate::grammar::{Crates, Fallible, ScalarId};
 
 #[test]
@@ -301,4 +301,35 @@ fn test_parse_literals() {
 
     let expr_data: Expr = try_term("true").unwrap();
     assert!(matches!(expr_data, Expr::True));
+}
+
+#[test]
+fn test_let_statement_mutability() {
+    let p: Stmt = term("let mut b: u32;");
+    expect_test::expect![[r#"
+        Let {
+            mutability: Mut,
+            label: None,
+            id: b,
+            ty: RigidTy(
+                u32,
+            ),
+            init: None,
+        }
+    "#]]
+    .assert_debug_eq(&p);
+
+    let p: Stmt = term("let b: u32;");
+    expect_test::expect![[r#"
+        Let {
+            mutability: Not,
+            label: None,
+            id: b,
+            ty: RigidTy(
+                u32,
+            ),
+            init: None,
+        }
+    "#]]
+    .assert_debug_eq(&p);
 }
