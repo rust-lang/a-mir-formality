@@ -221,9 +221,8 @@ fn scalar_minirust_ty(s: &ScalarId) -> Fallible<lang::Type> {
 
 fn literal_minirust_constant(literal: &Literal) -> Fallible<lang::Constant> {
     Ok(lang::Constant::Int(match literal.value {
-        crate::grammar::expr::IntegerValue::Signed(n) if literal.ty.is_signed() => Int::from(n),
-        crate::grammar::expr::IntegerValue::Unsigned(n) if !literal.ty.is_signed() => Int::from(n),
-        _ => anyhow::bail!("signess mismatch"),
+        crate::grammar::expr::IntegerValue::Signed(n) => Int::from(n),
+        crate::grammar::expr::IntegerValue::Unsigned(n) => Int::from(n),
     }))
 }
 
