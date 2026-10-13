@@ -34,13 +34,25 @@ pub enum FormalitySpecSymbol {
     Delimeter { text: char },
 }
 
+/// The token that gates a [`FieldMode::Guarded`] field. It is parsed only if
+/// the guard is present in the input.
+#[derive(Debug)]
+pub enum Guard {
+    /// A keyword guard, e.g. the `where` in `$:where $,where_clauses`.
+    Keyword(Ident),
+
+    /// A run of punctuation, e.g. the `->` in `$:-> $output_ty`.
+    Operator(String),
+}
+
 #[derive(Debug)]
 pub enum FieldMode {
     /// $x -- just parse `x`
     Single,
 
-    /// $:ident $nt -- try to parse `ident` and, if present, parse `$nt`
-    Guarded { guard: Ident, mode: Arc<FieldMode> },
+    /// $:ident $nt -- try to parse the guard (a keyword like `where` or an
+    /// operator like `->`) and, if present, parse `$nt`; otherwise use `Default`.
+    Guarded { guard: Guard, mode: Arc<FieldMode> },
 
     /// $<x> -- `x` is a `Vec<E>`, parse `<E0,...,En>`
     /// $[x] -- `x` is a `Vec<E>`, parse `[E0,...,En]`
@@ -229,12 +241,37 @@ fn parse_variable_binding(
         guard_token: TokenTree,
         tokens: &mut Peekable<impl Iterator<Item = TokenTree>>,
     ) -> syn::Result<FormalitySpecSymbol> {
-        // The next token should be an identifier
-        let Some(TokenTree::Ident(guard_ident)) = tokens.next() else {
-            return error(
-                &guard_token,
-                "expected an identifier after a `:` in a field reference",
-            );
+        // The guard is either a single keyword identifier (e.g. `where`) or a
+        // run of punctuation (e.g. `->`). It is terminated by the `$` that
+        // begins the guarded field reference.
+        let guard = match tokens.peek() {
+            Some(TokenTree::Ident(_)) => {
+                let Some(TokenTree::Ident(guard_ident)) = tokens.next() else {
+                    unreachable!()
+                };
+                Guard::Keyword(guard_ident)
+            }
+
+            Some(TokenTree::Punct(punct)) if punct.as_char() != '$' => {
+                let mut operator = String::new();
+                while let Some(TokenTree::Punct(punct)) = tokens.peek() {
+                    let ch = punct.as_char();
+                    // The `$` that introduces the guarded field ends the guard.
+                    if ch == '$' {
+                        break;
+                    }
+                    operator.push(ch);
+                    tokens.next();
+                }
+                Guard::Operator(operator)
+            }
+
+            _ => {
+                return error(
+                    &guard_token,
+                    "expected an identifier or operator after a `:` in a field reference",
+                );
+            }
         };
 
         // The next token should be a `$`, beginning another variable binding
@@ -262,7 +299,7 @@ fn parse_variable_binding(
         };
 
         let guard_mode = FieldMode::Guarded {
-            guard: guard_ident,
+            guard,
             mode: Arc::new(mode),
         };
 
