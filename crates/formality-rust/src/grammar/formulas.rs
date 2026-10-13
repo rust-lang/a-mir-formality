@@ -5,6 +5,7 @@ use formality_core::Upcast;
 use super::AliasName;
 use super::AliasTy;
 use super::Const;
+use super::MaySpecBound;
 use super::Parameter;
 use super::Parameters;
 use super::TraitId;
@@ -39,6 +40,11 @@ pub enum Predicate {
 
     #[grammar(!$v0)]
     NotImplemented(TraitRef),
+
+    /// `may_spec(WC)`: it is decided whether `WC` holds (`prove::may_spec`).
+    /// As a where-clause on a fn, it obliges each caller to decide `WC`.
+    #[grammar(@may_spec($v0))]
+    MaySpec(MaySpecBound),
 
     #[cast]
     AliasEq(AliasTy, Ty),
@@ -85,6 +91,7 @@ impl std::ops::BitAnd for Coinductive {
 pub enum Skeleton {
     IsImplemented(TraitId),
     NotImplemented(TraitId),
+    MaySpec(MaySpecBound),
     AliasEq(AliasName),
     WellFormed,
     WellFormedTraitRef(TraitId),
@@ -105,6 +112,7 @@ impl Skeleton {
             Skeleton::Equals | Skeleton::Sub | Skeleton::Outlives | Skeleton::WellFormed => true,
             Skeleton::IsImplemented(_)
             | Skeleton::NotImplemented(_)
+            | Skeleton::MaySpec(_)
             | Skeleton::AliasEq(_)
             | Skeleton::WellFormedTraitRef(_)
             | Skeleton::IsLocal(_)
@@ -137,6 +145,8 @@ impl Predicate {
                 Skeleton::NotImplemented(trait_id.clone()),
                 parameters.clone(),
             ),
+            // A `may_spec` matches an assumption only if the bound is the same.
+            Predicate::MaySpec(bound) => (Skeleton::MaySpec(bound.clone()), vec![]),
             Predicate::AliasEq(AliasTy { name, parameters }, ty) => {
                 let mut params = parameters.clone();
                 params.push(ty.clone().upcast());

@@ -16,7 +16,7 @@ judgment_fn! {
         debug(program, t, crate_id)
 
         (
-            (let Trait { safety: _, id: _, binder } = t)
+            (let Trait { safety: _, applicability: _, id: _, binder } = t)
             (let (env, bound_data) = env.instantiate_universally(&binder.explicit_binder))
             (let TraitBoundData { where_clauses, trait_items } = bound_data)
             (check_trait_items_have_unique_names(&trait_items) => ())

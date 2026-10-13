@@ -3,7 +3,7 @@ use std::sync::Arc;
 use formality_core::{id, term};
 
 use crate::grammar::{
-    AdtId, Binder, FieldName, Lt, Parameter, RefKind, ScalarId, TraitId, Ty, ValueId,
+    AdtId, Binder, FieldName, Lt, MaySpecBound, Parameter, RefKind, ScalarId, TraitId, Ty, ValueId,
 };
 
 mod parse_expr;
@@ -79,6 +79,22 @@ pub enum Stmt {
         id: ValueId,
         ty: Ty,
         init: Option<Init>,
+    },
+
+    /// `if impls T: Trait { then } else { else }`
+    ///
+    /// *Branch specialization*: the then-branch is type-checked assuming
+    /// `T: Trait` and the else-branch assuming `T: !Trait`; which branch is
+    /// compiled is decided per monomorphization. It must be possible to
+    /// *decide* the bound where the statement appears (see
+    /// `Predicate::MaySpec`): for a bound on the function's generics, that
+    /// means the function must declare `where may_spec(T: Trait)`.
+    /// Requires `#![feature(branch_specialization)]`.
+    #[grammar(if impls $condition $then_block $?else_block)]
+    IfImpls {
+        condition: MaySpecBound,
+        then_block: Block,
+        else_block: ElseBlock,
     },
 
     /// `if condition { then }` or `if condition { then } else { else }`

@@ -281,6 +281,11 @@ impl LiveBefore for Stmt {
                 scopes,
                 places_live,
             ),
+            Stmt::IfImpls {
+                condition: _,
+                then_block,
+                else_block,
+            } => Either(then_block, &else_block.block).live_before(env, scopes, places_live),
             Stmt::Expr { expr } => expr.live_before(env, scopes, places_live),
             Stmt::Loop { label, body } => {
                 //

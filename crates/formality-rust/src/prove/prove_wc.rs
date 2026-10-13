@@ -6,6 +6,7 @@ use crate::prove::{
     decls::Program,
     env::{Bias, Env},
     is_local::{is_local_trait_ref, may_be_remote},
+    may_spec::decide,
     prove,
     prove_after::prove_after,
     prove_const_has_type::prove_const_has_type,
@@ -97,6 +98,14 @@ judgment_fn! {
             (prove_after(decls, c, assumptions, &i.where_clause) => c)
             ----------------------------- ("negative impl")
             (prove_wc(decls, env, assumptions, Predicate::NotImplemented(trait_ref)) => c.pop_subst(&subst))
+        )
+
+        // `may_spec(WC)`: `WC` is decided, by a `may_spec` bound in scope or
+        // outright; see `decide`.
+        (
+            (decide(decls, env, assumptions, bound.to_wc()) => c)
+            ----------------------------- ("may_spec")
+            (prove_wc(decls, env, assumptions, Predicate::MaySpec(bound)) => c)
         )
 
         (

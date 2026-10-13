@@ -4,6 +4,7 @@ mod eq_partial_eq;
 mod exists_constraints;
 mod expanding;
 mod is_local;
+mod lt_eq;
 mod magic_copy;
 mod occurs_check;
 mod simple_impl;

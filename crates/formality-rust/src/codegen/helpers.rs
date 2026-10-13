@@ -9,8 +9,11 @@ use crate::grammar::{
     expr::{Block, Expr},
     Fallible, Lt, Parameter, ParameterKind, Ty,
 };
-use crate::prove::Env;
-use formality_core::Upcast;
+use crate::prove::{
+    bail_on_regions, erase_lifetimes_in_wc, holds_for_all_lifetimes, is_closed, prove, Env,
+    LifetimeSelection,
+};
+use formality_core::{judgment_fn, Upcast};
 use libspecr::hidden::GcCow;
 use libspecr::list;
 use libspecr::prelude::{Int, List, Map};
@@ -115,7 +118,74 @@ pub(super) fn resolve_fn_body(
     Ok((fn_data, body))
 }
 
-/// Extract the single result from a ProvenSet, or error.
+judgment_fn! {
+    /// Does the bound of an `if impls` hold for this monomorphization? It is
+    /// evaluated on the concrete types, every lifetime erased, a region
+    /// constraint on an erased lifetime counting as satisfied. Sound because
+    /// type checking proved `may_spec(bound)` (see the book, "Deciding at
+    /// codegen"). Under `spec_bail_on_regions`, "yes" only if it holds for
+    /// every choice of the erased lifetimes.
+    pub(super) fn decide_at_codegen(
+        cfn: CodegenFn,
+        bound: grammar::MaySpecBound,
+    ) => bool {
+        debug(bound)
+
+        (
+            (if !bail_on_regions(&cfn.typeck_env.program))!
+            (prove(&cfn.typeck_env.program, Env::default(), &cfn.assumptions, erased(&bound)) => c)
+            (if c.unconditionally_true())
+            ---- ("holds")
+            (decide_at_codegen(cfn, bound) => true)
+        )
+
+        (
+            (if !bail_on_regions(&cfn.typeck_env.program))!
+            (if !holds_at_codegen(&cfn, &bound))
+            ---- ("does not hold")
+            (decide_at_codegen(cfn, bound) => false)
+        )
+
+        (
+            (if bail_on_regions(&cfn.typeck_env.program))!
+            (holds_for_all_lifetimes(&cfn.typeck_env.program, Env::default(), &cfn.assumptions, erased(&bound), LifetimeSelection::Erased) => _)
+            ---- ("bail on regions: holds for every lifetime")
+            (decide_at_codegen(cfn, bound) => true)
+        )
+
+        (
+            (if bail_on_regions(&cfn.typeck_env.program))!
+            (if !holds_for_all_lifetimes(&cfn.typeck_env.program, Env::default(), &cfn.assumptions, erased(&bound), LifetimeSelection::Erased).is_proven())
+            ---- ("bail on regions: does not hold for every lifetime")
+            (decide_at_codegen(cfn, bound) => false)
+        )
+    }
+}
+
+/// The bound with its lifetimes erased (the generic arguments' were erased
+/// with the mono key). Closed by then: every type parameter is instantiated.
+fn erased(bound: &grammar::MaySpecBound) -> grammar::Wc {
+    let wc = erase_lifetimes_in_wc(&bound.to_wc());
+    assert!(is_closed(&wc), "codegen: `{wc:?}` is not closed");
+    wc
+}
+
+/// Is the erased bound provable outright? The negation `decide_at_codegen`
+/// needs for its else-branch.
+fn holds_at_codegen(cfn: &CodegenFn, bound: &grammar::MaySpecBound) -> bool {
+    match prove(
+        &cfn.typeck_env.program,
+        Env::default(),
+        &cfn.assumptions,
+        erased(bound),
+    )
+    .into_map()
+    {
+        Ok(solutions) => solutions.keys().any(|c| c.unconditionally_true()),
+        Err(_) => false,
+    }
+}
+
 pub(super) fn unwrap_proven<T: std::fmt::Debug + Clone + Ord>(
     ps: formality_core::ProvenSet<T>,
 ) -> Fallible<T> {

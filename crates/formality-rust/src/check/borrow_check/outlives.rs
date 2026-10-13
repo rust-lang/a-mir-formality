@@ -3,7 +3,7 @@ use crate::check::borrow_check::flow_state::PendingOutlives;
 
 use crate::grammar::{Parameter, Predicate, Variable, Wcs};
 use crate::prove::prove;
-use formality_core::{judgment_fn, Set, Upcast};
+use formality_core::{judgment_fn, visit::CoreVisit, Set, Upcast};
 
 judgment_fn! {
     /// Verify that all pending outlives constraints between universal lifetime variables
@@ -15,8 +15,10 @@ judgment_fn! {
     ) => () {
         debug(env, assumptions, outlives)
 
+        // Every universal the constraints mention, the fn's own and the
+        // placeholders of a `for<..>` bound that a proof left constraints on.
         (
-            (for_all(v in env.env.variables())
+            (for_all(v in universals_mentioned(&env, &outlives))
                 (only_assumed_outlives(env, assumptions, outlives, v) => ()))
             --- ("verify_universal_outlives")
             (verify_universal_outlives(env, assumptions, outlives) => ())
@@ -84,6 +86,19 @@ judgment_fn! {
             (can_outlive(env, assumptions, _outlives, param_a, var_b: Variable) => ())
         )
     }
+}
+
+/// The variables of `env`, plus the universal variables `outlives` mention
+/// that are not among them: the placeholders of a `for<..>` bound whose
+/// proof deferred a constraint on them, which nothing can discharge.
+fn universals_mentioned(env: &TypeckEnv, outlives: &Set<PendingOutlives>) -> Vec<Variable> {
+    let mut vars: Vec<Variable> = env.env.variables().to_vec();
+    for v in outlives.free_variables() {
+        if v.is_universal() && !vars.contains(&v) {
+            vars.push(v);
+        }
+    }
+    vars
 }
 
 /// Given a region `r`, find a set of all regions `r1` where `r: r1` transitively

@@ -1,5 +1,5 @@
 use crate::grammar::{
-    AliasTy, ExistentialVar, Parameter, Predicate, RigidTy, Substitution, Ty, UniversalVar,
+    AliasTy, ExistentialVar, Lt, Parameter, Predicate, RigidTy, Substitution, Ty, UniversalVar,
     Variable, Wcs,
 };
 use crate::prove::Constrained;
@@ -62,6 +62,18 @@ judgment_fn! {
             (prove_existential_var_eq(decls, env, assumptions, v, r) => c)
             ----------------------------- ("existential")
             (prove_eq(decls, env, assumptions, Variable::ExistentialVar(v), r) => c)
+        )
+
+        // Two lifetimes are equal if each outlives the other. (For example,
+        // `'a = 'static` holds given `'a: 'static`.) As with any outlives goal,
+        // this may be deferred to the borrow checker when pending outlives are
+        // allowed. Existential lifetimes are handled by the "existential" rule.
+        (
+            (if !matches!(a, Lt::Variable(Variable::ExistentialVar(_))))
+            (if !matches!(b, Lt::Variable(Variable::ExistentialVar(_))))
+            (prove(decls, env, assumptions, (Predicate::outlives(&a, &b), Predicate::outlives(&b, &a))) => c)
+            ----------------------------- ("lifetimes equal via mutual outlives")
+            (prove_eq(decls, env, assumptions, a: Lt, b: Lt) => c)
         )
 
         (
