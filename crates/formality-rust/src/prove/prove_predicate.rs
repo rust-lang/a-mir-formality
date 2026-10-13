@@ -21,7 +21,7 @@ use super::constraints::Constraints;
 judgment_fn! {
     /// The "heart" of the trait system -- prove that a where-clause holds given a set of declarations, variable environment, and set of assumptions.
     /// If successful, returns the constraints under which the where-clause holds.
-    pub fn prove_wc(
+    pub fn prove_predicate(
         _decls: Program,
         env: Env,
         assumptions: Predicates,
@@ -32,22 +32,22 @@ judgment_fn! {
         (
             (let (env, subst) = env.universal_substitution(binder))
             (let p1 = binder.instantiate_with(&subst).unwrap())
-            (prove_wc(decls, env, assumptions, p1) => c)
+            (prove_predicate(decls, env, assumptions, p1) => c)
             --- ("forall")
-            (prove_wc(decls, env, assumptions, Predicate::ForAll(binder)) => c.pop_subst(&subst))
+            (prove_predicate(decls, env, assumptions, Predicate::ForAll(binder)) => c.pop_subst(&subst))
         )
 
         (
-            (prove_wc(decls, env, (assumptions, p1), p2) => c)
+            (prove_predicate(decls, env, (assumptions, p1), p2) => c)
             --- ("implies")
-            (prove_wc(decls, env, assumptions, Predicate::Implies(p1, p2)) => c)
+            (prove_predicate(decls, env, assumptions, Predicate::Implies(p1, p2)) => c)
         )
 
         (
             (a in assumptions)!
             (prove_via(decls, env, assumptions, a, goal) => c)
             ----------------------------- ("assumption")
-            (prove_wc(decls, env, assumptions, Predicate::AtomicPredicate(goal)) => c)
+            (prove_predicate(decls, env, assumptions, Predicate::AtomicPredicate(goal)) => c)
         )
 
 
@@ -79,14 +79,14 @@ judgment_fn! {
             // but actually the impl is responsible for proving that `B: Debug`).
             (prove_after(decls, c, assumptions, &t.where_clause) => c)
             ----------------------------- ("positive impl")
-            (prove_wc(decls, env, assumptions, AtomicPredicate::IsImplemented(trait_ref)) => c.pop_subst(&subst))
+            (prove_predicate(decls, env, assumptions, AtomicPredicate::IsImplemented(trait_ref)) => c.pop_subst(&subst))
         )
 
         (
             (if env.bias() == Bias::Completeness)!
             (may_be_remote(decls, env, assumptions, trait_ref) => c)
             ----------------------------- ("coherence / remote impl")
-            (prove_wc(decls, env, assumptions, AtomicPredicate::IsImplemented(trait_ref)) => c)
+            (prove_predicate(decls, env, assumptions, AtomicPredicate::IsImplemented(trait_ref)) => c)
         )
 
         (
@@ -96,13 +96,13 @@ judgment_fn! {
             (prove(decls, env, assumptions, Predicates::all_eq(&trait_ref.parameters, &i.trait_ref.parameters)) => c)
             (prove_after(decls, c, assumptions, &i.where_clause) => c)
             ----------------------------- ("negative impl")
-            (prove_wc(decls, env, assumptions, AtomicPredicate::NotImplemented(trait_ref)) => c.pop_subst(&subst))
+            (prove_predicate(decls, env, assumptions, AtomicPredicate::NotImplemented(trait_ref)) => c.pop_subst(&subst))
         )
 
         (
             (prove_eq(decls, env, assumptions, alias_ty, ty) => c)
             ----------------------------- ("alias eq")
-            (prove_wc(decls, env, assumptions, AtomicPredicate::AliasEq(alias_ty, ty)) => c)
+            (prove_predicate(decls, env, assumptions, AtomicPredicate::AliasEq(alias_ty, ty)) => c)
         )
 
         (
@@ -112,19 +112,19 @@ judgment_fn! {
             (prove_via(decls, env, assumptions, &ti.where_clause, trait_ref) => c)
             (prove_after(decls, c, assumptions, &ti.trait_ref) => c)
             ----------------------------- ("trait implied bound")
-            (prove_wc(decls, env, assumptions, AtomicPredicate::IsImplemented(trait_ref)) => c.pop_subst(&subst))
+            (prove_predicate(decls, env, assumptions, AtomicPredicate::IsImplemented(trait_ref)) => c.pop_subst(&subst))
         )
 
         (
             (prove_eq(decls, env, assumptions, a, b) => c)
             ----------------------------- ("eq")
-            (prove_wc(decls, env, assumptions, AtomicPredicate::Equals(a, b)) => c)
+            (prove_predicate(decls, env, assumptions, AtomicPredicate::Equals(a, b)) => c)
         )
 
         (
             (prove_sub(decls, env, assumptions, a, b) => c)
             ----------------------------- ("subtype")
-            (prove_wc(decls, env, assumptions, AtomicPredicate::Sub(a, b)) => c)
+            (prove_predicate(decls, env, assumptions, AtomicPredicate::Sub(a, b)) => c)
         )
 
         (
@@ -133,33 +133,33 @@ judgment_fn! {
             (let t = t.binder.instantiate_with(&trait_ref.parameters).unwrap())
             (prove_after(decls, c, assumptions, &t.where_clause) => c)
             ----------------------------- ("trait well formed")
-            (prove_wc(decls, env, assumptions, AtomicPredicate::WellFormedTraitRef(trait_ref)) => c)
+            (prove_predicate(decls, env, assumptions, AtomicPredicate::WellFormedTraitRef(trait_ref)) => c)
         )
 
         (
             (is_local_trait_ref(decls, env, assumptions, trait_ref) => c)
             ----------------------------- ("trait ref is local")
-            (prove_wc(decls, env, assumptions, AtomicPredicate::IsLocal(trait_ref)) => c)
+            (prove_predicate(decls, env, assumptions, AtomicPredicate::IsLocal(trait_ref)) => c)
         )
 
         (
             (prove_outlives(decls, env, assumptions, a, b) => c)
             ----------------------------- ("outlives")
-            (prove_wc(decls, env, assumptions, AtomicPredicate::Outlives(a, b)) => c)
+            (prove_predicate(decls, env, assumptions, AtomicPredicate::Outlives(a, b)) => c)
         )
 
 
         (
             (prove_wf(decls, env, assumptions, p) => c)
             ----------------------------- ("parameter well formed")
-            (prove_wc(decls, env, assumptions, AtomicPredicate::WellFormed(p)) => c)
+            (prove_predicate(decls, env, assumptions, AtomicPredicate::WellFormed(p)) => c)
         )
 
         (
             (prove_const_has_type(decls, env, assumptions, constant) => (ty_constant, c))
             (prove_after(decls, c, assumptions, AtomicPredicate::equals(ty_constant, ty)) => c)
             ----------------------------- ("const has ty")
-            (prove_wc(decls, env, assumptions, AtomicPredicate::ConstHasType(constant, ty)) => c)
+            (prove_predicate(decls, env, assumptions, AtomicPredicate::ConstHasType(constant, ty)) => c)
         )
     }
 }

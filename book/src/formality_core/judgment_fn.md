@@ -180,7 +180,7 @@ if let Some(Expr::Add(left, right)) = arg1.downcast() {
 
 If you want to see a real judgement, take a look at the one for proving where clauses:
 
-{judgment}`prove_wc`
+{judgment}`prove_predicate`
 
 ### Handling cycles
 
