@@ -54,3 +54,18 @@ fn omitted_return_type() {
     .skip_execute()
     .ok()
 }
+
+#[test]
+fn omitted_return_type_executes() {
+    FormalityTest::new(crates![crate test {
+        fn helper() {
+            println!(42_i32);
+        }
+
+        fn main() {
+            helper();
+        }
+    }])
+    .expect_output("42\n")
+    .ok()
+}

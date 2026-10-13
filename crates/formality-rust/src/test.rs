@@ -234,6 +234,16 @@ fn test_parse_fn_without_return_type() {
 }
 
 #[test]
+fn test_parse_fn_rejects_incomplete_return_type() {
+    for text in ["fn f() - {}", "fn f() -> {}"] {
+        assert!(
+            try_term::<crate::grammar::Fn>(text).is_err(),
+            "incomplete return type should not default to unit: {text}",
+        );
+    }
+}
+
+#[test]
 fn test_place_expr_ambiguity_deref_vs_field() {
     let p: PlaceExpr = term("*p.f");
     expect_test::expect![[r#"
