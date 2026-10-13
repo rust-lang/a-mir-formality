@@ -3,14 +3,14 @@ use std::collections::BTreeSet;
 use crate::check::borrow_check::flow_state::{FlowState, PendingOutlives};
 
 use crate::check::borrow_check::outlives::verify_universal_outlives;
-use crate::grammar::{AtomicPredicate, Binder, ExistentialVar, Ty, UniversalVar, Wcs};
+use crate::grammar::{AtomicPredicate, Binder, ExistentialVar, Predicates, Ty, UniversalVar};
 use crate::grammar::{Crates, Parameter};
 use crate::prove::{prove_normalize, Constrained, Constraints, Env, Program};
 use crate::rust::Fold;
 use formality_core::judgment::{FailureLocation, ProofTree, Proven};
 use formality_core::{cast_impl, Downcast, DowncastTo, Set, Upcast};
 
-use crate::check::{Debug, ProvenSet, ToWcs, Visit};
+use crate::check::{Debug, ProvenSet, ToPredicates, Visit};
 
 #[derive(PartialEq, PartialOrd, Eq, Ord, Clone, Hash)]
 pub struct TypeckEnv {
@@ -61,19 +61,24 @@ impl TypeckEnv {
     #[track_caller]
     pub(crate) fn prove_goal(
         &self,
-        assumptions: impl ToWcs,
+        assumptions: impl ToPredicates,
         state: &FlowState,
-        goal: impl ToWcs + Debug,
+        goal: impl ToPredicates + Debug,
     ) -> ProvenSet<FlowState> {
-        let goal: Wcs = goal.to_wcs();
-        self.prove_judgment(state, assumptions, goal.to_wcs(), crate::prove::prove)
-            .map(|(((), state), proof_tree)| (state, proof_tree))
+        let goal: Predicates = goal.to_predicates();
+        self.prove_judgment(
+            state,
+            assumptions,
+            goal.to_predicates(),
+            crate::prove::prove,
+        )
+        .map(|(((), state), proof_tree)| (state, proof_tree))
     }
 
     #[track_caller]
     pub(crate) fn prove_normalize<T>(
         &self,
-        assumptions: impl ToWcs,
+        assumptions: impl ToPredicates,
         state: &FlowState,
         goal: &T,
     ) -> ProvenSet<(T, FlowState)>
@@ -109,16 +114,16 @@ impl TypeckEnv {
     fn prove_judgment<G, C, T>(
         &self,
         state: &FlowState,
-        assumptions: impl ToWcs,
+        assumptions: impl ToPredicates,
         goal: G,
-        judgment_fn: impl FnOnce(Program, Env, Wcs, G) -> ProvenSet<C>,
+        judgment_fn: impl FnOnce(Program, Env, Predicates, G) -> ProvenSet<C>,
     ) -> ProvenSet<(T, FlowState)>
     where
         G: Debug + Visit + Clone,
         C: Upcast<Constrained<T>> + Ord + Debug,
         T: Clone + Ord + Debug,
     {
-        let assumptions: Wcs = assumptions.to_wcs();
+        let assumptions: Predicates = assumptions.to_predicates();
 
         assert!(self.env.encloses((&assumptions, &goal)));
 

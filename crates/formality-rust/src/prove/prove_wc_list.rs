@@ -1,4 +1,4 @@
-use crate::grammar::Wcs;
+use crate::grammar::Predicates;
 use formality_core::{judgment_fn, Cons};
 
 use crate::prove::{constraints::Constraints, decls::Program, prove_after::prove_after};
@@ -10,8 +10,8 @@ judgment_fn! {
     pub fn prove_wc_list(
         _decls: Program,
         env: Env,
-        assumptions: Wcs,
-        goals: Wcs,
+        assumptions: Predicates,
+        goals: Predicates,
     ) => Constraints {
         debug(goals, assumptions, env)
 

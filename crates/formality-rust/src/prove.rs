@@ -7,7 +7,9 @@
 //! * [`prove`][] -- prove a set of where-clauses to be true
 //! * [`prove_normalize`][] -- normalize a type one step (typically used in a recursive setup)
 
-use crate::grammar::{AtomicPredicate, Binder, Crates, Ty, Wc, Wcs, WhereBound, WhereClause};
+use crate::grammar::{
+    AtomicPredicate, Binder, Crates, Predicate, Predicates, Ty, WhereBound, WhereClause,
+};
 use crate::rust::FormalityLang;
 use formality_core::judgment::{EachProof, FailedRule, FailureLocation, ProofTree};
 use formality_core::visit::CoreVisit;
@@ -60,13 +62,13 @@ impl Crates {
 pub fn prove(
     decls: impl Upcast<Program>,
     env: impl Upcast<Env>,
-    assumptions: impl Upcast<Wcs>,
-    goal: impl Upcast<Wcs>,
+    assumptions: impl Upcast<Predicates>,
+    goal: impl Upcast<Predicates>,
 ) -> ProvenSet<Constraints> {
     let decls: Program = decls.upcast();
     let env: Env = env.upcast();
-    let assumptions: Wcs = assumptions.upcast();
-    let goal: Wcs = goal.upcast();
+    let assumptions: Predicates = assumptions.upcast();
+    let goal: Predicates = goal.upcast();
 
     // "Minimize" the env/assumptions/goals so that we better detect cycles.
     let (env, (assumptions, goal), min) = minimize::minimize(env, (assumptions, goal));
@@ -131,21 +133,21 @@ pub fn prove(
     maxified
 }
 
-pub trait ToWcs {
-    fn to_wcs(&self) -> Wcs;
+pub trait ToPredicates {
+    fn to_predicates(&self) -> Predicates;
 }
 
-impl<T: ?Sized + ToWcs> ToWcs for &T {
-    fn to_wcs(&self) -> Wcs {
-        T::to_wcs(self)
+impl<T: ?Sized + ToPredicates> ToPredicates for &T {
+    fn to_predicates(&self) -> Predicates {
+        T::to_predicates(self)
     }
 }
 
-macro_rules! upcast_to_wcs {
+macro_rules! upcast_to_predicates {
     ($($t:ty,)*) => {
         $(
-            impl ToWcs for $t {
-                fn to_wcs(&self) -> Wcs {
+            impl ToPredicates for $t {
+                fn to_predicates(&self) -> Predicates {
                     self.upcast()
                 }
             }
@@ -153,60 +155,60 @@ macro_rules! upcast_to_wcs {
     }
 }
 
-upcast_to_wcs! {
-    Wc,
-    Wcs,
+upcast_to_predicates! {
+    Predicate,
+    Predicates,
     AtomicPredicate,
 }
 
-impl ToWcs for () {
-    fn to_wcs(&self) -> Wcs {
-        Wcs::t()
+impl ToPredicates for () {
+    fn to_predicates(&self) -> Predicates {
+        Predicates::t()
     }
 }
 
-impl<A, B> ToWcs for (A, B)
+impl<A, B> ToPredicates for (A, B)
 where
-    A: ToWcs,
-    B: ToWcs,
+    A: ToPredicates,
+    B: ToPredicates,
 {
-    fn to_wcs(&self) -> Wcs {
+    fn to_predicates(&self) -> Predicates {
         let (a, b) = self;
-        let a = a.to_wcs();
-        let b = b.to_wcs();
+        let a = a.to_predicates();
+        let b = b.to_predicates();
         (a, b).upcast()
     }
 }
 
-impl<A, B, C> ToWcs for (A, B, C)
+impl<A, B, C> ToPredicates for (A, B, C)
 where
-    A: ToWcs,
-    B: ToWcs,
-    C: ToWcs,
+    A: ToPredicates,
+    B: ToPredicates,
+    C: ToPredicates,
 {
-    fn to_wcs(&self) -> Wcs {
+    fn to_predicates(&self) -> Predicates {
         let (a, b, c) = self;
-        let a = a.to_wcs();
-        let b = b.to_wcs();
-        let c = c.to_wcs();
+        let a = a.to_predicates();
+        let b = b.to_predicates();
+        let c = c.to_predicates();
         (a, b, c).upcast()
     }
 }
 
-impl ToWcs for Vec<WhereClause> {
-    fn to_wcs(&self) -> Wcs {
-        self.iter().flat_map(|wc| wc.to_wcs()).collect()
+impl ToPredicates for Vec<WhereClause> {
+    fn to_predicates(&self) -> Predicates {
+        self.iter().flat_map(|wc| wc.to_predicates()).collect()
     }
 }
 
-impl ToWcs for [WhereClause] {
-    fn to_wcs(&self) -> Wcs {
-        self.iter().flat_map(|wc| wc.to_wcs()).collect()
+impl ToPredicates for [WhereClause] {
+    fn to_predicates(&self) -> Predicates {
+        self.iter().flat_map(|wc| wc.to_predicates()).collect()
     }
 }
 
-impl ToWcs for WhereClause {
-    fn to_wcs(&self) -> Wcs {
+impl ToPredicates for WhereClause {
+    fn to_predicates(&self) -> Predicates {
         match self {
             WhereClause::IsImplemented(self_ty, trait_id, parameters) => {
                 trait_id.with(self_ty, parameters).upcast()
@@ -217,9 +219,9 @@ impl ToWcs for WhereClause {
             WhereClause::Outlives(a, b) => AtomicPredicate::outlives(a, b).upcast(),
             WhereClause::ForAll(binder) => {
                 let (vars, wc) = binder.open();
-                wc.to_wcs()
+                wc.to_predicates()
                     .into_iter()
-                    .map(|wc| Wc::for_all(Binder::new(&vars, wc)))
+                    .map(|wc| Predicate::for_all(Binder::new(&vars, wc)))
                     .collect()
             }
             WhereClause::TypeOfConst(ct, ty) => {
@@ -230,7 +232,7 @@ impl ToWcs for WhereClause {
 }
 
 impl WhereBound {
-    pub fn to_wc(&self, self_ty: impl Upcast<Ty>) -> Wc {
+    pub fn to_predicate(&self, self_ty: impl Upcast<Ty>) -> Predicate {
         let self_ty: Ty = self_ty.upcast();
 
         match self {
@@ -240,7 +242,7 @@ impl WhereBound {
             WhereBound::Outlives(lt) => AtomicPredicate::outlives(self_ty, lt).upcast(),
             WhereBound::ForAll(binder) => {
                 let (vars, bound) = binder.open();
-                Wc::for_all(Binder::new(&vars, bound.to_wc(self_ty)))
+                Predicate::for_all(Binder::new(&vars, bound.to_predicate(self_ty)))
             }
         }
     }

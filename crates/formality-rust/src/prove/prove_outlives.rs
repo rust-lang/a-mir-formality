@@ -1,5 +1,5 @@
-use crate::grammar::Wc;
-use crate::grammar::{AtomicPredicate, Lt, Parameter, RigidTy, Wcs};
+use crate::grammar::Predicate;
+use crate::grammar::{AtomicPredicate, Lt, Parameter, Predicates, RigidTy};
 use crate::prove::{decls::Program, prove};
 use formality_core::{judgment_fn, Set, Upcast};
 
@@ -36,7 +36,7 @@ judgment_fn! {
     pub fn prove_outlives(
         _decls: Program,
         env: Env,
-        assumptions: Wcs,
+        assumptions: Predicates,
         a: Parameter,
         b: Parameter,
     ) => Constraints {
@@ -66,7 +66,7 @@ judgment_fn! {
 
         // A rigid type `r` outlives `b` if all of `r`'s parameters outlive `b`
         (
-            (prove(decls, env, assumptions, Wcs::all_outlives(parameters, b)) => c)
+            (prove(decls, env, assumptions, Predicates::all_outlives(parameters, b)) => c)
             ----------------------------- ("rigid types")
             (prove_outlives(decls, env, assumptions, RigidTy { name: _, parameters }, b) => c)
         )
@@ -96,10 +96,10 @@ judgment_fn! {
 /// Given a region `r1`, find a set of all regions `r2` where `r1 : r2` transitively
 /// according to the assumptions.
 fn transitively_outlived_by(
-    assumptions: impl Upcast<Wcs>,
+    assumptions: impl Upcast<Predicates>,
     r1: impl Upcast<Parameter>,
 ) -> Set<Parameter> {
-    let assumptions: Wcs = assumptions.upcast();
+    let assumptions: Predicates = assumptions.upcast();
     let r1: Parameter = r1.upcast();
     let mut reachable = Set::new();
 
@@ -110,7 +110,7 @@ fn transitively_outlived_by(
     let outlives_assumptions: Vec<AtomicPredicate> = assumptions
         .iter()
         .filter_map(|wc| {
-            if let Wc::AtomicPredicate(AtomicPredicate::Outlives(r1, r2)) = wc {
+            if let Predicate::AtomicPredicate(AtomicPredicate::Outlives(r1, r2)) = wc {
                 return Some(AtomicPredicate::Outlives(r1, r2));
             }
             None

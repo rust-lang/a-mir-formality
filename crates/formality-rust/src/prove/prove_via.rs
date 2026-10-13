@@ -1,4 +1,4 @@
-use crate::grammar::{Wc, Wcs};
+use crate::grammar::{Predicate, Predicates};
 use formality_core::judgment_fn;
 
 use crate::prove::{
@@ -15,9 +15,9 @@ judgment_fn! {
     pub fn prove_via(
         _decls: Program,
         env: Env,
-        assumptions: Wcs,
-        via: Wc,
-        goal: Wc,
+        assumptions: Predicates,
+        via: Predicate,
+        goal: Predicate,
     ) => Constraints {
         debug(goal, via, assumptions, env)
 
@@ -28,9 +28,9 @@ judgment_fn! {
             (let (skel_g, parameters_g) = pred_2.debone())
             (if !skel_c.is_relation())
             (if skel_c == skel_g)!
-            (prove(decls, env, assumptions, Wcs::all_eq(parameters_c, parameters_g)) => c)
+            (prove(decls, env, assumptions, Predicates::all_eq(parameters_c, parameters_g)) => c)
             ----------------------------- ("predicate-congruence-axiom")
-            (prove_via(decls, env, assumptions, Wc::AtomicPredicate(pred_1), Wc::AtomicPredicate(pred_2)) => c)
+            (prove_via(decls, env, assumptions, Predicate::AtomicPredicate(pred_1), Predicate::AtomicPredicate(pred_2)) => c)
         )
 
         (
@@ -40,7 +40,7 @@ judgment_fn! {
             (if skel_c == skel_g)
             (if parameters_c == parameters_g)! // for relations, we require 100% match
             ----------------------------- ("relation-axiom")
-            (prove_via(_decls, env, _assumptions, Wc::AtomicPredicate(rel_1), Wc::AtomicPredicate(rel_2)) => Constraints::none(env))
+            (prove_via(_decls, env, _assumptions, Predicate::AtomicPredicate(rel_1), Predicate::AtomicPredicate(rel_2)) => Constraints::none(env))
         )
 
         // If you have `where for<'a> T: Trait<'a>` then you can prove `T: Trait<'b>` for any `'b`.
@@ -50,7 +50,7 @@ judgment_fn! {
             // Try to prove `T: Trait<?a> == goal`.
             (prove_via(decls, env, assumptions, via1, goal) => c)
             ----------------------------- ("forall")
-            (prove_via(decls, env, assumptions, Wc::ForAll(binder), goal) => c.pop_subst(&subst))
+            (prove_via(decls, env, assumptions, Predicate::ForAll(binder), goal) => c.pop_subst(&subst))
         )
 
         // If you have `where if (T: Debug) T: Foo` (not in Rust but it should be...)...
@@ -60,7 +60,7 @@ judgment_fn! {
             // ...and we can prove `T: Debug`... then it holds.
             (prove_after(decls, c, assumptions, wc_condition) => c)
             ----------------------------- ("implies")
-            (prove_via(decls, env, assumptions, Wc::Implies(wc_condition, wc_consequence), goal) => c)
+            (prove_via(decls, env, assumptions, Predicate::Implies(wc_condition, wc_consequence), goal) => c)
         )
     }
 }

@@ -1,10 +1,10 @@
 use crate::grammar::{
     AdtId, AliasName, AliasTy, AssociatedTyValue, AssociatedTyValueBoundData, AtomicPredicate,
     Binder, Crate, CrateId, CrateItem, Crates, ImplItem, NegTraitImpl, NegTraitImplBoundData,
-    Parameter, Trait, TraitBoundData, TraitId, TraitImpl, TraitImplBoundData, TraitRef, Ty, Wc,
-    Wcs,
+    Parameter, Predicate, Predicates, Trait, TraitBoundData, TraitId, TraitImpl,
+    TraitImplBoundData, TraitRef, Ty,
 };
-use crate::prove::ToWcs;
+use crate::prove::ToPredicates;
 use formality_core::{seq, Downcasted, Set, To, Upcast, Upcasted};
 use formality_macros::term;
 use std::sync::Arc;
@@ -106,7 +106,7 @@ impl Program {
                 vars,
                 ImplDeclBoundData {
                     trait_ref: trait_id.with(self_ty, trait_parameters),
-                    where_clause: where_clauses.to_wcs(),
+                    where_clause: where_clauses.to_predicates(),
                 },
             ),
         }
@@ -128,7 +128,7 @@ impl Program {
                 vars,
                 NegImplDeclBoundData {
                     trait_ref: trait_id.with(self_ty, trait_parameters),
-                    where_clause: where_clauses.to_wcs(),
+                    where_clause: where_clauses.to_predicates(),
                 },
             ),
         }
@@ -148,7 +148,10 @@ impl Program {
             binder: Binder::new(
                 vars,
                 TraitDeclBoundData {
-                    where_clause: where_clauses.iter().flat_map(|wc| wc.to_wcs()).collect(),
+                    where_clause: where_clauses
+                        .iter()
+                        .flat_map(|wc| wc.to_predicates())
+                        .collect(),
                 },
             ),
         }
@@ -203,7 +206,7 @@ impl Program {
                                             ],
                                         ),
                                         ty,
-                                        where_clause: (&impl_wc, assoc_wc).to_wcs(),
+                                        where_clause: (&impl_wc, assoc_wc).to_predicates(),
                                     },
                                 ),
                             })
@@ -283,7 +286,7 @@ pub struct ImplDeclBoundData {
     pub trait_ref: TraitRef,
 
     ///
-    pub where_clause: Wcs,
+    pub where_clause: Predicates,
 }
 
 /// A declaration that some trait will *not* be implemented for a type; derived from negative impls
@@ -301,7 +304,7 @@ pub struct NegImplDecl {
 #[term(!$trait_ref $:where $where_clause)]
 pub struct NegImplDeclBoundData {
     pub trait_ref: TraitRef,
-    pub where_clause: Wcs,
+    pub where_clause: Predicates,
 }
 
 /// Mark a trait or trait impl as `unsafe`.
@@ -337,15 +340,15 @@ impl TraitDecl {
         let (variables, TraitDeclBoundData { where_clause }) = self.binder.open();
         let self_var: Parameter = variables[0].upcast();
 
-        fn is_supertrait(self_var: &Parameter, wc: &Wc) -> bool {
+        fn is_supertrait(self_var: &Parameter, wc: &Predicate) -> bool {
             match wc {
-                Wc::AtomicPredicate(AtomicPredicate::IsImplemented(trait_ref)) => {
+                Predicate::AtomicPredicate(AtomicPredicate::IsImplemented(trait_ref)) => {
                     trait_ref.parameters[0] == *self_var
                 }
-                Wc::AtomicPredicate(AtomicPredicate::Outlives(a, _)) => *a == *self_var,
-                Wc::AtomicPredicate(_) => false,
-                Wc::ForAll(binder) => is_supertrait(self_var, binder.peek()),
-                Wc::Implies(_, c) => is_supertrait(self_var, c),
+                Predicate::AtomicPredicate(AtomicPredicate::Outlives(a, _)) => *a == *self_var,
+                Predicate::AtomicPredicate(_) => false,
+                Predicate::ForAll(binder) => is_supertrait(self_var, binder.peek()),
+                Predicate::Implies(_, c) => is_supertrait(self_var, c),
             }
         }
 
@@ -382,14 +385,14 @@ pub struct TraitInvariantBoundData {
     pub trait_ref: TraitRef,
 
     /// ...implies that these where-clauses hold.
-    pub where_clause: Wc,
+    pub where_clause: Predicate,
 }
 
 /// The "bound data" for a [`TraitDecl`][] -- i.e., what is covered by the forall.
 #[term($:where $where_clause)]
 pub struct TraitDeclBoundData {
     /// The where-clauses declared on the trait
-    pub where_clause: Wcs,
+    pub where_clause: Predicates,
 }
 
 /// An "alias equal declaration" declares when an alias type can be normalized
@@ -417,5 +420,5 @@ pub struct AliasEqDeclBoundData {
     pub ty: Ty,
 
     /// The where-clauses that must hold for this rule to be applicable; derived from the impl and the GAT
-    pub where_clause: Wcs,
+    pub where_clause: Predicates,
 }

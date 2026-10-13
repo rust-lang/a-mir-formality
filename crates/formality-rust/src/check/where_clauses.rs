@@ -1,6 +1,6 @@
-use crate::grammar::{Fallible, Wcs};
+use crate::grammar::{Fallible, Predicates};
 use crate::prove::{Env, Program};
-use crate::{grammar::WhereClause, prove::ToWcs};
+use crate::{grammar::WhereClause, prove::ToPredicates};
 use fn_error_context::context;
 use formality_core::judgment::ProofTree;
 
@@ -8,10 +8,10 @@ use formality_core::judgment::ProofTree;
 pub(crate) fn prove_where_clauses_well_formed(
     program: &Program,
     env: &Env,
-    assumptions: impl ToWcs,
+    assumptions: impl ToPredicates,
     where_clauses: &[WhereClause],
 ) -> Fallible<ProofTree> {
-    let wcs: Wcs = where_clauses
+    let wcs: Predicates = where_clauses
         .into_iter()
         .flat_map(|wc| wc.well_formed().into_iter())
         .collect();

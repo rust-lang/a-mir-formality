@@ -3,7 +3,7 @@ use std::sync::Arc;
 use crate::grammar::Fn;
 use crate::grammar::{
     AliasTy, AssociatedItemId, AtomicPredicate, Binder, Const, Fallible, Lt, Parameter,
-    ParameterKind, TraitId, TraitRef, Ty, Wc, Wcs,
+    ParameterKind, Predicate, Predicates, TraitId, TraitRef, Ty,
 };
 use crate::prove::Safety;
 use crate::rust::Term;
@@ -143,7 +143,7 @@ pub enum WhereClause {
 }
 
 impl WhereClause {
-    pub fn invert(&self) -> Option<Wc> {
+    pub fn invert(&self) -> Option<Predicate> {
         match self {
             WhereClause::IsImplemented(self_ty, trait_id, parameters) => Some(
                 AtomicPredicate::not_implemented(trait_id.with(self_ty, parameters)),
@@ -154,13 +154,13 @@ impl WhereClause {
             WhereClause::ForAll(binder) => {
                 let (vars, where_clause) = binder.open();
                 let wc = where_clause.invert()?;
-                Some(Wc::for_all(Binder::new(&vars, wc)))
+                Some(Predicate::for_all(Binder::new(&vars, wc)))
             }
             WhereClause::TypeOfConst(_, _) => None,
         }
     }
 
-    pub fn well_formed(&self) -> Wcs {
+    pub fn well_formed(&self) -> Predicates {
         match self {
             WhereClause::IsImplemented(self_ty, trait_id, parameters) => {
                 AtomicPredicate::well_formed_trait_ref(trait_id.with(self_ty, parameters)).upcast()
@@ -181,7 +181,7 @@ impl WhereClause {
                 let (vars, body) = binder.open();
                 body.well_formed()
                     .into_iter()
-                    .map(|wc| Wc::for_all(Binder::new(&vars, wc)))
+                    .map(|wc| Predicate::for_all(Binder::new(&vars, wc)))
                     .collect()
             }
             WhereClause::TypeOfConst(ct, ty) => [

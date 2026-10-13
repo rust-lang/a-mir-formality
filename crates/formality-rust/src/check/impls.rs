@@ -4,8 +4,8 @@ use formality_core::Set;
 use crate::grammar::{
     AdtId, AssociatedTy, AssociatedTyBoundData, AssociatedTyValue, AssociatedTyValueBoundData,
     AtomicPredicate, Binder, CrateId, Fallible, Fn, FnBoundData, ImplItem, MaybeFnBody,
-    NegTraitImpl, NegTraitImplBoundData, RigidName, Substitution, Trait, TraitBoundData, TraitImpl,
-    TraitImplBoundData, TraitItem, Ty, Wcs,
+    NegTraitImpl, NegTraitImplBoundData, Predicates, RigidName, Substitution, Trait,
+    TraitBoundData, TraitImpl, TraitImplBoundData, TraitItem, Ty,
 };
 use crate::prove::{Env, Program, Safety};
 use crate::rust::Term;
@@ -154,7 +154,7 @@ judgment_fn! {
     fn check_trait_impl_item(
         program: Program,
         env: Env,
-        assumptions: Wcs,
+        assumptions: Predicates,
         trait_items: Vec<TraitItem>,
         impl_item: ImplItem,
         crate_id: CrateId,
@@ -179,7 +179,7 @@ judgment_fn! {
     fn check_fn_in_impl(
         program: Program,
         env: Env,
-        impl_assumptions: Wcs,
+        impl_assumptions: Predicates,
         trait_items: Vec<TraitItem>,
         ii_fn: Fn,
         crate_id: CrateId,
@@ -224,7 +224,7 @@ judgment_fn! {
     fn check_associated_ty_value(
         program: Program,
         impl_env: Env,
-        impl_assumptions: Wcs,
+        impl_assumptions: Predicates,
         trait_items: Vec<TraitItem>,
         impl_value: AssociatedTyValue,
     ) => () {
@@ -253,7 +253,7 @@ judgment_fn! {
             (super::prove_goal(program, env, (impl_assumptions, ii_where_clauses), AtomicPredicate::well_formed(ii_ty)) => ())
 
             // Prove the ensures clauses
-            (let ensures: Wcs = ti_ensures.iter().map(|e| e.to_wc(&ii_ty)).collect())
+            (let ensures: Predicates = ti_ensures.iter().map(|e| e.to_predicate(&ii_ty)).collect())
             (super::prove_goal(program, &env, (&impl_assumptions, &ii_where_clauses), ensures) => ())
 
             ---- ("check_associated_ty_value")
