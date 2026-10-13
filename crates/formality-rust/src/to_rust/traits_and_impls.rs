@@ -137,6 +137,24 @@ pub fn lower_assoc_ty(
                         .collect::<Result<Vec<_>, _>>()?,
                 });
             }
+            WhereBound::AliasEq(trait_id, parameters, item_id, item_parameters, ty) => {
+                let mut args = parameters
+                    .iter()
+                    .map(|arg| tys::lower_generic_arg(ctx, arg))
+                    .collect::<Result<Vec<_>, _>>()?;
+                args.push(syntax::GenericArg::AssociatedType {
+                    name: item_id.deref().clone(),
+                    args: item_parameters
+                        .iter()
+                        .map(|arg| tys::lower_generic_arg(ctx, arg))
+                        .collect::<Result<Vec<_>, _>>()?,
+                    ty: tys::lower_ty(ctx, ty)?,
+                });
+                bounds.push(syntax::TypeBound::Trait {
+                    trait_name: trait_id.deref().clone(),
+                    args,
+                });
+            }
             WhereBound::Outlives(_) => {
                 anyhow::bail!("lowering associated type outlives bounds is not implemented yet")
             }

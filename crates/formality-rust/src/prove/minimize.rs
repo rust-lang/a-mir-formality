@@ -2,7 +2,7 @@ use crate::grammar::{
     ExistentialVar, Parameter, Substitution, UniversalVar, VarIndex, VarSubstitution, Variable,
 };
 use crate::rust::Term;
-use formality_core::{Deduplicate, Downcast, Upcast};
+use formality_core::{visit::CoreVisit, Deduplicate, Downcast, Upcast};
 
 use super::{Constraints, Env};
 
@@ -46,7 +46,12 @@ pub struct Minimization {
 /// *But* then we have a result that references the variable `A`  and that result must be
 /// translated back to reference the variable `B` in the original context.
 pub fn minimize<T: Term>(env_max: Env, term: T) -> (Env, T, Minimization) {
-    let fv = term.free_variables().deduplicate();
+    let fv = term
+        .free_variables()
+        .into_iter()
+        .chain(env_max.pending().free_variables())
+        .collect::<Vec<_>>()
+        .deduplicate();
 
     let renamed_fv: Vec<Variable> = fv
         .iter()
@@ -154,9 +159,12 @@ impl Minimization {
             })
             .collect();
 
-        for pending_in in env_in.pending() {
-            env_out = env_out.with_pending(env2out_subst.apply(pending_in));
-        }
+        env_out = env_out.with_replaced_pending(
+            env_in
+                .pending()
+                .iter()
+                .map(|wc| substitution.apply(&env2out_subst.apply(wc))),
+        );
 
         Constraints {
             env: env_out,

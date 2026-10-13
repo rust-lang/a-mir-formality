@@ -29,12 +29,22 @@ judgment_fn! {
     ) => Constraints {
         debug(goal, assumptions, env)
 
+        trivial(assumptions.iter().any(|assumption| assumption == goal) => Constraints::none(env))
+
         (
             (let (env, subst) = env.universal_substitution(binder))
             (let p1 = binder.instantiate_with(&subst).unwrap())
             (prove_wc(decls, env, assumptions, p1) => c)
             --- ("forall")
-            (prove_wc(decls, env, assumptions, Wc::ForAll(binder)) => c.pop_subst(&subst))
+            (prove_wc(decls, env, assumptions, Wc::ForAll(binder)) => c.pop_forall(&subst))
+        )
+
+        (
+            (let (env, subst) = env.existential_substitution(binder))
+            (let goals = binder.instantiate_with(&subst).unwrap())
+            (prove(decls, env, assumptions, goals) => c)
+            --- ("exists")
+            (prove_wc(decls, env, assumptions, Wc::Exists(binder)) => c.pop_subst(&subst))
         )
 
         (
@@ -64,12 +74,11 @@ judgment_fn! {
             // this would yield `?B: Debug`.
             (let t = decls.trait_decl(&i.trait_ref.trait_id).binder.instantiate_with(&i.trait_ref.parameters).unwrap())
 
-            // Create a set of assumptions `co_assumptions` that include the predicate the impl itself
-            // is asserting (i.e., `A: Foo<B>`). When proving the impl's where-clauses, we are allowed
-            // to assume this is true (in a coinductive fashion).
+            // The provisional trait closes coinductive impl cycles, but cannot supply
+            // declaration bounds before the impl's premises have been established.
             //
             // NB: This is actually not what Rust currently does, but it is what "we" (types team) want it to do.
-            (let co_assumptions = (assumptions, trait_ref))
+            (let co_assumptions = (assumptions, Wc::Coinductive(trait_ref.clone())))
             (prove(decls, env, co_assumptions, Wcs::all_eq(&trait_ref.parameters, &i.trait_ref.parameters)) => c)
             (prove_after(decls, c, co_assumptions, &i.where_clause) => c)
 
@@ -109,8 +118,9 @@ judgment_fn! {
             (ti in decls.trait_invariants())
             (let (env, subst) = env.existential_substitution(&ti.binder))
             (let ti = ti.binder.instantiate_with(&subst).unwrap())
-            (prove_via(decls, env, assumptions, &ti.where_clause, trait_ref) => c)
-            (prove_after(decls, c, assumptions, &ti.trait_ref) => c)
+            (let inductive_assumptions = assumptions.without_coinductive())
+            (prove_via(decls, env, inductive_assumptions, &ti.where_clause, trait_ref) => c)
+            (prove_after(decls, c, inductive_assumptions, &ti.trait_ref) => c)
             ----------------------------- ("trait implied bound")
             (prove_wc(decls, env, assumptions, Predicate::IsImplemented(trait_ref)) => c.pop_subst(&subst))
         )
