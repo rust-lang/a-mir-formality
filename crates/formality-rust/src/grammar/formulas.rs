@@ -20,7 +20,7 @@ pub type Fallible<T> = anyhow::Result<T>;
 /// other predicates (see the `relation-axiom` rule in `prove_via`), so they can be told
 /// apart with [`Skeleton::is_relation`][].
 #[term]
-pub enum Predicate {
+pub enum AtomicPredicate {
     #[grammar($v0 = $v1)]
     Equals(Parameter, Parameter),
 
@@ -113,47 +113,47 @@ impl Skeleton {
     }
 }
 
-impl Predicate {
+impl AtomicPredicate {
     /// Separate an atomic predicate into the "skeleton" (which can be compared for equality using `==`)
     /// and the parameters (which must be related).
     #[tracing::instrument(level = "trace", ret)]
     pub fn debone(&self) -> (Skeleton, Vec<Parameter>) {
         match self {
-            Predicate::Equals(a, b) => (Skeleton::Equals, vec![a.clone(), b.clone()]),
-            Predicate::Sub(a, b) => (Skeleton::Sub, vec![a.clone(), b.clone()]),
-            Predicate::Outlives(a, b) => (Skeleton::Outlives, vec![a.clone(), b.clone()]),
-            Predicate::WellFormed(p) => (Skeleton::WellFormed, vec![p.clone()]),
-            Predicate::IsImplemented(TraitRef {
+            AtomicPredicate::Equals(a, b) => (Skeleton::Equals, vec![a.clone(), b.clone()]),
+            AtomicPredicate::Sub(a, b) => (Skeleton::Sub, vec![a.clone(), b.clone()]),
+            AtomicPredicate::Outlives(a, b) => (Skeleton::Outlives, vec![a.clone(), b.clone()]),
+            AtomicPredicate::WellFormed(p) => (Skeleton::WellFormed, vec![p.clone()]),
+            AtomicPredicate::IsImplemented(TraitRef {
                 trait_id,
                 parameters,
             }) => (
                 Skeleton::IsImplemented(trait_id.clone()),
                 parameters.clone(),
             ),
-            Predicate::NotImplemented(TraitRef {
+            AtomicPredicate::NotImplemented(TraitRef {
                 trait_id,
                 parameters,
             }) => (
                 Skeleton::NotImplemented(trait_id.clone()),
                 parameters.clone(),
             ),
-            Predicate::AliasEq(AliasTy { name, parameters }, ty) => {
+            AtomicPredicate::AliasEq(AliasTy { name, parameters }, ty) => {
                 let mut params = parameters.clone();
                 params.push(ty.clone().upcast());
                 (Skeleton::AliasEq(name.clone()), params)
             }
-            Predicate::WellFormedTraitRef(TraitRef {
+            AtomicPredicate::WellFormedTraitRef(TraitRef {
                 trait_id,
                 parameters,
             }) => (
                 Skeleton::WellFormedTraitRef(trait_id.clone()),
                 parameters.clone(),
             ),
-            Predicate::IsLocal(TraitRef {
+            AtomicPredicate::IsLocal(TraitRef {
                 trait_id,
                 parameters,
             }) => (Skeleton::IsLocal(trait_id.clone()), parameters.clone()),
-            Predicate::ConstHasType(ct, ty) => (
+            AtomicPredicate::ConstHasType(ct, ty) => (
                 Skeleton::ConstHasType,
                 vec![ct.clone().upcast(), ty.clone().upcast()],
             ),

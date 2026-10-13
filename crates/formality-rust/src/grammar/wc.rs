@@ -6,7 +6,7 @@ use formality_core::{
 
 use crate::{grammar::WhereClause, prove::ToWcs};
 
-use super::{Binder, Parameter, Predicate, TraitRef};
+use super::{AtomicPredicate, Binder, Parameter, TraitRef};
 
 #[term($set)]
 #[derive(Default)]
@@ -26,7 +26,7 @@ impl Wcs {
         assert_eq!(a.len(), b.len());
         a.into_iter()
             .zip(b)
-            .map(|(a, b)| Predicate::equals(a, b))
+            .map(|(a, b)| AtomicPredicate::equals(a, b))
             .collect()
     }
 
@@ -39,7 +39,7 @@ impl Wcs {
         assert_eq!(a.len(), b.len());
         a.into_iter()
             .zip(b)
-            .map(|(a, b)| Predicate::sub(a, b))
+            .map(|(a, b)| AtomicPredicate::sub(a, b))
             .collect()
     }
 
@@ -47,7 +47,9 @@ impl Wcs {
     pub fn all_outlives(a: impl Upcast<Vec<Parameter>>, b: impl Upcast<Parameter>) -> Wcs {
         let a: Vec<Parameter> = a.upcast();
         let b: Parameter = b.upcast();
-        a.into_iter().map(|a| Predicate::outlives(a, &b)).collect()
+        a.into_iter()
+            .map(|a| AtomicPredicate::outlives(a, &b))
+            .collect()
     }
 
     /// Iterate over where-clauses
@@ -149,7 +151,7 @@ impl DowncastTo<()> for Wcs {
 pub enum Wc {
     /// Means the predicate holds.
     #[cast]
-    Predicate(Predicate),
+    AtomicPredicate(AtomicPredicate),
 
     // Equivalent to `for<'a>` except that it can also express `for<T>` and so forth:
     // means `$v0` is true for any value of the bound variables (e.g., `'a` or `T`).
@@ -162,7 +164,7 @@ pub enum Wc {
 
 // ---
 
-cast_impl!((TraitRef) <: (Predicate) <: (Wc));
+cast_impl!((TraitRef) <: (AtomicPredicate) <: (Wc));
 
 impl UpcastFrom<Wc> for Wcs {
     fn upcast_from(term: Wc) -> Self {
@@ -180,5 +182,5 @@ impl DowncastTo<Wc> for Wcs {
     }
 }
 
-cast_impl!((Predicate) <: (Wc) <: (Wcs));
+cast_impl!((AtomicPredicate) <: (Wc) <: (Wcs));
 cast_impl!((TraitRef) <: (Wc) <: (Wcs));

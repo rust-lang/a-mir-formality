@@ -3,8 +3,8 @@ use formality_core::Set;
 
 use crate::grammar::{
     AdtId, AssociatedTy, AssociatedTyBoundData, AssociatedTyValue, AssociatedTyValueBoundData,
-    Binder, CrateId, Fallible, Fn, FnBoundData, ImplItem, MaybeFnBody, NegTraitImpl,
-    NegTraitImplBoundData, Predicate, RigidName, Substitution, Trait, TraitBoundData, TraitImpl,
+    AtomicPredicate, Binder, CrateId, Fallible, Fn, FnBoundData, ImplItem, MaybeFnBody,
+    NegTraitImpl, NegTraitImplBoundData, RigidName, Substitution, Trait, TraitBoundData, TraitImpl,
     TraitImplBoundData, TraitItem, Ty, Wcs,
 };
 use crate::prove::{Env, Program, Safety};
@@ -25,8 +25,8 @@ judgment_fn! {
             (let trait_ref = trait_id.with(self_ty, trait_parameters))
 
             (super::where_clauses::prove_where_clauses_well_formed(program, env, where_clauses, where_clauses) => ())
-            (super::prove_goal(program, env, where_clauses, Predicate::is_implemented(trait_ref)) => ())
-            (super::prove_not_goal(program, env, where_clauses, Predicate::not_implemented(trait_ref)) => ())
+            (super::prove_goal(program, env, where_clauses, AtomicPredicate::is_implemented(trait_ref)) => ())
+            (super::prove_not_goal(program, env, where_clauses, AtomicPredicate::not_implemented(trait_ref)) => ())
 
             (let trait_decl = program.program().trait_named(&trait_ref.trait_id)?)
             (let TraitBoundData { where_clauses: _, trait_items } = trait_decl.binder.instantiate_with(&trait_ref.parameters)?)
@@ -62,7 +62,7 @@ judgment_fn! {
             (let NegTraitImplBoundData { trait_id, self_ty, trait_parameters, where_clauses } = bound_data)
             (let trait_ref = trait_id.with(self_ty, trait_parameters))
             (super::where_clauses::prove_where_clauses_well_formed(program, &env, &where_clauses, &where_clauses) => ())
-            (super::prove_goal(program, &env, &where_clauses, Predicate::not_implemented(&trait_ref)) => ())
+            (super::prove_goal(program, &env, &where_clauses, AtomicPredicate::not_implemented(&trait_ref)) => ())
 
             (let trait_decl = program.program().trait_named(&trait_ref.trait_id)?)
             (let TraitBoundData { where_clauses: _, trait_items: _ } = trait_decl.binder.instantiate_with(&trait_ref.parameters)?)
@@ -209,10 +209,10 @@ judgment_fn! {
             // Check each argument: trait arg is subtype of impl arg (contravariance)
             (for_all(pair in ii_input_args.iter().zip(ti_input_args.iter()))
                 (let (ii_input_arg, ti_input_arg) = pair)
-                (super::prove_goal(program, &env, (&impl_assumptions, &ii_where_clauses), Predicate::sub(&ti_input_arg.ty, &ii_input_arg.ty)) => ()))
+                (super::prove_goal(program, &env, (&impl_assumptions, &ii_where_clauses), AtomicPredicate::sub(&ti_input_arg.ty, &ii_input_arg.ty)) => ()))
 
             // Check return type: impl return is subtype of trait return (covariance)
-            (super::prove_goal(program, &env, (&impl_assumptions, &ii_where_clauses), Predicate::sub(ii_output_ty, ti_output_ty)) => ())
+            (super::prove_goal(program, &env, (&impl_assumptions, &ii_where_clauses), AtomicPredicate::sub(ii_output_ty, ti_output_ty)) => ())
 
             ---- ("check_fn_in_impl")
             (check_fn_in_impl(program, env, impl_assumptions, trait_items, ii_fn, crate_id) => ())
@@ -250,7 +250,7 @@ judgment_fn! {
             (super::prove_goal(program, &env, (&impl_assumptions, &ti_where_clauses), &ii_where_clauses) => ())
 
             // Prove the impl type is well-formed
-            (super::prove_goal(program, env, (impl_assumptions, ii_where_clauses), Predicate::well_formed(ii_ty)) => ())
+            (super::prove_goal(program, env, (impl_assumptions, ii_where_clauses), AtomicPredicate::well_formed(ii_ty)) => ())
 
             // Prove the ensures clauses
             (let ensures: Wcs = ti_ensures.iter().map(|e| e.to_wc(&ii_ty)).collect())
@@ -356,7 +356,7 @@ judgment_fn! {
             // This will find the impl, unify its self type, and verify its where-clauses.
             (let drop_trait_ref = crate::grammar::TraitId::new("Drop").with(adt_self_ty, ()))
             (super::prove_goal(&program, &env, &adt_bound.where_clauses,
-                Predicate::IsImplemented(drop_trait_ref.clone())) => ())
+                AtomicPredicate::IsImplemented(drop_trait_ref.clone())) => ())
             ---- ("Drop impl is always applicable")
             (check_drop_impl_always_applicable(program, trait_impl, crate_id) => ())
         )

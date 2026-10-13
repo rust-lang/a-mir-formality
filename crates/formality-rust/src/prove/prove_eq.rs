@@ -1,5 +1,5 @@
 use crate::grammar::{
-    AliasTy, ExistentialVar, Parameter, Predicate, RigidTy, Substitution, Ty, UniversalVar,
+    AliasTy, AtomicPredicate, ExistentialVar, Parameter, RigidTy, Substitution, Ty, UniversalVar,
     Variable, Wcs,
 };
 use crate::prove::Constrained;
@@ -16,8 +16,8 @@ use crate::prove::{
 use super::{constraints::Constraints, env::Env};
 
 /// Goal(s) to prove `a` and `b` are equal
-pub fn eq(a: impl Upcast<Parameter>, b: impl Upcast<Parameter>) -> Predicate {
-    Predicate::equals(a, b)
+pub fn eq(a: impl Upcast<Parameter>, b: impl Upcast<Parameter>) -> AtomicPredicate {
+    AtomicPredicate::equals(a, b)
 }
 
 judgment_fn! {

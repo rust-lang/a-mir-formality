@@ -1,4 +1,4 @@
-use crate::grammar::{Crate, NegTraitImpl, Predicate, TraitImpl, Wcs};
+use crate::grammar::{AtomicPredicate, Crate, NegTraitImpl, TraitImpl, Wcs};
 use crate::prove::{Env, Program};
 
 use super::{prove_goal, prove_not_goal};
@@ -34,7 +34,7 @@ judgment_fn! {
         (
             (let (env, a) = Env::default().instantiate_universally(&impl_a.binder))
             (let trait_ref = a.trait_ref())
-            (prove_goal(program, env, &a.where_clauses, Predicate::is_local(trait_ref)) => ())
+            (prove_goal(program, env, &a.where_clauses, AtomicPredicate::is_local(trait_ref)) => ())
             --- ("orphan_check")
             (orphan_check(program, impl_a) => ())
         )
@@ -54,7 +54,7 @@ judgment_fn! {
         (
             (let (env, a) = Env::default().instantiate_universally(&impl_a.binder))
             (let trait_ref = a.trait_ref())
-            (prove_goal(program, env, &a.where_clauses, Predicate::is_local(trait_ref)) => ())
+            (prove_goal(program, env, &a.where_clauses, AtomicPredicate::is_local(trait_ref)) => ())
             --- ("orphan_check_neg")
             (orphan_check_neg(program, impl_a) => ())
         )

@@ -8,9 +8,9 @@ use crate::check::feature_gate_enabled_in_program;
 
 use crate::grammar::expr::{Block, Expr, Init, Literal, PlaceExpr, Stmt};
 use crate::grammar::{
-    AliasName, AliasTy, AssociatedItemId, ExistentialVar, FeatureGateName, FieldName, Fn, Lt,
-    Parameter, Predicate, RefKind, RigidName, RigidTy, ScalarId, Struct, StructBoundData, TraitId,
-    TraitRef, Ty, Variable, VariantId, Wcs, WhereClause,
+    AliasName, AliasTy, AssociatedItemId, AtomicPredicate, ExistentialVar, FeatureGateName,
+    FieldName, Fn, Lt, Parameter, RefKind, RigidName, RigidTy, ScalarId, Struct, StructBoundData,
+    TraitId, TraitRef, Ty, Variable, VariantId, Wcs, WhereClause,
 };
 use crate::grammar::{FnBoundData, PredicateTy};
 use crate::prove::Safety;
@@ -23,7 +23,7 @@ use crate::check::borrow_check::liveness::{Assignment, Either, LiveBefore, LiveP
 fn wf_assumptions_for_existential_subst(subst: &[ExistentialVar]) -> Wcs {
     subst
         .iter()
-        .map(|v| Predicate::well_formed(v.clone()))
+        .map(|v| AtomicPredicate::well_formed(v.clone()))
         .collect()
 }
 
@@ -964,7 +964,7 @@ judgment_fn! {
         debug(env, assumptions, state, ty)
 
         (
-            (let goal = Predicate::is_implemented(TraitId::new("Copy").with(ty, Vec::<Parameter>::new())))
+            (let goal = AtomicPredicate::is_implemented(TraitId::new("Copy").with(ty, Vec::<Parameter>::new())))
             (env.prove_goal(assumptions, &state, goal) => state)
             ------------------------------------------------------------ ("trait")
             (prove_ty_is_copy(env, assumptions, state, ty) => state)
@@ -1096,7 +1096,7 @@ fn prove_sub_type(
     a: impl Upcast<Parameter>,
     b: impl Upcast<Parameter>,
 ) -> ProvenSet<FlowState> {
-    TypeckEnv::prove_goal(env, assumptions, state, Predicate::sub(a, b))
+    TypeckEnv::prove_goal(env, assumptions, state, AtomicPredicate::sub(a, b))
 }
 
 fn prove_where_clauses(
@@ -1114,7 +1114,7 @@ fn prove_ty_is_wf(
     state: &FlowState,
     ty: &Ty,
 ) -> ProvenSet<FlowState> {
-    TypeckEnv::prove_goal(env, assumptions, state, Predicate::well_formed(ty))
+    TypeckEnv::prove_goal(env, assumptions, state, AtomicPredicate::well_formed(ty))
 }
 
 fn prove_normalize_ty(
@@ -1132,7 +1132,12 @@ fn prove_is_implemented(
     state: &FlowState,
     trait_ref: TraitRef,
 ) -> ProvenSet<FlowState> {
-    TypeckEnv::prove_goal(env, assumptions, state, Predicate::IsImplemented(trait_ref))
+    TypeckEnv::prove_goal(
+        env,
+        assumptions,
+        state,
+        AtomicPredicate::IsImplemented(trait_ref),
+    )
 }
 
 // EXAMPLE

@@ -1,7 +1,7 @@
 use crate::check::borrow_check::env::TypeckEnv;
 use crate::check::borrow_check::flow_state::PendingOutlives;
 
-use crate::grammar::{Parameter, Predicate, Variable, Wcs};
+use crate::grammar::{AtomicPredicate, Parameter, Variable, Wcs};
 use crate::prove::prove;
 use formality_core::{judgment_fn, Set, Upcast};
 
@@ -78,7 +78,7 @@ judgment_fn! {
         // Prove that T: !a -- must prove from assumptions
         (
             (if var_b.is_universal())!
-            (prove(&env.program, &env.env, assumptions, Predicate::outlives(param_a, var_b)) => c)
+            (prove(&env.program, &env.env, assumptions, AtomicPredicate::outlives(param_a, var_b)) => c)
             (if c.unconditionally_true())
             --- ("universal target")
             (can_outlive(env, assumptions, _outlives, param_a, var_b: Variable) => ())

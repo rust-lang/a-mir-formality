@@ -1,7 +1,7 @@
 use crate::grammar::{
-    AdtId, AliasName, AliasTy, AssociatedTyValue, AssociatedTyValueBoundData, Binder, Crate,
-    CrateId, CrateItem, Crates, ImplItem, NegTraitImpl, NegTraitImplBoundData, Parameter,
-    Predicate, Trait, TraitBoundData, TraitId, TraitImpl, TraitImplBoundData, TraitRef, Ty, Wc,
+    AdtId, AliasName, AliasTy, AssociatedTyValue, AssociatedTyValueBoundData, AtomicPredicate,
+    Binder, Crate, CrateId, CrateItem, Crates, ImplItem, NegTraitImpl, NegTraitImplBoundData,
+    Parameter, Trait, TraitBoundData, TraitId, TraitImpl, TraitImplBoundData, TraitRef, Ty, Wc,
     Wcs,
 };
 use crate::prove::ToWcs;
@@ -339,11 +339,11 @@ impl TraitDecl {
 
         fn is_supertrait(self_var: &Parameter, wc: &Wc) -> bool {
             match wc {
-                Wc::Predicate(Predicate::IsImplemented(trait_ref)) => {
+                Wc::AtomicPredicate(AtomicPredicate::IsImplemented(trait_ref)) => {
                     trait_ref.parameters[0] == *self_var
                 }
-                Wc::Predicate(Predicate::Outlives(a, _)) => *a == *self_var,
-                Wc::Predicate(_) => false,
+                Wc::AtomicPredicate(AtomicPredicate::Outlives(a, _)) => *a == *self_var,
+                Wc::AtomicPredicate(_) => false,
                 Wc::ForAll(binder) => is_supertrait(self_var, binder.peek()),
                 Wc::Implies(_, c) => is_supertrait(self_var, c),
             }

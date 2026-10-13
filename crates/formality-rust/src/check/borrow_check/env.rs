@@ -3,7 +3,7 @@ use std::collections::BTreeSet;
 use crate::check::borrow_check::flow_state::{FlowState, PendingOutlives};
 
 use crate::check::borrow_check::outlives::verify_universal_outlives;
-use crate::grammar::{Binder, ExistentialVar, Predicate, Ty, UniversalVar, Wcs};
+use crate::grammar::{AtomicPredicate, Binder, ExistentialVar, Ty, UniversalVar, Wcs};
 use crate::grammar::{Crates, Parameter};
 use crate::prove::{prove_normalize, Constrained, Constraints, Env, Program};
 use crate::rust::Fold;
@@ -265,8 +265,8 @@ impl TypeckEnv {
         let mut c_outlives = BTreeSet::default();
 
         for pending in c.env.pending() {
-            match pending.downcast::<Predicate>() {
-                Some(Predicate::Outlives(a, b)) => {
+            match pending.downcast::<AtomicPredicate>() {
+                Some(AtomicPredicate::Outlives(a, b)) => {
                     c_outlives.insert(PendingOutlives { a, b });
                 }
 

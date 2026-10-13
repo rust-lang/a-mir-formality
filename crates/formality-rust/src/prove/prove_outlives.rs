@@ -1,5 +1,5 @@
 use crate::grammar::Wc;
-use crate::grammar::{Lt, Parameter, Predicate, RigidTy, Wcs};
+use crate::grammar::{AtomicPredicate, Lt, Parameter, RigidTy, Wcs};
 use crate::prove::{decls::Program, prove};
 use formality_core::{judgment_fn, Set, Upcast};
 
@@ -87,7 +87,7 @@ judgment_fn! {
             (if env.allow_pending_outlives())!
             ----------------------------- ("anything can be pending")
             (prove_outlives(_decls, env, _assumptions, a, b) => Constraints::none(
-                env.with_pending(Predicate::outlives(a, b))
+                env.with_pending(AtomicPredicate::outlives(a, b))
             ))
         )
     }
@@ -107,11 +107,11 @@ fn transitively_outlived_by(
     let mut worklist = vec![r1.clone()];
 
     // Take all the outlives assumptions.
-    let outlives_assumptions: Vec<Predicate> = assumptions
+    let outlives_assumptions: Vec<AtomicPredicate> = assumptions
         .iter()
         .filter_map(|wc| {
-            if let Wc::Predicate(Predicate::Outlives(r1, r2)) = wc {
-                return Some(Predicate::Outlives(r1, r2));
+            if let Wc::AtomicPredicate(AtomicPredicate::Outlives(r1, r2)) = wc {
+                return Some(AtomicPredicate::Outlives(r1, r2));
             }
             None
         })
@@ -120,7 +120,7 @@ fn transitively_outlived_by(
     // Find the set of lifetime that is transitively outlived by r1.
     while let Some(current) = worklist.pop() {
         for relation in outlives_assumptions.iter() {
-            let Predicate::Outlives(r1, r2) = relation else {
+            let AtomicPredicate::Outlives(r1, r2) = relation else {
                 panic!("we should only have outlive relation here");
             };
 

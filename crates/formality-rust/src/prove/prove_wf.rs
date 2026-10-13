@@ -1,5 +1,5 @@
 use crate::grammar::{
-    AliasName, AliasTy, Const, Lt, Parameter, Parameters, Predicate, RigidName, RigidTy, Ty,
+    AliasName, AliasTy, AtomicPredicate, Const, Lt, Parameter, Parameters, RigidName, RigidTy, Ty,
     UniversalVar, Wcs,
 };
 use formality_core::{judgment_fn, Downcast, ProvenSet, Upcast};
@@ -32,7 +32,7 @@ judgment_fn! {
             // `&'a T` is well-formed if `T: 'a`
             (let (lt, ty) = parameters.downcast_err::<(Lt, Ty)>()?)
             (prove_wf_recursive(decls, env, assumptions, ty) => c)
-            (prove_after(decls, c, assumptions, Predicate::outlives(ty, lt)) => c)
+            (prove_after(decls, c, assumptions, AtomicPredicate::outlives(ty, lt)) => c)
             --- ("references")
             (prove_wf(decls, env, assumptions, RigidTy { name: RigidName::Ref(_), parameters }) => c)
         )
@@ -101,5 +101,10 @@ pub fn prove_wf_recursive(
     assumptions: impl Upcast<Wcs>,
     param: impl Upcast<Parameter>,
 ) -> ProvenSet<Constraints> {
-    prove(program, env, assumptions, Predicate::well_formed(param))
+    prove(
+        program,
+        env,
+        assumptions,
+        AtomicPredicate::well_formed(param),
+    )
 }

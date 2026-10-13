@@ -30,7 +30,7 @@ judgment_fn! {
             (if skel_c == skel_g)!
             (prove(decls, env, assumptions, Wcs::all_eq(parameters_c, parameters_g)) => c)
             ----------------------------- ("predicate-congruence-axiom")
-            (prove_via(decls, env, assumptions, Wc::Predicate(pred_1), Wc::Predicate(pred_2)) => c)
+            (prove_via(decls, env, assumptions, Wc::AtomicPredicate(pred_1), Wc::AtomicPredicate(pred_2)) => c)
         )
 
         (
@@ -40,7 +40,7 @@ judgment_fn! {
             (if skel_c == skel_g)
             (if parameters_c == parameters_g)! // for relations, we require 100% match
             ----------------------------- ("relation-axiom")
-            (prove_via(_decls, env, _assumptions, Wc::Predicate(rel_1), Wc::Predicate(rel_2)) => Constraints::none(env))
+            (prove_via(_decls, env, _assumptions, Wc::AtomicPredicate(rel_1), Wc::AtomicPredicate(rel_2)) => Constraints::none(env))
         )
 
         // If you have `where for<'a> T: Trait<'a>` then you can prove `T: Trait<'b>` for any `'b`.

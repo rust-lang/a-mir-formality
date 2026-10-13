@@ -3,7 +3,7 @@ use crate::check::borrow_check::flow_state::FlowState;
 use crate::check::borrow_check::nll::borrow_check;
 use crate::check::prove_goal;
 use crate::check::where_clauses::prove_where_clauses_well_formed;
-use crate::grammar::{CrateId, FnBody, MaybeFnBody, Predicate, Wcs};
+use crate::grammar::{AtomicPredicate, CrateId, FnBody, MaybeFnBody, Wcs};
 use crate::prove::{Env, Program};
 use crate::{
     grammar::{Fn, FnBoundData},
@@ -50,8 +50,8 @@ judgment_fn! {
             (let assumptions: Wcs = (assumptions, where_clauses).to_wcs())
             (prove_where_clauses_well_formed(program, env, assumptions, where_clauses) => ())
             (for_all(input_arg in input_args)
-                (prove_goal(program, env, assumptions, Predicate::well_formed(&input_arg.ty)) => ()))
-            (prove_goal(program, env, assumptions, Predicate::well_formed(output_ty)) => ())
+                (prove_goal(program, env, assumptions, AtomicPredicate::well_formed(&input_arg.ty)) => ()))
+            (prove_goal(program, env, assumptions, AtomicPredicate::well_formed(output_ty)) => ())
             (check_fn_body(program, env, assumptions, body, input_args, output_ty) => ())
             ------------------------------------------------------------ ("check fn")
             (check_fn(program, env, assumptions, f, crate_id) => ())

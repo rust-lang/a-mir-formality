@@ -1,5 +1,7 @@
 use crate::{
-    grammar::{AliasTy, ExistentialVar, Parameter, Predicate, RigidTy, Ty, Variable, Wc, Wcs},
+    grammar::{
+        AliasTy, AtomicPredicate, ExistentialVar, Parameter, RigidTy, Ty, Variable, Wc, Wcs,
+    },
     prove::Constrained,
 };
 use formality_core::{judgment_fn, Downcast};
@@ -71,14 +73,14 @@ judgment_fn! {
             (if let Some(Variable::ExistentialVar(v_a)) = a.downcast())
             (if v_goal == v_a)!
             ----------------------------- ("var-axiom-l")
-            (prove_normalize_via(_decls, env, _assumptions, Predicate::Equals(a, b), Variable::ExistentialVar(v_goal)) => Constrained::none(env, b))
+            (prove_normalize_via(_decls, env, _assumptions, AtomicPredicate::Equals(a, b), Variable::ExistentialVar(v_goal)) => Constrained::none(env, b))
         )
 
         (
             (if let Some(Variable::ExistentialVar(v_a)) = a.downcast())
             (if v_goal == v_a)!
             ----------------------------- ("var-axiom-r")
-            (prove_normalize_via(_decls, env, _assumptions, Predicate::Equals(b, a), Variable::ExistentialVar(v_goal)) => Constrained::none(env, b))
+            (prove_normalize_via(_decls, env, _assumptions, AtomicPredicate::Equals(b, a), Variable::ExistentialVar(v_goal)) => Constrained::none(env, b))
         )
 
         // The following 2 rules handle normalization of a type `X` given an assumption `X = Y`.
@@ -95,7 +97,7 @@ judgment_fn! {
             (prove_syntactically_eq(decls, env, assumptions, a, goal) => c)
             (let b = c.substitution().apply(b))
             ----------------------------- ("axiom-l")
-            (prove_normalize_via(decls, env, assumptions, Predicate::Equals(a, b), goal) => Constrained(b, c))
+            (prove_normalize_via(decls, env, assumptions, AtomicPredicate::Equals(a, b), goal) => Constrained(b, c))
         )
 
         (
@@ -104,7 +106,7 @@ judgment_fn! {
             (prove_syntactically_eq(decls, env, assumptions, a, goal) => c)
             (let b = c.substitution().apply(b))
             ----------------------------- ("axiom-r")
-            (prove_normalize_via(decls, env, assumptions, Predicate::Equals(b, a), goal) => Constrained(b, c))
+            (prove_normalize_via(decls, env, assumptions, AtomicPredicate::Equals(b, a), goal) => Constrained(b, c))
         )
 
         // These rules handle the the ∀ and ⇒ cases.

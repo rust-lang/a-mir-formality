@@ -1,4 +1,4 @@
-use crate::grammar::{Lt, Parameter, Predicate, RigidTy, Ty, Wcs};
+use crate::grammar::{AtomicPredicate, Lt, Parameter, RigidTy, Ty, Wcs};
 use crate::prove::Constrained;
 use formality_core::judgment_fn;
 
@@ -25,14 +25,14 @@ judgment_fn! {
 
         (
             (prove_normalize(decls, env, assumptions, x) => Constrained(y, c))
-            (prove_after(decls, c, assumptions, Predicate::sub(y, z)) => c)
+            (prove_after(decls, c, assumptions, AtomicPredicate::sub(y, z)) => c)
             ----------------------------- ("normalize-l")
             (prove_sub(decls, env, assumptions, x, z) => c)
         )
 
         (
             (prove_normalize(decls, env, assumptions, y) => Constrained(z, c))
-            (prove_after(decls, c, assumptions, Predicate::sub(x, &z)) => c)
+            (prove_after(decls, c, assumptions, AtomicPredicate::sub(x, &z)) => c)
             ----------------------------- ("normalize-r")
             (prove_sub(decls, env, assumptions, x, y) => c)
         )

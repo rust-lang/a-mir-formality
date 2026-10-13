@@ -2,7 +2,7 @@ use std::collections::HashSet;
 
 use crate::check::{prove_goal, where_clauses::prove_where_clauses_well_formed};
 use crate::grammar::Fallible;
-use crate::grammar::{Adt, AdtBoundData, Field, Predicate, Variant};
+use crate::grammar::{Adt, AdtBoundData, AtomicPredicate, Field, Variant};
 use crate::prove::{Env, Program};
 use anyhow::bail;
 use formality_core::judgment::ProofTree;
@@ -23,7 +23,7 @@ judgment_fn! {
                 (let Variant { fields, .. } = variant)
                 (for_all(field in fields)
                     (let Field { ty, .. } = field)
-                    (prove_goal(program, env, where_clauses, Predicate::well_formed(ty)) => ())))
+                    (prove_goal(program, env, where_clauses, AtomicPredicate::well_formed(ty)) => ())))
             ------------------------------------------------------------ ("check adt")
             (check_adt(program, adt) => ())
         )
