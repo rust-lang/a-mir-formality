@@ -41,23 +41,14 @@ fn use_of_uninitialized_variable() {
     .borrowck_err(
         BorrowCheckFailure::All,
         expect_test::expect![[r#"
-        the rule "access_permitted" at (nll.rs) failed because
-          condition evaluated to false: `match access.kind
-          {
-              AccessKind::Write =>
-              check_place_writable(&state, &access.place.to_place_expression()),
-              AccessKind::Read | AccessKind::Move =>
-              check_place_initialized(&state, &access.place.to_place_expression()),
-          }`
-
-        the rule "access_permitted" at (nll.rs) failed because
-          condition evaluated to false: `match access.kind
-          {
-              AccessKind::Write =>
-              check_place_writable(&state, &access.place.to_place_expression()),
-              AccessKind::Read | AccessKind::Move =>
-              check_place_initialized(&state, &access.place.to_place_expression()),
-          }`"#]],
+            the rule "access_permitted" at (nll.rs) failed because
+              condition evaluated to false: `match access.kind
+              {
+                  AccessKind::Write =>
+                  check_place_writable(&state, &access.place.to_place_expression()),
+                  AccessKind::Read | AccessKind::Move =>
+                  check_place_initialized(&state, &access.place.to_place_expression()),
+              }`"#]],
     )
 }
 
@@ -157,23 +148,14 @@ fn conditional_init_one_branch() {
     .borrowck_err(
         BorrowCheckFailure::All,
         expect_test::expect![[r#"
-        the rule "access_permitted" at (nll.rs) failed because
-          condition evaluated to false: `match access.kind
-          {
-              AccessKind::Write =>
-              check_place_writable(&state, &access.place.to_place_expression()),
-              AccessKind::Read | AccessKind::Move =>
-              check_place_initialized(&state, &access.place.to_place_expression()),
-          }`
-
-        the rule "access_permitted" at (nll.rs) failed because
-          condition evaluated to false: `match access.kind
-          {
-              AccessKind::Write =>
-              check_place_writable(&state, &access.place.to_place_expression()),
-              AccessKind::Read | AccessKind::Move =>
-              check_place_initialized(&state, &access.place.to_place_expression()),
-          }`"#]],
+            the rule "access_permitted" at (nll.rs) failed because
+              condition evaluated to false: `match access.kind
+              {
+                  AccessKind::Write =>
+                  check_place_writable(&state, &access.place.to_place_expression()),
+                  AccessKind::Read | AccessKind::Move =>
+                  check_place_initialized(&state, &access.place.to_place_expression()),
+              }`"#]],
     )
 }
 
@@ -257,15 +239,6 @@ fn conditional_init_no_else() {
         }
     }])
     .err(expect_test::expect![[r#"
-        the rule "access_permitted" at (nll.rs) failed because
-          condition evaluated to false: `match access.kind
-          {
-              AccessKind::Write =>
-              check_place_writable(&state, &access.place.to_place_expression()),
-              AccessKind::Read | AccessKind::Move =>
-              check_place_initialized(&state, &access.place.to_place_expression()),
-          }`
-
         the rule "access_permitted" at (nll.rs) failed because
           condition evaluated to false: `match access.kind
           {
@@ -589,23 +562,14 @@ fn move_parent_then_access_child() {
     .borrowck_err(
         BorrowCheckFailure::All,
         expect_test::expect![[r#"
-        the rule "access_permitted" at (nll.rs) failed because
-          condition evaluated to false: `match access.kind
-          {
-              AccessKind::Write =>
-              check_place_writable(&state, &access.place.to_place_expression()),
-              AccessKind::Read | AccessKind::Move =>
-              check_place_initialized(&state, &access.place.to_place_expression()),
-          }`
-
-        the rule "access_permitted" at (nll.rs) failed because
-          condition evaluated to false: `match access.kind
-          {
-              AccessKind::Write =>
-              check_place_writable(&state, &access.place.to_place_expression()),
-              AccessKind::Read | AccessKind::Move =>
-              check_place_initialized(&state, &access.place.to_place_expression()),
-          }`"#]],
+            the rule "access_permitted" at (nll.rs) failed because
+              condition evaluated to false: `match access.kind
+              {
+                  AccessKind::Write =>
+                  check_place_writable(&state, &access.place.to_place_expression()),
+                  AccessKind::Read | AccessKind::Move =>
+                  check_place_initialized(&state, &access.place.to_place_expression()),
+              }`"#]],
     )
 }
 
@@ -2026,23 +1990,14 @@ fn uninitialized_return() {
     .borrowck_err(
         BorrowCheckFailure::All,
         expect_test::expect![[r#"
-        the rule "access_permitted" at (nll.rs) failed because
-          condition evaluated to false: `match access.kind
-          {
-              AccessKind::Write =>
-              check_place_writable(&state, &access.place.to_place_expression()),
-              AccessKind::Read | AccessKind::Move =>
-              check_place_initialized(&state, &access.place.to_place_expression()),
-          }`
-
-        the rule "access_permitted" at (nll.rs) failed because
-          condition evaluated to false: `match access.kind
-          {
-              AccessKind::Write =>
-              check_place_writable(&state, &access.place.to_place_expression()),
-              AccessKind::Read | AccessKind::Move =>
-              check_place_initialized(&state, &access.place.to_place_expression()),
-          }`"#]],
+            the rule "access_permitted" at (nll.rs) failed because
+              condition evaluated to false: `match access.kind
+              {
+                  AccessKind::Write =>
+                  check_place_writable(&state, &access.place.to_place_expression()),
+                  AccessKind::Read | AccessKind::Move =>
+                  check_place_initialized(&state, &access.place.to_place_expression()),
+              }`"#]],
     )
 }
 /// Test the holding a shared reference to a local
@@ -2390,13 +2345,9 @@ fn undeclared_universal_region_relationship() {
             }
         }
     }]).borrowck_err(BorrowCheckFailure::All, expect_test::expect![[r#"
-                crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: !lt_1 : !lt_2, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0)}, env: Env { variables: [!lt_1, !lt_2, ?lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: !lt_1 : !lt_2, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0)}, env: Env { variables: [!lt_1, !lt_2, ?lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
 
-                crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_1, b: !lt_2, assumptions: {@ wf(?lt_0)}, env: Env { variables: [!lt_1, !lt_2, ?lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
-
-                crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: !lt_1 : !lt_2, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0)}, env: Env { variables: [!lt_1, !lt_2, ?lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
-
-                crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_1, b: !lt_2, assumptions: {@ wf(?lt_0)}, env: Env { variables: [!lt_1, !lt_2, ?lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }"#]])
+        crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_1, b: !lt_2, assumptions: {@ wf(?lt_0)}, env: Env { variables: [!lt_1, !lt_2, ?lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }"#]])
 }
 
 /// Same as `undeclared_universal_region_relationship`, but the function
@@ -2412,13 +2363,9 @@ fn undeclared_universal_region_relationship_no_return() {
             }
         }
     }]).borrowck_err(BorrowCheckFailure::All, expect_test::expect![[r#"
-                crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: !lt_1, assumptions: {}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+        crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: !lt_1, assumptions: {}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
 
-                crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: !lt_1, assumptions: {}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
-
-                crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: !lt_1, assumptions: {}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
-
-                crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: !lt_1, assumptions: {}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }"#]])
+        crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: !lt_1, assumptions: {}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }"#]])
 }
 
 /// Upcasting from `'a` to `'b` is allowed because
@@ -2469,13 +2416,9 @@ fn undeclared_transitive_universal_region_relationship() {
             return v1;
         }
     }]).borrowck_err(BorrowCheckFailure::All, expect_test::expect![[r#"
-                crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: !lt_0 : !lt_2, via: !lt_0 : !lt_1, assumptions: {!lt_0 : !lt_1}, env: Env { variables: [!lt_0, !lt_1, !lt_2], bias: Soundness, pending: [], allow_pending_outlives: false } }
+        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: !lt_0 : !lt_2, via: !lt_0 : !lt_1, assumptions: {!lt_0 : !lt_1}, env: Env { variables: [!lt_0, !lt_1, !lt_2], bias: Soundness, pending: [], allow_pending_outlives: false } }
 
-                crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: !lt_2, assumptions: {!lt_0 : !lt_1}, env: Env { variables: [!lt_0, !lt_1, !lt_2], bias: Soundness, pending: [], allow_pending_outlives: false } }
-
-                crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: !lt_0 : !lt_2, via: !lt_0 : !lt_1, assumptions: {!lt_0 : !lt_1}, env: Env { variables: [!lt_0, !lt_1, !lt_2], bias: Soundness, pending: [], allow_pending_outlives: false } }
-
-                crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: !lt_2, assumptions: {!lt_0 : !lt_1}, env: Env { variables: [!lt_0, !lt_1, !lt_2], bias: Soundness, pending: [], allow_pending_outlives: false } }"#]])
+        crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: !lt_2, assumptions: {!lt_0 : !lt_1}, env: Env { variables: [!lt_0, !lt_1, !lt_2], bias: Soundness, pending: [], allow_pending_outlives: false } }"#]])
 }
 
 // For `list: &mut Map`, borrow `&mut (*list).value` then assign to `list`.
@@ -2702,41 +2645,23 @@ fn continue_drops_borrowed_local_loop_carried() {
     .borrowck_err(
         BorrowCheckFailure::All,
         expect_test::expect![[r#"
-                the rule "access_permitted" at (nll.rs) failed because
-                  condition evaluated to false: `match access.kind
-                  {
-                      AccessKind::Write =>
-                      check_place_writable(&state, &access.place.to_place_expression()),
-                      AccessKind::Read | AccessKind::Move =>
-                      check_place_initialized(&state, &access.place.to_place_expression()),
-                  }`
+            the rule "access_permitted" at (nll.rs) failed because
+              condition evaluated to false: `match access.kind
+              {
+                  AccessKind::Write =>
+                  check_place_writable(&state, &access.place.to_place_expression()),
+                  AccessKind::Read | AccessKind::Move =>
+                  check_place_initialized(&state, &access.place.to_place_expression()),
+              }`
 
-                the rule "access_permitted" at (nll.rs) failed because
-                  condition evaluated to false: `match access.kind
-                  {
-                      AccessKind::Write =>
-                      check_place_writable(&state, &access.place.to_place_expression()),
-                      AccessKind::Read | AccessKind::Move =>
-                      check_place_initialized(&state, &access.place.to_place_expression()),
-                  }`
-
-                the rule "access_permitted" at (nll.rs) failed because
-                  condition evaluated to false: `match access.kind
-                  {
-                      AccessKind::Write =>
-                      check_place_writable(&state, &access.place.to_place_expression()),
-                      AccessKind::Read | AccessKind::Move =>
-                      check_place_initialized(&state, &access.place.to_place_expression()),
-                  }`
-
-                the rule "access_permitted" at (nll.rs) failed because
-                  condition evaluated to false: `match access.kind
-                  {
-                      AccessKind::Write =>
-                      check_place_writable(&state, &access.place.to_place_expression()),
-                      AccessKind::Read | AccessKind::Move =>
-                      check_place_initialized(&state, &access.place.to_place_expression()),
-                  }`"#]],
+            the rule "access_permitted" at (nll.rs) failed because
+              condition evaluated to false: `match access.kind
+              {
+                  AccessKind::Write =>
+                  check_place_writable(&state, &access.place.to_place_expression()),
+                  AccessKind::Read | AccessKind::Move =>
+                  check_place_initialized(&state, &access.place.to_place_expression()),
+              }`"#]],
     )
 }
 
@@ -3139,10 +3064,7 @@ fn call_generic_fn_with_turbofish_missing_relation_upcast() {
             let r: &'b u32 = identity::<&'b u32>(a);
             return r;
         }
-    }]).borrowck_err(BorrowCheckFailure::All, expect_test::expect![[r#"
-                crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: !lt_1, assumptions: {}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
-
-                crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: !lt_1, assumptions: {}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }"#]])
+    }]).borrowck_err(BorrowCheckFailure::All, expect_test::expect!["crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: !lt_1, assumptions: {}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }"])
 }
 
 /// Test call to a generic function using turbofish syntax with lifetime and type.
@@ -3290,25 +3212,15 @@ fn struct_construction_with_borrowed_local() {
     .borrowck_err(
         BorrowCheckFailure::All,
         expect_test::expect![[r#"
-        the rule "borrow of disjoint places" at (nll.rs) failed because
-          condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
-            &loan.place = v1 : u32
-            &access.place = v1 : u32
+            the rule "borrow of disjoint places" at (nll.rs) failed because
+              condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
+                &loan.place = v1 : u32
+                &access.place = v1 : u32
 
-        the rule "loan_cannot_outlive" at (nll.rs) failed because
-          condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
-            outlived_by_loan = {?lt_1, ?lt_2}
-            &lifetime.upcast() = ?lt_1
-
-        the rule "borrow of disjoint places" at (nll.rs) failed because
-          condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
-            &loan.place = v1 : u32
-            &access.place = v1 : u32
-
-        the rule "loan_cannot_outlive" at (nll.rs) failed because
-          condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
-            outlived_by_loan = {?lt_1, ?lt_2}
-            &lifetime.upcast() = ?lt_1"#]],
+            the rule "loan_cannot_outlive" at (nll.rs) failed because
+              condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+                outlived_by_loan = {?lt_1, ?lt_2}
+                &lifetime.upcast() = ?lt_1"#]],
     )
 }
 
@@ -4588,4 +4500,39 @@ fn issue_70044_location_insensitive_constraints() {
     }])
     .skip_execute()
     .borrowck_err(BorrowCheckFailure::Nll, expect_test::expect![[""]]);
+}
+
+/// Reading a `Copy` place does not move out of it, so it can be read twice.
+#[test]
+fn read_copy_place_twice() {
+    FormalityTest::new(crates![crate Foo {
+        fn foo() -> u32 {
+            let a: u32 = 0_u32;
+            a;
+            a;
+            return 0_u32;
+        }
+    }])
+    .skip_execute()
+    .borrowck_ok()
+}
+
+/// Shared references are also `Copy`, so we can create two separate shared
+// references without issue.
+#[test]
+fn read_copy_reference_twice() {
+    FormalityTest::new(crates![crate Foo {
+        fn foo() -> u32 {
+            exists<'l0> {
+                let a: u32 = 0_u32;
+                let p: &'l0 u32 = &'l0 a;
+                let q: &'l0 u32 = p;
+                let r: &'l0 u32 = p;
+                p;
+                return 0_u32;
+            }
+        }
+    }])
+    .skip_execute()
+    .borrowck_ok();
 }
