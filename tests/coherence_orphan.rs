@@ -141,18 +141,18 @@ fn uncovered_mut_ref_T() {
     .err(expect_test::expect![[r#"
         crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: @ IsLocal(CoreTrait(&!lt_1 mut !ty_0, FooStruct)), via: !ty_0 : !lt_1, assumptions: {!ty_0 : !lt_1}, env: Env { variables: [!lt_1, !ty_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:54:1: no applicable rules for prove_normalize_via { goal: !lt_1, via: !ty_0 : !lt_1, assumptions: {!ty_0 : !lt_1}, env: Env { variables: [!lt_1, !ty_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: !lt_1, via: !ty_0 : !lt_1, assumptions: {!ty_0 : !lt_1}, env: Env { variables: [!lt_1, !ty_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:54:1: no applicable rules for prove_normalize_via { goal: &!lt_1 mut !ty_0, via: !ty_0 : !lt_1, assumptions: {!ty_0 : !lt_1}, env: Env { variables: [!lt_1, !ty_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: &!lt_1 mut !ty_0, via: !ty_0 : !lt_1, assumptions: {!ty_0 : !lt_1}, env: Env { variables: [!lt_1, !ty_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:54:1: no applicable rules for prove_normalize_via { goal: !ty_0, via: !ty_0 : !lt_1, assumptions: {!ty_0 : !lt_1}, env: Env { variables: [!lt_1, !ty_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: !ty_0, via: !ty_0 : !lt_1, assumptions: {!ty_0 : !lt_1}, env: Env { variables: [!lt_1, !ty_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
 
         the rule "rigid" at (is_local.rs) failed because
           condition evaluated to false: `!is_fundamental(decls, name)`
             decls = program([crate core { trait CoreTrait <ty, ty> { } }, crate foo { struct FooStruct { } impl <lt, ty> CoreTrait <FooStruct> for &^lt0_0 mut ^ty0_1 where ^ty0_1 : ^lt0_0 { } }], 222)
             name = &(mut)
 
-        crates/formality-rust/src/prove/prove_normalize.rs:54:1: no applicable rules for prove_normalize_via { goal: &!lt_1 mut !ty_0, via: !ty_0 : !lt_1, assumptions: {!ty_0 : !lt_1}, env: Env { variables: [!lt_1, !ty_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: &!lt_1 mut !ty_0, via: !ty_0 : !lt_1, assumptions: {!ty_0 : !lt_1}, env: Env { variables: [!lt_1, !ty_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
 
         the rule "local trait" at (is_local.rs) failed because
           condition evaluated to false: `decls.is_local_trait_id(&goal.trait_id)`
@@ -172,25 +172,25 @@ fn uncovered_nested_ref_T() {
     .err(expect_test::expect![[r#"
         crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: @ IsLocal(CoreTrait(&!lt_1 &!lt_1 !ty_0, FooStruct)), via: !ty_0 : !lt_1, assumptions: {!ty_0 : !lt_1}, env: Env { variables: [!lt_1, !ty_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:54:1: no applicable rules for prove_normalize_via { goal: !lt_1, via: !ty_0 : !lt_1, assumptions: {!ty_0 : !lt_1}, env: Env { variables: [!lt_1, !ty_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: !lt_1, via: !ty_0 : !lt_1, assumptions: {!ty_0 : !lt_1}, env: Env { variables: [!lt_1, !ty_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:54:1: no applicable rules for prove_normalize_via { goal: &!lt_1 &!lt_1 !ty_0, via: !ty_0 : !lt_1, assumptions: {!ty_0 : !lt_1}, env: Env { variables: [!lt_1, !ty_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: &!lt_1 &!lt_1 !ty_0, via: !ty_0 : !lt_1, assumptions: {!ty_0 : !lt_1}, env: Env { variables: [!lt_1, !ty_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:54:1: no applicable rules for prove_normalize_via { goal: !ty_0, via: !ty_0 : !lt_1, assumptions: {!ty_0 : !lt_1}, env: Env { variables: [!lt_1, !ty_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
-
-        the rule "rigid" at (is_local.rs) failed because
-          condition evaluated to false: `!is_fundamental(decls, name)`
-            decls = program([crate core { trait CoreTrait <ty, ty> { } }, crate foo { struct FooStruct { } impl <lt, ty> CoreTrait <FooStruct> for &^lt0_0 &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { } }], 222)
-            name = &(shared)
-
-        crates/formality-rust/src/prove/prove_normalize.rs:54:1: no applicable rules for prove_normalize_via { goal: &!lt_1 !ty_0, via: !ty_0 : !lt_1, assumptions: {!ty_0 : !lt_1}, env: Env { variables: [!lt_1, !ty_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: !ty_0, via: !ty_0 : !lt_1, assumptions: {!ty_0 : !lt_1}, env: Env { variables: [!lt_1, !ty_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
 
         the rule "rigid" at (is_local.rs) failed because
           condition evaluated to false: `!is_fundamental(decls, name)`
             decls = program([crate core { trait CoreTrait <ty, ty> { } }, crate foo { struct FooStruct { } impl <lt, ty> CoreTrait <FooStruct> for &^lt0_0 &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { } }], 222)
             name = &(shared)
 
-        crates/formality-rust/src/prove/prove_normalize.rs:54:1: no applicable rules for prove_normalize_via { goal: &!lt_1 &!lt_1 !ty_0, via: !ty_0 : !lt_1, assumptions: {!ty_0 : !lt_1}, env: Env { variables: [!lt_1, !ty_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: &!lt_1 !ty_0, via: !ty_0 : !lt_1, assumptions: {!ty_0 : !lt_1}, env: Env { variables: [!lt_1, !ty_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+        the rule "rigid" at (is_local.rs) failed because
+          condition evaluated to false: `!is_fundamental(decls, name)`
+            decls = program([crate core { trait CoreTrait <ty, ty> { } }, crate foo { struct FooStruct { } impl <lt, ty> CoreTrait <FooStruct> for &^lt0_0 &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { } }], 222)
+            name = &(shared)
+
+        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: &!lt_1 &!lt_1 !ty_0, via: !ty_0 : !lt_1, assumptions: {!ty_0 : !lt_1}, env: Env { variables: [!lt_1, !ty_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
 
         the rule "local trait" at (is_local.rs) failed because
           condition evaluated to false: `decls.is_local_trait_id(&goal.trait_id)`
@@ -250,18 +250,18 @@ fn uncovered_ref_T() {
                 struct FooStruct {}
                 impl<T> CoreTrait<FooStruct> for &'static T {}
             }]).err(expect_test::expect![[r#"
-                crates/formality-rust/src/prove/prove_normalize.rs:18:1: no applicable rules for prove_normalize { p: ' static, assumptions: {}, env: Env { variables: [!ty_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+                crates/formality-rust/src/prove/prove_normalize.rs:21:1: no applicable rules for prove_normalize { p: ' static, assumptions: {}, env: Env { variables: [!ty_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
 
-                crates/formality-rust/src/prove/prove_normalize.rs:18:1: no applicable rules for prove_normalize { p: &' static !ty_0, assumptions: {}, env: Env { variables: [!ty_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+                crates/formality-rust/src/prove/prove_normalize.rs:21:1: no applicable rules for prove_normalize { p: &' static !ty_0, assumptions: {}, env: Env { variables: [!ty_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
 
-                crates/formality-rust/src/prove/prove_normalize.rs:18:1: no applicable rules for prove_normalize { p: !ty_0, assumptions: {}, env: Env { variables: [!ty_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+                crates/formality-rust/src/prove/prove_normalize.rs:21:1: no applicable rules for prove_normalize { p: !ty_0, assumptions: {}, env: Env { variables: [!ty_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
 
                 the rule "rigid" at (is_local.rs) failed because
                   condition evaluated to false: `!is_fundamental(decls, name)`
                     decls = program([crate core { trait CoreTrait <ty, ty> { } }, crate foo { struct FooStruct { } impl <ty> CoreTrait <FooStruct> for &' static ^ty0_0 { } }], 222)
                     name = &(shared)
 
-                crates/formality-rust/src/prove/prove_normalize.rs:18:1: no applicable rules for prove_normalize { p: &' static !ty_0, assumptions: {}, env: Env { variables: [!ty_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+                crates/formality-rust/src/prove/prove_normalize.rs:21:1: no applicable rules for prove_normalize { p: &' static !ty_0, assumptions: {}, env: Env { variables: [!ty_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
 
                 the rule "local trait" at (is_local.rs) failed because
                   condition evaluated to false: `decls.is_local_trait_id(&goal.trait_id)`
