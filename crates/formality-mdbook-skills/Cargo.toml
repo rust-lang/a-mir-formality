@@ -1,0 +1,18 @@
+[package]
+name = "formality-mdbook-skills"
+version = "0.1.0"
+edition = "2024"
+license = "MIT OR Apache-2.0"
+description = "Include agent skill documentation in mdBook without YAML frontmatter"
+repository = "https://github.com/rust-lang/a-mir-formality"
+readme = "README.md"
+
+[dependencies]
+anyhow = "1"
+mdbook-preprocessor = "0.5"
+regex = "1"
+serde_json = "1"
+serde_yaml_ng = "0.10"
+
+[dev-dependencies]
+tempfile = "3"
