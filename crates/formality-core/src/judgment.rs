@@ -13,6 +13,8 @@ pub use proven_set::{
     FailureLocation, FailureReason, LeafFailure, ProofTree, Proven, ProvenSet, RuleFailureCause,
 };
 
+#[cfg(test)]
+mod test_comprehension;
 mod test_explicit_fail;
 mod test_fallible;
 mod test_filtered;
@@ -41,10 +43,122 @@ pub type JudgmentStack<J, O> = RefCell<FixedPointStack<J, Map<O, ProofTree>>>;
 /// * `(if <expr>)`
 /// * `(if let <pat> = <expr>)`
 /// * `(let <binding> = <expr>)`
+/// * `(let <binding>: <collection-type> = for_all <item> in <collection> {
+///   <conditions>... (<value>) })` -- collects implicitly upcast values after
+///   requiring the conditions for every element. The type annotation is optional.
+///   A final `(<judgment> => <binding>)` can also supply the collected value.
+/// * `(for_all(<item> in <collection>) <conditions>...)` -- requires the inner
+///   conditions to succeed for every element; an empty collection succeeds.
+/// * `(for_all(<item> in <collection>) with(<variables>...) <conditions>...)` --
+///   additionally carries the named variables between iterations. Shadow them
+///   inside the loop to update them; later conditions see their final values.
+///   The loop retains one successful result per element, not all combinations.
 ///
 /// The conclusions can be the following
 ///
 /// * `(<pat> => <binding>)
+///
+/// ## Collection output patterns
+///
+/// A collection-producing `for_all` can end with a judgment premise only when
+/// its output pattern is a single identifier. Destructuring does not implicitly
+/// select a value to collect:
+///
+/// ```compile_fail
+/// # use formality_core::{judgment_fn, Set};
+/// # judgment_fn! {
+/// #     fn expected_field_name(field: u32) => (u32, u32) {
+/// #         debug(field)
+/// #         (--- ("field name") (expected_field_name(field) => (field, 0u32)))
+/// #     }
+/// # }
+/// # judgment_fn! {
+/// #     fn field_names(fields: Vec<u32>) => Set<u32> {
+/// #         debug(fields)
+/// #         (
+/// (let expected_names: Set<u32> = for_all field in fields {
+///     (expected_field_name(field) => (a, _))
+/// })
+/// #             --- ("field names")
+/// #             (field_names(fields) => expected_names)
+/// #         )
+/// #     }
+/// # }
+/// ```
+///
+/// A wildcard discards the judgment result, so it cannot supply a collected value:
+///
+/// ```compile_fail
+/// # use formality_core::{judgment_fn, Set};
+/// # judgment_fn! {
+/// #     fn expected_field_name(field: u32) => u32 {
+/// #         debug(field)
+/// #         (--- ("field name") (expected_field_name(field) => field))
+/// #     }
+/// # }
+/// # judgment_fn! {
+/// #     fn field_names(fields: Vec<u32>) => Set<u32> {
+/// #         debug(fields)
+/// #         (
+/// (let expected_names: Set<u32> = for_all field in fields {
+///     (expected_field_name(field) => _)
+/// })
+/// #             --- ("field names")
+/// #             (field_names(fields) => expected_names)
+/// #         )
+/// #     }
+/// # }
+/// ```
+///
+/// Nor is `..` supported as shorthand for collecting the whole result:
+///
+/// ```compile_fail
+/// # use formality_core::{judgment_fn, Set};
+/// # judgment_fn! {
+/// #     fn expected_field_name(field: u32) => u32 {
+/// #         debug(field)
+/// #         (--- ("field name") (expected_field_name(field) => field))
+/// #     }
+/// # }
+/// # judgment_fn! {
+/// #     fn field_names(fields: Vec<u32>) => Set<u32> {
+/// #         debug(fields)
+/// #         (
+/// (let expected_names: Set<u32> = for_all field in fields {
+///     (expected_field_name(field) => ..)
+/// })
+/// #             --- ("field names")
+/// #             (field_names(fields) => expected_names)
+/// #         )
+/// #     }
+/// # }
+/// ```
+///
+/// After destructuring, add an explicit final expression to select the value:
+///
+/// ```
+/// # use formality_core::{judgment_fn, Set};
+/// # judgment_fn! {
+/// #     fn expected_field_name(field: u32) => (u32, u32) {
+/// #         debug(field)
+/// #         (--- ("field name") (expected_field_name(field) => (field, 0u32)))
+/// #     }
+/// # }
+/// # judgment_fn! {
+/// #     fn field_names(fields: Vec<u32>) => Set<u32> {
+/// #         debug(fields)
+/// #         (
+/// (let expected_names: Set<u32> = for_all field in fields {
+///     (expected_field_name(field) => (a, _))
+///     (a)
+/// })
+/// #             --- ("field names")
+/// #             (field_names(fields) => expected_names)
+/// #         )
+/// #     }
+/// # }
+/// # field_names(vec![2u32, 1, 2]).assert_ok(expect_test::expect!["{{1, 2}}"]);
+/// ```
 ///
 /// ## Failure reporting and match commit points
 ///
@@ -515,6 +629,137 @@ macro_rules! push_rules {
         }
     };
 
+    // A collection-producing for_all is DSL syntax, so capture it before parsing
+    // ordinary Rust expressions. The final brace group contains its body.
+    (
+        @body $args:tt; $inputs:tt; $child_proof_trees:ident;
+        (let $p:ident : $t:ty = for_all $item:ident in $($contents:tt)*) $($m:tt)*
+    ) => {
+        $crate::push_rules!(@comprehension_collection
+            $args; $inputs; $child_proof_trees; ($p); $t;
+            $item; (); [$($contents)*]; ($($m)*));
+    };
+
+    (
+        @body $args:tt; $inputs:tt; $child_proof_trees:ident;
+        (let $p:pat = for_all $item:ident in $($contents:tt)*) $($m:tt)*
+    ) => {
+        $crate::push_rules!(@comprehension_collection
+            $args; $inputs; $child_proof_trees; ($p); _;
+            $item; (); [$($contents)*]; ($($m)*));
+    };
+
+    // An expr fragment cannot precede `{`. Only split at the LAST brace group,
+    // allowing the collection expression itself to contain blocks/struct literals.
+    (
+        @comprehension_collection
+        $args:tt; $inputs:tt; $child_proof_trees:ident; $binding:tt; $t:ty;
+        $item:ident; ($($collection:tt)*); [{ $($body:tt)* }]; $remaining:tt
+    ) => {
+        $crate::push_rules!(@comprehension_body
+            $args; $inputs; $child_proof_trees; $binding; $t;
+            $item; ($($collection)*); (); [$($body)*]; $remaining);
+    };
+
+    (
+        @comprehension_collection
+        $args:tt; $inputs:tt; $child_proof_trees:ident; $binding:tt; $t:ty;
+        $item:ident; ($($collection:tt)*); [$next:tt $($rest:tt)*]; $remaining:tt
+    ) => {
+        $crate::push_rules!(@comprehension_collection
+            $args; $inputs; $child_proof_trees; $binding; $t;
+            $item; ($($collection)* $next); [$($rest)*]; $remaining);
+    };
+
+    (
+        @comprehension_collection
+        $args:tt; $inputs:tt; $child_proof_trees:ident; $binding:tt; $t:ty;
+        $item:ident; $collection:tt; []; $remaining:tt
+    ) => {
+        compile_error!("expected a braced body after the for_all collection expression");
+    };
+
+    // Find the final group before parsing it as an expression: earlier groups
+    // can be non-expression premises such as `(let ...)`, `(if ...)`, or `(fail ...)`.
+    (
+        @comprehension_body
+        $args:tt; $inputs:tt; $child_proof_trees:ident; $binding:tt; $t:ty;
+        $item:ident; $collection:tt; $premises:tt; [($($last:tt)*)]; $remaining:tt
+    ) => {
+        $crate::push_rules!(@comprehension_finish
+            $args; $inputs; $child_proof_trees; $binding; $t;
+            $item; $collection; $premises; ($($last)*); $remaining);
+    };
+
+    (
+        @comprehension_body
+        $args:tt; $inputs:tt; $child_proof_trees:ident; $binding:tt; $t:ty;
+        $item:ident; $collection:tt; ($($premises:tt)*); [$next:tt $($rest:tt)*]; $remaining:tt
+    ) => {
+        $crate::push_rules!(@comprehension_body
+            $args; $inputs; $child_proof_trees; $binding; $t;
+            $item; $collection; ($($premises)* $next); [$($rest)*]; $remaining);
+    };
+
+    (
+        @comprehension_body
+        $args:tt; $inputs:tt; $child_proof_trees:ident; $binding:tt; $t:ty;
+        $item:ident; $collection:tt; $premises:tt; []; $remaining:tt
+    ) => {
+        compile_error!("end a for_all collection body with `(value)` or `(judgment => binding)`");
+    };
+
+    (
+        @comprehension_finish
+        $args:tt; $inputs:tt; $child_proof_trees:ident; $binding:tt; $t:ty;
+        $item:ident; $collection:tt; ($($premises:tt)*); ($judgment:expr => $result:ident); $remaining:tt
+    ) => {
+        $crate::push_rules!(@comprehension_collect
+            $args; $inputs; $child_proof_trees; $binding; $t;
+            ($result); $item; $collection; ($($premises)* ($judgment => $result)); $remaining);
+    };
+
+    (
+        @comprehension_finish
+        $args:tt; $inputs:tt; $child_proof_trees:ident; $binding:tt; $t:ty;
+        $item:ident; $collection:tt; $premises:tt; ($judgment:expr => $result:pat); $remaining:tt
+    ) => {
+        compile_error!("after a destructuring judgment result, add an explicit final `(value)` to collect");
+    };
+
+    (
+        @comprehension_finish
+        $args:tt; $inputs:tt; $child_proof_trees:ident; $binding:tt; $t:ty;
+        $item:ident; $collection:tt; $premises:tt; ($value:expr); $remaining:tt
+    ) => {
+        $crate::push_rules!(@comprehension_collect
+            $args; $inputs; $child_proof_trees; $binding; $t;
+            ($value); $item; $collection; $premises; $remaining);
+    };
+
+    (
+        @comprehension_collect
+        $args:tt; $inputs:tt; $child_proof_trees:ident; ($p:pat); $t:ty;
+        ($value:expr); $item:ident; ($collection:expr); ($($premises:tt)*); ($($m:tt)*)
+    ) => {
+        $crate::push_rules!(@body $args; $inputs; $child_proof_trees;
+            (let collected: Vec<_> = Vec::new())
+            (for_all($item in $collection) with(collected)
+                $($premises)*
+                (let collected = {
+                    let mut next = collected.clone();
+                    next.push($crate::Upcast::upcast(&($value)));
+                    next
+                }))
+            // Keep the final binding a normal let premise, including its proof
+            // and error handling. The target type constrains the element upcast.
+            (let $p = {
+                let result: $t = collected.iter().cloned().collect();
+                result
+            })
+            $($m)*);
+    };
+
     // for_all with accumulator: forward to @body_for_all
     (
         @body $args:tt; $inputs:tt; $child_proof_trees:ident;
@@ -695,25 +940,23 @@ macro_rules! push_rules {
     ) => {
         // [1] I'd prefer to have `$p:pat` but the follow-set rules don't allow for it.
         // That's dumb.
-        match $crate::judgment::try_catch::<$t>(|| Ok($i)) {
-            Ok(p) => {
-                let proof_tree = $crate::judgment::ProofTree::leaf(format!("{} = {p:?}", stringify!($p)));
-                let $p = &p;
-                $child_proof_trees.push(proof_tree);
-                $crate::push_rules!(@body $args; $inputs; $child_proof_trees; $($m)*);
-            }
-
-            Err(e) => {
-                $crate::push_rules!(@record_failure $inputs; $i; e);
-            }
-        }
+        $crate::push_rules!(@body_let
+            $args; $inputs; $child_proof_trees; ($p); $t; $i; $($m)*);
     };
 
     (
         @body $args:tt; $inputs:tt; $child_proof_trees:ident;
         (let $p:pat = $i:expr) $($m:tt)*
     ) => {
-        match $crate::judgment::try_catch(|| Ok($i)) {
+        $crate::push_rules!(@body_let
+            $args; $inputs; $child_proof_trees; ($p); _; $i; $($m)*);
+    };
+
+    (
+        @body_let $args:tt; $inputs:tt; $child_proof_trees:ident;
+        ($p:pat); $t:ty; $i:expr; $($m:tt)*
+    ) => {
+        match $crate::judgment::try_catch::<$t>(|| Ok($i)) {
             Ok(p) => {
                 let proof_tree = $crate::judgment::ProofTree::leaf(format!("{} = {p:?}", stringify!($p)));
                 let $p = &p;
