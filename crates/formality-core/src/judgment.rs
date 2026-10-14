@@ -695,8 +695,26 @@ macro_rules! push_rules {
         }
     };
 
-    // Capture collection-producing for_all before parsing ordinary Rust expressions.
-    // The arrow lets Rust parse the collection expression directly.
+    // Collection comprehensions desugar into ordinary `for_all` premises.
+    // `@comprehension_body` saves the prefix premises as opaque tokens and splits
+    // off the final result. `@comprehension_finish` also expands a terminal
+    // `(judgment => name)` into that premise followed by the result expression `name`.
+    // `@comprehension_collect` then re-enters `@body` with this schematic expansion:
+    //
+    //     (let collected: Vec<_> = Vec::new())
+    //     (for_all(item in collection) with(collected)
+    //         ...original premises...
+    //         (let collected = /* clone collected, append Upcast::upcast(&value) */))
+    //     (let result: Target = collected.iter().cloned().collect())
+    //
+    // The accumulator is hygienic, so nested comprehensions remain independent.
+    // The destination's FromIterator implementation selects the final collection
+    // type and constrains the element upcast. All premise evaluation, failures,
+    // proof construction, and selection of one successful outcome per iteration
+    // come from the existing `for_all` implementation; we do not reimplement them.
+    //
+    // Capture this DSL syntax before ordinary Rust expressions. The arrow lets
+    // Rust parse the collection expression directly.
     (
         @body $args:tt; $inputs:tt; $child_proof_trees:ident;
         (let $p:ident : $t:ty = for_all $item:ident in $collection:expr => $($body:tt)*) $($m:tt)*
