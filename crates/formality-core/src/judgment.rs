@@ -43,8 +43,8 @@ pub type JudgmentStack<J, O> = RefCell<FixedPointStack<J, Map<O, ProofTree>>>;
 /// * `(if <expr>)`
 /// * `(if let <pat> = <expr>)`
 /// * `(let <binding> = <expr>)`
-/// * `(let <binding>: <collection-type> = for_all <item> in <collection> {
-///   <conditions>... (<value>) })` -- collects implicitly upcast values after
+/// * `(let <binding>: <collection-type> = for_all <item> in <collection> =>
+///   <conditions>... <value>)` -- collects implicitly upcast values after
 ///   requiring the conditions for every element. The type annotation is optional.
 ///   A final `(<judgment> => <binding>)` can also supply the collected value.
 /// * `(for_all(<item> in <collection>) <conditions>...)` -- requires the inner
@@ -76,9 +76,9 @@ pub type JudgmentStack<J, O> = RefCell<FixedPointStack<J, Map<O, ProofTree>>>;
 /// #     fn field_names(fields: Vec<u32>) => Set<u32> {
 /// #         debug(fields)
 /// #         (
-/// (let expected_names: Set<u32> = for_all field in fields {
+/// (let expected_names: Set<u32> = for_all field in fields =>
 ///     (expected_field_name(field) => (a, _))
-/// })
+/// )
 /// #             --- ("field names")
 /// #             (field_names(fields) => expected_names)
 /// #         )
@@ -100,9 +100,9 @@ pub type JudgmentStack<J, O> = RefCell<FixedPointStack<J, Map<O, ProofTree>>>;
 /// #     fn field_names(fields: Vec<u32>) => Set<u32> {
 /// #         debug(fields)
 /// #         (
-/// (let expected_names: Set<u32> = for_all field in fields {
+/// (let expected_names: Set<u32> = for_all field in fields =>
 ///     (expected_field_name(field) => _)
-/// })
+/// )
 /// #             --- ("field names")
 /// #             (field_names(fields) => expected_names)
 /// #         )
@@ -124,9 +124,9 @@ pub type JudgmentStack<J, O> = RefCell<FixedPointStack<J, Map<O, ProofTree>>>;
 /// #     fn field_names(fields: Vec<u32>) => Set<u32> {
 /// #         debug(fields)
 /// #         (
-/// (let expected_names: Set<u32> = for_all field in fields {
+/// (let expected_names: Set<u32> = for_all field in fields =>
 ///     (expected_field_name(field) => ..)
-/// })
+/// )
 /// #             --- ("field names")
 /// #             (field_names(fields) => expected_names)
 /// #         )
@@ -148,16 +148,82 @@ pub type JudgmentStack<J, O> = RefCell<FixedPointStack<J, Map<O, ProofTree>>>;
 /// #     fn field_names(fields: Vec<u32>) => Set<u32> {
 /// #         debug(fields)
 /// #         (
-/// (let expected_names: Set<u32> = for_all field in fields {
+/// (let expected_names: Set<u32> = for_all field in fields =>
 ///     (expected_field_name(field) => (a, _))
-///     (a)
-/// })
+///     a
+/// )
 /// #             --- ("field names")
 /// #             (field_names(fields) => expected_names)
 /// #         )
 /// #     }
 /// # }
 /// # field_names(vec![2u32, 1, 2]).assert_ok(expect_test::expect!["{{1, 2}}"]);
+/// ```
+///
+/// ## Collection result expressions
+///
+/// Non-final parenthesized groups are premises. The remaining tokens are the
+/// result expression, with no extra parentheses required. A tuple `(key, value)`
+/// works as a final expression, but a leading parenthesized group followed by
+/// more tokens is treated as a premise. For example, `(double(value)) * 3` is
+/// rejected because `(double(value))` is not a premise:
+///
+/// ```compile_fail
+/// # use formality_core::judgment_fn;
+/// # fn double(value: &u32) -> u32 { value * 2 }
+/// # judgment_fn! {
+/// #     fn scaled(values: Vec<u32>) => Vec<u32> {
+/// #         debug(values)
+/// #         (
+/// (let result: Vec<u32> = for_all value in values =>
+///     (double(value)) * 3
+/// )
+/// #             --- ("scaled")
+/// #             (scaled(values) => result)
+/// #         )
+/// #     }
+/// # }
+/// ```
+///
+/// Wrap the complete result in parentheses or a Rust block when needed:
+///
+/// ```
+/// # use formality_core::judgment_fn;
+/// # fn double(value: &u32) -> u32 { value * 2 }
+/// # judgment_fn! {
+/// #     fn scaled(values: Vec<u32>) => Vec<u32> {
+/// #         debug(values)
+/// #         (
+/// (let result: Vec<u32> = for_all value in values => ((double(value)) * 3))
+/// // Equivalently:
+/// (let result: Vec<u32> = for_all value in values => { (double(value)) * 3 })
+/// #             --- ("scaled")
+/// #             (scaled(values) => result)
+/// #         )
+/// #     }
+/// # }
+/// # scaled(vec![1u32, 2]).assert_ok(expect_test::expect!["{[6, 12]}"]);
+/// ```
+///
+/// A `!` immediately after a premise is its confirmation marker. To return a
+/// negation after a premise, wrap the result as `(!flag)` or `{ !flag }`.
+///
+/// A final guard has no result to collect. Follow it with a result expression:
+///
+/// ```compile_fail
+/// # use formality_core::judgment_fn;
+/// # judgment_fn! {
+/// #     fn positive(values: Vec<u32>) => Vec<u32> {
+/// #         debug(values)
+/// #         (
+/// (let result: Vec<u32> = for_all value in values =>
+///     (if *value > 0)
+/// )
+/// #             --- ("positive")
+/// #             (positive(values) => result)
+/// #         )
+/// #     }
+/// # }
 /// ```
 ///
 /// ## Failure reporting and match commit points
@@ -629,58 +695,28 @@ macro_rules! push_rules {
         }
     };
 
-    // A collection-producing for_all is DSL syntax, so capture it before parsing
-    // ordinary Rust expressions. The final brace group contains its body.
+    // Capture collection-producing for_all before parsing ordinary Rust expressions.
+    // The arrow lets Rust parse the collection expression directly.
     (
         @body $args:tt; $inputs:tt; $child_proof_trees:ident;
-        (let $p:ident : $t:ty = for_all $item:ident in $($contents:tt)*) $($m:tt)*
-    ) => {
-        $crate::push_rules!(@comprehension_collection
-            $args; $inputs; $child_proof_trees; ($p); $t;
-            $item; (); [$($contents)*]; ($($m)*));
-    };
-
-    (
-        @body $args:tt; $inputs:tt; $child_proof_trees:ident;
-        (let $p:pat = for_all $item:ident in $($contents:tt)*) $($m:tt)*
-    ) => {
-        $crate::push_rules!(@comprehension_collection
-            $args; $inputs; $child_proof_trees; ($p); _;
-            $item; (); [$($contents)*]; ($($m)*));
-    };
-
-    // An expr fragment cannot precede `{`. Only split at the LAST brace group,
-    // allowing the collection expression itself to contain blocks/struct literals.
-    (
-        @comprehension_collection
-        $args:tt; $inputs:tt; $child_proof_trees:ident; $binding:tt; $t:ty;
-        $item:ident; ($($collection:tt)*); [{ $($body:tt)* }]; $remaining:tt
+        (let $p:ident : $t:ty = for_all $item:ident in $collection:expr => $($body:tt)*) $($m:tt)*
     ) => {
         $crate::push_rules!(@comprehension_body
-            $args; $inputs; $child_proof_trees; $binding; $t;
-            $item; ($($collection)*); (); [$($body)*]; $remaining);
+            $args; $inputs; $child_proof_trees; ($p); $t;
+            $item; ($collection); (); [$($body)*]; ($($m)*));
     };
 
     (
-        @comprehension_collection
-        $args:tt; $inputs:tt; $child_proof_trees:ident; $binding:tt; $t:ty;
-        $item:ident; ($($collection:tt)*); [$next:tt $($rest:tt)*]; $remaining:tt
+        @body $args:tt; $inputs:tt; $child_proof_trees:ident;
+        (let $p:pat = for_all $item:ident in $collection:expr => $($body:tt)*) $($m:tt)*
     ) => {
-        $crate::push_rules!(@comprehension_collection
-            $args; $inputs; $child_proof_trees; $binding; $t;
-            $item; ($($collection)* $next); [$($rest)*]; $remaining);
+        $crate::push_rules!(@comprehension_body
+            $args; $inputs; $child_proof_trees; ($p); _;
+            $item; ($collection); (); [$($body)*]; ($($m)*));
     };
 
-    (
-        @comprehension_collection
-        $args:tt; $inputs:tt; $child_proof_trees:ident; $binding:tt; $t:ty;
-        $item:ident; $collection:tt; []; $remaining:tt
-    ) => {
-        compile_error!("expected a braced body after the for_all collection expression");
-    };
-
-    // Find the final group before parsing it as an expression: earlier groups
-    // can be non-expression premises such as `(let ...)`, `(if ...)`, or `(fail ...)`.
+    // A final parenthesized group can be a judgment shorthand or a Rust expression.
+    // Preserve its parentheses so tuple and unit expressions parse normally.
     (
         @comprehension_body
         $args:tt; $inputs:tt; $child_proof_trees:ident; $binding:tt; $t:ty;
@@ -688,31 +724,55 @@ macro_rules! push_rules {
     ) => {
         $crate::push_rules!(@comprehension_finish
             $args; $inputs; $child_proof_trees; $binding; $t;
-            $item; $collection; $premises; ($($last)*); $remaining);
+            $item; $collection; $premises; [($($last)*)]; $remaining);
     };
 
+    // Non-final parenthesized groups are opaque premises, including an optional
+    // confirmation marker. The existing for_all implementation interprets them.
     (
         @comprehension_body
         $args:tt; $inputs:tt; $child_proof_trees:ident; $binding:tt; $t:ty;
-        $item:ident; $collection:tt; ($($premises:tt)*); [$next:tt $($rest:tt)*]; $remaining:tt
+        $item:ident; $collection:tt; ($($premises:tt)*); [($($premise:tt)*) ! $($rest:tt)*]; $remaining:tt
     ) => {
         $crate::push_rules!(@comprehension_body
             $args; $inputs; $child_proof_trees; $binding; $t;
-            $item; $collection; ($($premises)* $next); [$($rest)*]; $remaining);
+            $item; $collection; ($($premises)* ($($premise)*) !); [$($rest)*]; $remaining);
     };
 
     (
         @comprehension_body
         $args:tt; $inputs:tt; $child_proof_trees:ident; $binding:tt; $t:ty;
-        $item:ident; $collection:tt; $premises:tt; []; $remaining:tt
+        $item:ident; $collection:tt; ($($premises:tt)*); [($($premise:tt)*) $($rest:tt)+]; $remaining:tt
     ) => {
-        compile_error!("end a for_all collection body with `(value)` or `(judgment => binding)`");
+        $crate::push_rules!(@comprehension_body
+            $args; $inputs; $child_proof_trees; $binding; $t;
+            $item; $collection; ($($premises)* ($($premise)*)); [$($rest)+]; $remaining);
+    };
+
+    // Everything remaining is the result expression. An expression beginning with
+    // a non-final parenthesized group must be wrapped as a whole in (...) or {...}.
+    (
+        @comprehension_body
+        $args:tt; $inputs:tt; $child_proof_trees:ident; $binding:tt; $t:ty;
+        $item:ident; $collection:tt; $premises:tt; [$($value:tt)*]; $remaining:tt
+    ) => {
+        $crate::push_rules!(@comprehension_finish
+            $args; $inputs; $child_proof_trees; $binding; $t;
+            $item; $collection; $premises; [$($value)*]; $remaining);
     };
 
     (
         @comprehension_finish
         $args:tt; $inputs:tt; $child_proof_trees:ident; $binding:tt; $t:ty;
-        $item:ident; $collection:tt; ($($premises:tt)*); ($judgment:expr => $result:ident); $remaining:tt
+        $item:ident; $collection:tt; $premises:tt; []; $remaining:tt
+    ) => {
+        compile_error!("end a for_all collection body with a value or `(judgment => binding)`");
+    };
+
+    (
+        @comprehension_finish
+        $args:tt; $inputs:tt; $child_proof_trees:ident; $binding:tt; $t:ty;
+        $item:ident; $collection:tt; ($($premises:tt)*); [($judgment:expr => $result:ident)]; $remaining:tt
     ) => {
         $crate::push_rules!(@comprehension_collect
             $args; $inputs; $child_proof_trees; $binding; $t;
@@ -722,15 +782,15 @@ macro_rules! push_rules {
     (
         @comprehension_finish
         $args:tt; $inputs:tt; $child_proof_trees:ident; $binding:tt; $t:ty;
-        $item:ident; $collection:tt; $premises:tt; ($judgment:expr => $result:pat); $remaining:tt
+        $item:ident; $collection:tt; $premises:tt; [($judgment:expr => $result:pat)]; $remaining:tt
     ) => {
-        compile_error!("after a destructuring judgment result, add an explicit final `(value)` to collect");
+        compile_error!("after a destructuring judgment result, add an explicit final value to collect");
     };
 
     (
         @comprehension_finish
         $args:tt; $inputs:tt; $child_proof_trees:ident; $binding:tt; $t:ty;
-        $item:ident; $collection:tt; $premises:tt; ($value:expr); $remaining:tt
+        $item:ident; $collection:tt; $premises:tt; [$value:expr]; $remaining:tt
     ) => {
         $crate::push_rules!(@comprehension_collect
             $args; $inputs; $child_proof_trees; $binding; $t;
@@ -748,7 +808,7 @@ macro_rules! push_rules {
                 $($premises)*
                 (let collected = {
                     let mut next = collected.clone();
-                    next.push($crate::Upcast::upcast(&($value)));
+                    next.push($crate::Upcast::upcast(&$value));
                     next
                 }))
             // Keep the final binding a normal let premise, including its proof

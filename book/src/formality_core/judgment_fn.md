@@ -250,39 +250,47 @@ combinations require a separate combinator.
 A `let` premise can construct a collection by producing a value for every input:
 
 ```rust,ignore
-(let expected_names: Set<FieldName> = for_all field in fields {
-    (field.name)
-})
-(let provided_names: Set<FieldName> = for_all field in field_exprs {
-    (field.name)
-})
+(let expected_names: Set<FieldName> = for_all field in fields => field.name)
+(let provided_names: Set<FieldName> = for_all field in field_exprs => field.name)
 (if expected_names == provided_names)
 ```
 
-The body contains ordinary judgment premises followed by a parenthesized output
+After `=>`, write ordinary parenthesized judgment premises followed by an output
 expression. The premises can call fallible judgments, bind auxiliary values, or
-check guards; the output expression uses their bindings:
+check guards; the output expression uses their bindings. Braces and parentheses
+around the result are optional:
 
 ```rust,ignore
-(let lowered_items: Vec<CoreItem> = for_all item in items {
+(let lowered_items: Vec<CoreItem> = for_all item in items =>
     (lower_item(env, item) => lowered)
     (validate(lowered) => ())
-    (lowered)
-})
+    lowered
+)
 ```
 
 As a shorthand, a final judgment premise that binds a single identifier yields
 that binding directly:
 
 ```rust,ignore
-(let lowered_items: Vec<CoreItem> = for_all item in items {
+(let lowered_items: Vec<CoreItem> = for_all item in items =>
     (lower_item(env, item) => lowered)
-})
+)
 ```
 
-This is equivalent to adding `(lowered)` as the final expression. A destructuring
+This is equivalent to adding `lowered` as the final expression. A destructuring
 pattern does not select an output automatically; follow it with an explicit
-output expression, as in the map example below.
+output expression, as in the map example below. A final guard such as
+`(if condition)` does not produce a result either; it must be followed by an
+output expression.
+
+The parser treats each non-final parenthesized group as a premise, then parses
+the remaining tokens as the output expression (or the final judgment shorthand
+above). Consequently, an expression starting with a parenthesized subexpression,
+such as `(foo()) * 3`, needs to be grouped as a whole: write `((foo()) * 3)` or
+`{ (foo()) * 3 }`. A final tuple such as `(key, value)` already forms a single
+group and needs no extra parentheses. A `!` immediately after a premise is that
+premise's confirmation marker; to return a negation after a premise, write
+`(!flag)` or `{ !flag }`.
 
 Every input must succeed: a failed guard or judgment **does not filter** the
 input out. If any input has no successful derivation through the premises, the
@@ -308,10 +316,10 @@ collection:
 For example:
 
 ```rust,ignore
-(let items_by_name: Map<ItemName, CoreItem> = for_all item in items {
+(let items_by_name: Map<ItemName, CoreItem> = for_all item in items =>
     (lower_named_item(env, item) => (name, lowered))
-    ((name, lowered))
-})
+    (name, lowered)
+)
 ```
 
 The type annotation is optional when surrounding uses determine the collection

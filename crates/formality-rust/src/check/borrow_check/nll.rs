@@ -553,12 +553,8 @@ judgment_fn! {
             (let StructBoundData { where_clauses, fields } = binder.instantiate_with(&turbofish.parameters)?)
 
             // Check that the provided field names exactly match the struct definition
-            (let expected_names: Set<FieldName> = for_all field in fields {
-                (field.name)
-            })
-            (let provided_names: Set<FieldName> = for_all field in field_exprs {
-                (field.name)
-            })
+            (let expected_names: Set<FieldName> = for_all field in fields => field.name)
+            (let provided_names: Set<FieldName> = for_all field in field_exprs => field.name)
             (if expected_names == provided_names)
 
             // Type-check each field expression

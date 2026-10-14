@@ -19,7 +19,7 @@ judgment_fn! {
         debug(values)
 
         (
-            (let result: Vec<Num> = for_all value in values { (value) })
+            (let result: Vec<Num> = for_all value in values => value)
             --- ("sequence")
             (as_sequence(values) => result)
         )
@@ -31,7 +31,7 @@ judgment_fn! {
         debug(values)
 
         (
-            (let result: Set<Num> = for_all value in values { (value) })
+            (let result: Set<Num> = for_all value in values => value)
             --- ("set")
             (as_set(values) => result)
         )
@@ -56,9 +56,7 @@ judgment_fn! {
         debug(values)
 
         (
-            (let result: Map<Num, Num> = for_all pair in values {
-                ((pair.0, pair.1))
-            })
+            (let result: Map<Num, Num> = for_all pair in values => (pair.0, pair.1))
             // Maps do not have an identity upcast, so expose their entries.
             (let entries: Vec<_> = result.iter().map(|(k, v)| (k.clone(), v.clone())).collect())
             --- ("map")
@@ -87,7 +85,7 @@ judgment_fn! {
         debug(values)
 
         (
-            (let result: Vec<String> = for_all value in values { (value.name) })
+            (let result: Vec<String> = for_all value in values => value.name)
             --- ("names")
             (names(values) => result)
         )
@@ -112,7 +110,7 @@ judgment_fn! {
         debug(values)
 
         (
-            (let result = for_all value in values { (value) })
+            (let result = for_all value in values => value)
             (let result: &Vec<Num> = result)
             --- ("inferred")
             (inferred_collection(values) => result)
@@ -142,11 +140,11 @@ judgment_fn! {
         debug(values)
 
         (
-            (let result: Vec<u32> = for_all value in values {
+            (let result: Vec<u32> = for_all value in values =>
                 (half_even(value) => half)
                 (if *half > 0)
-                (half)
-            })
+                half
+            )
             --- ("halves")
             (halves(values) => result)
         )
@@ -194,9 +192,9 @@ judgment_fn! {
         debug(values)
 
         (
-            (let result: Vec<Num> = for_all value in values {
+            (let result: Vec<Num> = for_all value in values =>
                 (half_even(value) => half)
-            })
+            )
             --- ("terminal judgment")
             (terminal_judgment(values) => result)
         )
@@ -216,10 +214,10 @@ judgment_fn! {
         debug(values)
 
         (
-            (let result: Vec<Num> = for_all value in values {
+            (let result: Vec<Num> = for_all value in values =>
                 (let shifted = value + 1)
                 (half_even(shifted) => half)
-            })
+            )
             --- ("computation then judgment")
             (computation_then_judgment(values) => result)
         )
@@ -251,10 +249,10 @@ judgment_fn! {
         debug(values)
 
         (
-            (let result: Vec<Num> = for_all value in values {
+            (let result: Vec<Num> = for_all value in values =>
                 (with_half(value) => (original, half))
-                (original - half)
-            })
+                original - half
+            )
             --- ("destructured premise")
             (destructured_premise(values) => result)
         )
@@ -271,15 +269,11 @@ judgment_fn! {
         debug(values)
 
         (
-            (let reversed: Vec<Num> = for_all value in values.iter().rev() {
-                ({
-                    let doubled = value * 2;
-                    doubled + 1
-                })
+            (let reversed: Vec<Num> = for_all value in values.iter().rev() => {
+                let doubled = value * 2;
+                doubled + 1
             })
-            (let skipped: Vec<Num> = for_all value in { values.iter().skip(1) } {
-                (value)
-            })
+            (let skipped: Vec<Num> = for_all value in { values.iter().skip(1) } => value)
             --- ("collection and body expressions")
             (collection_and_body_expressions(values) => (reversed, skipped))
         )
@@ -303,7 +297,7 @@ judgment_fn! {
         debug(values)
 
         (
-            (let result: Vec<u32> = for_all value in values { (checked_half(value)?) })
+            (let result: Vec<u32> = for_all value in values => checked_half(value)?)
             --- ("fallible yield")
             (fallible_yield(values) => result)
         )
@@ -319,14 +313,131 @@ fn question_mark_in_yield_propagates_failure() {
 }
 
 judgment_fn! {
+    fn wrapped_tail_expressions(values: Vec<u32>) => (Vec<Num>, Vec<Num>) {
+        debug(values)
+
+        (
+            (let parenthesized: Vec<Num> = for_all value in values =>
+                ((checked_half(value)?) * 3)
+            )
+            (let blocked: Vec<Num> = for_all value in values => {
+                (checked_half(value)?) * 3
+            })
+            --- ("wrapped tails")
+            (wrapped_tail_expressions(values) => (parenthesized, blocked))
+        )
+    }
+}
+
+#[test]
+fn parentheses_or_a_block_can_wrap_a_tail_that_starts_with_parentheses() {
+    wrapped_tail_expressions(vec![2u32, 4]).assert_ok(expect_test::expect![
+        "{([Num(3), Num(6)], [Num(3), Num(6)])}"
+    ]);
+}
+
+judgment_fn! {
+    fn tuple_after_premises(values: Vec<u32>) => Vec<(Num, Num)> {
+        debug(values)
+
+        (
+            (let result: Vec<(Num, Num)> = for_all value in values =>
+                (half_even(value) => half)
+                (value, half)
+            )
+            --- ("tuple tail")
+            (tuple_after_premises(values) => result)
+        )
+    }
+}
+
+#[test]
+fn tuple_tail_after_premises_needs_only_its_own_parentheses() {
+    tuple_after_premises(vec![2u32, 4]).assert_ok(expect_test::expect![
+        "{[(Num(2), Num(1)), (Num(4), Num(2))]}"
+    ]);
+}
+
+judgment_fn! {
+    fn conditional_tail(values: Vec<u32>) => Vec<Num> {
+        debug(values)
+
+        (
+            (let result: Vec<Num> = for_all value in values =>
+                (let offset = value + 1)
+                if value.is_multiple_of(2) { offset * 2 } else { offset * 3 }
+            )
+            --- ("conditional tail")
+            (conditional_tail(values) => result)
+        )
+    }
+}
+
+#[test]
+fn conditional_tail_is_a_rust_expression() {
+    conditional_tail(vec![1u32, 2, 3])
+        .assert_ok(expect_test::expect!["{[Num(6), Num(6), Num(12)]}"]);
+}
+
+judgment_fn! {
+    fn unit_and_negated_tails(values: Vec<u32>) => (Vec<()>, Vec<bool>) {
+        debug(values)
+
+        (
+            (let units: Vec<()> = for_all value in values =>
+                (if *value < 3)
+                ()
+            )
+            (let negated: Vec<bool> = for_all value in values =>
+                (let flag = *value > 0)
+                (!flag)
+            )
+            --- ("unit and negated tails")
+            (unit_and_negated_tails(values) => (units, negated))
+        )
+    }
+}
+
+#[test]
+fn unit_and_wrapped_negation_are_valid_final_expressions() {
+    unit_and_negated_tails(vec![0u32, 1, 2]).assert_ok(expect_test::expect![
+        "{([(), (), ()], [true, false, false])}"
+    ]);
+}
+
+judgment_fn! {
+    fn committed_premise(values: Vec<u32>) => Vec<Num> {
+        debug(values)
+
+        (
+            (let result: Vec<Num> = for_all value in values =>
+                (if *value > 0)!
+                (half_even(value) => half)
+                half * 2
+            )
+            --- ("committed premise")
+            (committed_premise(values) => result)
+        )
+    }
+}
+
+#[test]
+fn premise_commit_marker_is_preserved_before_a_tail() {
+    committed_premise(vec![2u32, 4]).assert_ok(expect_test::expect!["{[Num(2), Num(4)]}"]);
+    committed_premise(vec![2u32, 3]).assert_err(expect_test::expect![[r#"
+        the rule "even" at (test_comprehension.rs) failed because
+          condition evaluated to false: `n % 2 == 0`"#]]);
+}
+
+judgment_fn! {
     fn nested(collected: Vec<Vec<u32>>) => Vec<Vec<Num>> {
         debug(collected)
 
         (
-            (let result: Vec<Vec<Num>> = for_all row in collected {
-                (let collected: Vec<Num> = for_all value in row { (value) })
-                (collected)
-            })
+            (let result: Vec<Vec<Num>> = for_all row in collected =>
+                (let collected: Vec<Num> = for_all value in row => value)
+                collected
+            )
             --- ("nested")
             (nested(collected) => result)
         )
@@ -360,9 +471,9 @@ judgment_fn! {
         debug(values)
 
         (
-            (let result: Vec<u32> = for_all value in values {
+            (let result: Vec<u32> = for_all value in values =>
                 (alternatives(value) => choice)
-            })
+            )
             --- ("comprehension")
             (collect_alternatives(values) => result)
         )
