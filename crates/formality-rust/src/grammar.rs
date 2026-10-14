@@ -33,7 +33,7 @@ pub use kinded::*;
 mod ty;
 pub use ty::*;
 
-mod wc;
-pub use wc::*;
+mod predicate;
+pub use predicate::*;
 
 pub mod expr;

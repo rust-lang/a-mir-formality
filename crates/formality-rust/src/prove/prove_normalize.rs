@@ -1,5 +1,8 @@
 use crate::{
-    grammar::{AliasTy, ExistentialVar, Parameter, Predicate, RigidTy, Ty, Variable, Wc, Wcs},
+    grammar::{
+        AliasTy, AtomicPredicate, ExistentialVar, Parameter, Predicate, Predicates, RigidTy, Ty,
+        Variable,
+    },
     prove::Constrained,
 };
 use formality_core::{judgment_fn, Downcast};
@@ -22,7 +25,7 @@ judgment_fn! {
     pub fn prove_normalize(
         _decls: Program,
         env: Env,
-        assumptions: Wcs,
+        assumptions: Predicates,
         p: Parameter,
     ) => Constrained<Parameter> {
         debug(p, assumptions, env)
@@ -40,7 +43,7 @@ judgment_fn! {
             (let decl = decl.binder.instantiate_with(&subst).unwrap())
             (let AliasEqDeclBoundData { alias: AliasTy { name, parameters }, ty, where_clause } = decl)
             (assert a.name == *name)
-            (prove(decls, env, assumptions, Wcs::all_eq(&a.parameters, &parameters)) => c)
+            (prove(decls, env, assumptions, Predicates::all_eq(&a.parameters, &parameters)) => c)
             (prove_after(decls, c, assumptions, &where_clause) => c)
             (let ty = c.substitution().apply(ty))
             (let c = c.pop_subst(&subst))
@@ -55,8 +58,8 @@ judgment_fn! {
     fn prove_normalize_via(
         _decls: Program,
         env: Env,
-        assumptions: Wcs,
-        via: Wc,
+        assumptions: Predicates,
+        via: Predicate,
         goal: Parameter,
     ) => Constrained<Parameter> {
         debug(goal, via, assumptions, env)
@@ -71,14 +74,14 @@ judgment_fn! {
             (if let Some(Variable::ExistentialVar(v_a)) = a.downcast())
             (if v_goal == v_a)!
             ----------------------------- ("var-axiom-l")
-            (prove_normalize_via(_decls, env, _assumptions, Predicate::Equals(a, b), Variable::ExistentialVar(v_goal)) => Constrained::none(env, b))
+            (prove_normalize_via(_decls, env, _assumptions, AtomicPredicate::Equals(a, b), Variable::ExistentialVar(v_goal)) => Constrained::none(env, b))
         )
 
         (
             (if let Some(Variable::ExistentialVar(v_a)) = a.downcast())
             (if v_goal == v_a)!
             ----------------------------- ("var-axiom-r")
-            (prove_normalize_via(_decls, env, _assumptions, Predicate::Equals(b, a), Variable::ExistentialVar(v_goal)) => Constrained::none(env, b))
+            (prove_normalize_via(_decls, env, _assumptions, AtomicPredicate::Equals(b, a), Variable::ExistentialVar(v_goal)) => Constrained::none(env, b))
         )
 
         // The following 2 rules handle normalization of a type `X` given an assumption `X = Y`.
@@ -95,7 +98,7 @@ judgment_fn! {
             (prove_syntactically_eq(decls, env, assumptions, a, goal) => c)
             (let b = c.substitution().apply(b))
             ----------------------------- ("axiom-l")
-            (prove_normalize_via(decls, env, assumptions, Predicate::Equals(a, b), goal) => Constrained(b, c))
+            (prove_normalize_via(decls, env, assumptions, AtomicPredicate::Equals(a, b), goal) => Constrained(b, c))
         )
 
         (
@@ -104,7 +107,7 @@ judgment_fn! {
             (prove_syntactically_eq(decls, env, assumptions, a, goal) => c)
             (let b = c.substitution().apply(b))
             ----------------------------- ("axiom-r")
-            (prove_normalize_via(decls, env, assumptions, Predicate::Equals(b, a), goal) => Constrained(b, c))
+            (prove_normalize_via(decls, env, assumptions, AtomicPredicate::Equals(b, a), goal) => Constrained(b, c))
         )
 
         // These rules handle the the ∀ and ⇒ cases.
@@ -116,7 +119,7 @@ judgment_fn! {
             (let c = c.pop_subst(&subst))
             (assert c.env().encloses(&p))
             ----------------------------- ("forall")
-            (prove_normalize_via(decls, env, assumptions, Wc::ForAll(binder), goal) => Constrained(p, c))
+            (prove_normalize_via(decls, env, assumptions, Predicate::ForAll(binder), goal) => Constrained(p, c))
         )
 
         (
@@ -124,7 +127,7 @@ judgment_fn! {
             (prove_after(decls, c, assumptions, wc_condition) => c)
             (let p = c.substitution().apply(p))
             ----------------------------- ("implies")
-            (prove_normalize_via(decls, env, assumptions, Wc::Implies(wc_condition, wc_consequence), goal) => Constrained(p, c))
+            (prove_normalize_via(decls, env, assumptions, Predicate::Implies(wc_condition, wc_consequence), goal) => Constrained(p, c))
         )
     }
 }
@@ -133,7 +136,7 @@ judgment_fn! {
     fn prove_syntactically_eq(
         _decls: Program,
         env: Env,
-        assumptions: Wcs,
+        assumptions: Predicates,
         a: Parameter,
         b: Parameter,
     ) => Constraints {

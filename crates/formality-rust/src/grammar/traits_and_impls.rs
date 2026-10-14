@@ -2,8 +2,8 @@ use std::sync::Arc;
 
 use crate::grammar::Fn;
 use crate::grammar::{
-    AliasTy, AssociatedItemId, Binder, Const, Fallible, Lt, Parameter, ParameterKind, Predicate,
-    TraitId, TraitRef, Ty, Wc, Wcs,
+    AliasTy, AssociatedItemId, AtomicPredicate, Binder, Const, Fallible, Lt, Parameter,
+    ParameterKind, Predicate, Predicates, TraitId, TraitRef, Ty,
 };
 use crate::prove::Safety;
 use crate::rust::Term;
@@ -143,10 +143,10 @@ pub enum WhereClause {
 }
 
 impl WhereClause {
-    pub fn invert(&self) -> Option<Wc> {
+    pub fn invert(&self) -> Option<Predicate> {
         match self {
             WhereClause::IsImplemented(self_ty, trait_id, parameters) => Some(
-                Predicate::not_implemented(trait_id.with(self_ty, parameters)),
+                AtomicPredicate::not_implemented(trait_id.with(self_ty, parameters)),
             )
             .upcast(),
             WhereClause::AliasEq(_, _) => None,
@@ -154,37 +154,42 @@ impl WhereClause {
             WhereClause::ForAll(binder) => {
                 let (vars, where_clause) = binder.open();
                 let wc = where_clause.invert()?;
-                Some(Wc::for_all(Binder::new(&vars, wc)))
+                Some(Predicate::for_all(Binder::new(&vars, wc)))
             }
             WhereClause::TypeOfConst(_, _) => None,
         }
     }
 
-    pub fn well_formed(&self) -> Wcs {
+    pub fn well_formed(&self) -> Predicates {
         match self {
             WhereClause::IsImplemented(self_ty, trait_id, parameters) => {
-                Predicate::well_formed_trait_ref(trait_id.with(self_ty, parameters)).upcast()
+                AtomicPredicate::well_formed_trait_ref(trait_id.with(self_ty, parameters)).upcast()
             }
-            WhereClause::AliasEq(alias_ty, ty) => {
-                [Predicate::well_formed(alias_ty), Predicate::well_formed(ty)]
-                    .into_iter()
-                    .collect()
-            }
-            WhereClause::Outlives(a, b) => [Predicate::well_formed(a), Predicate::well_formed(b)]
-                .into_iter()
-                .collect(),
+            WhereClause::AliasEq(alias_ty, ty) => [
+                AtomicPredicate::well_formed(alias_ty),
+                AtomicPredicate::well_formed(ty),
+            ]
+            .into_iter()
+            .collect(),
+            WhereClause::Outlives(a, b) => [
+                AtomicPredicate::well_formed(a),
+                AtomicPredicate::well_formed(b),
+            ]
+            .into_iter()
+            .collect(),
             WhereClause::ForAll(binder) => {
                 let (vars, body) = binder.open();
                 body.well_formed()
                     .into_iter()
-                    .map(|wc| Wc::for_all(Binder::new(&vars, wc)))
+                    .map(|wc| Predicate::for_all(Binder::new(&vars, wc)))
                     .collect()
             }
-            WhereClause::TypeOfConst(ct, ty) => {
-                [Predicate::well_formed(ct), Predicate::well_formed(ty)]
-                    .into_iter()
-                    .collect()
-            }
+            WhereClause::TypeOfConst(ct, ty) => [
+                AtomicPredicate::well_formed(ct),
+                AtomicPredicate::well_formed(ty),
+            ]
+            .into_iter()
+            .collect(),
         }
     }
 

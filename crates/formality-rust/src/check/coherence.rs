@@ -1,4 +1,4 @@
-use crate::grammar::{Crate, NegTraitImpl, Predicate, TraitImpl, Wcs};
+use crate::grammar::{AtomicPredicate, Crate, NegTraitImpl, Predicates, TraitImpl};
 use crate::prove::{Env, Program};
 
 use super::{prove_goal, prove_not_goal};
@@ -34,7 +34,7 @@ judgment_fn! {
         (
             (let (env, a) = Env::default().instantiate_universally(&impl_a.binder))
             (let trait_ref = a.trait_ref())
-            (prove_goal(program, env, &a.where_clauses, Predicate::is_local(trait_ref)) => ())
+            (prove_goal(program, env, &a.where_clauses, AtomicPredicate::is_local(trait_ref)) => ())
             --- ("orphan_check")
             (orphan_check(program, impl_a) => ())
         )
@@ -50,11 +50,11 @@ judgment_fn! {
         //
         // TODO: feels like we do want a general "not goal", flipping existentials
         // and universals and the coherence mode
-        // self.prove_not_goal(&env, &(Wcs::wf)) // ??
+        // self.prove_not_goal(&env, &(Predicates::wf)) // ??
         (
             (let (env, a) = Env::default().instantiate_universally(&impl_a.binder))
             (let trait_ref = a.trait_ref())
-            (prove_goal(program, env, &a.where_clauses, Predicate::is_local(trait_ref)) => ())
+            (prove_goal(program, env, &a.where_clauses, AtomicPredicate::is_local(trait_ref)) => ())
             --- ("orphan_check_neg")
             (orphan_check_neg(program, impl_a) => ())
         )
@@ -97,13 +97,13 @@ judgment_fn! {
         //
         // TODO: feels like we do want a general "not goal", flipping existentials
         // and universals and the coherence mode.
-        // self.prove_not_goal(&env, &(Wcs::wf))
+        // self.prove_not_goal(&env, &(Predicates::wf))
         (
             (if impl_a != impl_b)
             (if impl_a.trait_id() == impl_b.trait_id())
             (let (env, a) = Env::default().instantiate_universally(&impl_a.binder))
             (let (env, b) = env.instantiate_universally(&impl_b.binder))
-            (prove_not_goal(program, env, (), (Wcs::all_eq(&a.trait_ref().parameters, &b.trait_ref().parameters), &a.where_clauses, &b.where_clauses)) => ())
+            (prove_not_goal(program, env, (), (Predicates::all_eq(&a.trait_ref().parameters, &b.trait_ref().parameters), &a.where_clauses, &b.where_clauses)) => ())
             --- ("not goal")
             (overlap_check_impl(program, impl_a, impl_b) => ())
         )
@@ -116,7 +116,7 @@ judgment_fn! {
             (let (env, a) = Env::default().instantiate_universally(&impl_a.binder))
             (let (env, b) = env.instantiate_universally(&impl_b.binder))
             (wc in a.where_clauses.iter().chain(&b.where_clauses).flat_map(|wc| wc.invert()))
-            (prove_goal(program, env, (Wcs::all_eq(&a.trait_ref().parameters, &b.trait_ref().parameters), &a.where_clauses, &b.where_clauses), wc) => ())
+            (prove_goal(program, env, (Predicates::all_eq(&a.trait_ref().parameters, &b.trait_ref().parameters), &a.where_clauses, &b.where_clauses), wc) => ())
             --- ("inverted")
             (overlap_check_impl(program, impl_a, impl_b) => ())
         )

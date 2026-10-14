@@ -1,4 +1,4 @@
-use crate::grammar::{Parameter, Predicate, Wcs};
+use crate::grammar::{AtomicPredicate, Parameter, Predicates};
 use crate::rust::term;
 use expect_test::expect;
 use formality_core::test;
@@ -19,13 +19,13 @@ fn decls() -> Program {
 
 #[test]
 fn well_formed_adt() {
-    let assumptions: Wcs = Wcs::t();
+    let assumptions: Predicates = Predicates::t();
     let goal: Parameter = term("X<u32>");
     let constraints = prove(
         decls(),
         Env::default(),
         assumptions,
-        Predicate::WellFormed(goal),
+        AtomicPredicate::WellFormed(goal),
     );
     constraints.assert_ok(
     expect!["{Constraints { env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: false }, known_true: true, substitution: {} }}"]);
@@ -33,21 +33,21 @@ fn well_formed_adt() {
 
 #[test]
 fn not_well_formed_adt() {
-    let assumptions: Wcs = Wcs::t();
+    let assumptions: Predicates = Predicates::t();
     let goal: Parameter = term("X<u64>");
     prove(
         decls(),
         Env::default(),
         assumptions,
-        Predicate::WellFormed(goal),
+        AtomicPredicate::WellFormed(goal),
     )
     .assert_err(expect![[r#"
         crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: u64 = u32, via: Foo(u64), assumptions: {Foo(u64)}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: false } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:54:1: no applicable rules for prove_normalize_via { goal: u64, via: Foo(u64), assumptions: {Foo(u64)}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: false } }
+        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: u64, via: Foo(u64), assumptions: {Foo(u64)}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: false } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:54:1: no applicable rules for prove_normalize_via { goal: u32, via: Foo(u64), assumptions: {Foo(u64)}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: false } }
+        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: u32, via: Foo(u64), assumptions: {Foo(u64)}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: false } }
 
-        the rule "trait implied bound" at (prove_wc.rs) failed because
+        the rule "trait implied bound" at (prove_predicate.rs) failed because
           expression evaluated to an empty collection: `decls.trait_invariants()`"#]]);
 }

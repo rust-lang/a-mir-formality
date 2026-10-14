@@ -6,9 +6,10 @@ use crate::prove::{is_definitely_not_proveable, Constraints, Env, Program};
 use crate::rust::Visit;
 use crate::{
     grammar::{
-        Crate, CrateId, CrateItem, Crates, Fallible, FeatureGateName, Test, TestBoundData, Wcs,
+        Crate, CrateId, CrateItem, Crates, Fallible, FeatureGateName, Predicates, Test,
+        TestBoundData,
     },
-    prove::ToWcs,
+    prove::ToPredicates,
 };
 use anyhow::{anyhow, bail};
 use formality_core::{judgment::ProofTree, judgment_fn, ProvenSet, Set};
@@ -236,15 +237,15 @@ fn check_test(program: &Program, test: &Test) -> Fallible<ProofTree> {
 fn prove_goal(
     program: &Program,
     env: &Env,
-    assumptions: impl ToWcs,
-    goal: impl ToWcs + Debug,
+    assumptions: impl ToPredicates,
+    goal: impl ToPredicates + Debug,
 ) -> Fallible<ProofTree> {
-    let goal: Wcs = goal.to_wcs();
+    let goal: Predicates = goal.to_predicates();
     prove_judgment(
         program,
         env,
         assumptions,
-        goal.to_wcs(),
+        goal.to_predicates(),
         crate::prove::prove,
     )
 }
@@ -252,14 +253,14 @@ fn prove_goal(
 fn prove_judgment<G>(
     program: &Program,
     env: &Env,
-    assumptions: impl ToWcs,
+    assumptions: impl ToPredicates,
     goal: G,
-    judgment_fn: impl FnOnce(Program, Env, Wcs, G) -> ProvenSet<Constraints>,
+    judgment_fn: impl FnOnce(Program, Env, Predicates, G) -> ProvenSet<Constraints>,
 ) -> Fallible<ProofTree>
 where
     G: Debug + Visit + Clone,
 {
-    let assumptions: Wcs = assumptions.to_wcs();
+    let assumptions: Predicates = assumptions.to_predicates();
 
     assert!(
         env.only_universal_variables(),
@@ -287,11 +288,11 @@ where
 fn prove_not_goal(
     program: &Program,
     env: &Env,
-    assumptions: impl ToWcs,
-    goal: impl ToWcs,
+    assumptions: impl ToPredicates,
+    goal: impl ToPredicates,
 ) -> Fallible<ProofTree> {
-    let goal: Wcs = goal.to_wcs();
-    let assumptions: Wcs = assumptions.to_wcs();
+    let goal: Predicates = goal.to_predicates();
+    let assumptions: Predicates = assumptions.to_predicates();
 
     assert!(env.only_universal_variables());
     assert!(env.encloses((&assumptions, &goal)));

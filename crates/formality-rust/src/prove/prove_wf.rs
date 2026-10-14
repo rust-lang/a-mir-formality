@@ -1,6 +1,6 @@
 use crate::grammar::{
-    AliasName, AliasTy, Const, Lt, Parameter, Parameters, Predicate, RigidName, RigidTy, Ty,
-    UniversalVar, Wcs,
+    AliasName, AliasTy, AtomicPredicate, Const, Lt, Parameter, Parameters, Predicates, RigidName,
+    RigidTy, Ty, UniversalVar,
 };
 use formality_core::{judgment_fn, Downcast, ProvenSet, Upcast};
 
@@ -12,7 +12,7 @@ judgment_fn! {
     pub fn prove_wf(
         _decls: Program,
         env: Env,
-        assumptions: Wcs,
+        assumptions: Predicates,
         goal: Parameter,
     ) => Constraints {
         debug(goal, assumptions, env)
@@ -32,7 +32,7 @@ judgment_fn! {
             // `&'a T` is well-formed if `T: 'a`
             (let (lt, ty) = parameters.downcast_err::<(Lt, Ty)>()?)
             (prove_wf_recursive(decls, env, assumptions, ty) => c)
-            (prove_after(decls, c, assumptions, Predicate::outlives(ty, lt)) => c)
+            (prove_after(decls, c, assumptions, AtomicPredicate::outlives(ty, lt)) => c)
             --- ("references")
             (prove_wf(decls, env, assumptions, RigidTy { name: RigidName::Ref(_), parameters }) => c)
         )
@@ -87,7 +87,7 @@ judgment_fn! {
 pub fn prove_alias_wf(
     decls: &Program,
     env: &Env,
-    assumptions: &Wcs,
+    assumptions: &Predicates,
     _name: &AliasName,
     parameters: &Parameters,
 ) -> ProvenSet<Constraints> {
@@ -98,8 +98,13 @@ pub fn prove_alias_wf(
 pub fn prove_wf_recursive(
     program: impl Upcast<Program>,
     env: impl Upcast<Env>,
-    assumptions: impl Upcast<Wcs>,
+    assumptions: impl Upcast<Predicates>,
     param: impl Upcast<Parameter>,
 ) -> ProvenSet<Constraints> {
-    prove(program, env, assumptions, Predicate::well_formed(param))
+    prove(
+        program,
+        env,
+        assumptions,
+        AtomicPredicate::well_formed(param),
+    )
 }
