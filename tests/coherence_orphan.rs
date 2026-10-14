@@ -278,9 +278,71 @@ fn ref_FooStruct_is_local() {
         struct FooStruct {}
         impl CoreTrait for &'static FooStruct {}
         impl CoreTrait for &'static mut FooStruct {}
+        fn main() -> () {}
     }])
-    .skip_execute()
+    .rustc_ok()
     .ok()
+}
+
+#[test]
+fn nested_ref_FooStruct_is_local() {
+    FormalityTest::new(crates![crate core {
+        trait CoreTrait {}
+    },
+    crate foo {
+        struct FooStruct {}
+        impl<'a, 'b> CoreTrait for &'a &'b mut FooStruct where 'b: 'a {}
+        fn main() -> () {}
+    }])
+    .rustc_ok()
+    .ok()
+}
+
+#[test]
+fn ref_foreign_wrapper_of_local_is_not_local() {
+    FormalityTest::new(crates![crate core {
+        trait CoreTrait {}
+        struct ForeignWrapper<T> { value: T }
+    },
+    crate foo {
+        struct FooStruct {}
+        impl<'a> CoreTrait for &'a ForeignWrapper<FooStruct> {}
+    }])
+    .rustc_err(expect_test::expect![[r#"
+        error[E0117]: only traits defined in the current crate can be implemented for arbitrary types
+         --> lib.rs
+          |
+        5 | impl<'a00> CoreTrait for &'a00 ForeignWrapper<FooStruct> {}
+          | ^^^^^^^^^^^^^^^^^^^^^^^^^-------------------------------
+          |                          |
+          |                          `mycore::ForeignWrapper` is not defined in the current crate
+          |
+          = note: impl doesn't have any local type before any uncovered type parameters
+          = note: for more information see https://doc.rust-lang.org/reference/items/implementations.html#orphan-rules
+          = note: define and implement a trait or new type instead
+
+        For more information about this error, try `rustc --explain E0117`.
+        error: could not compile `foo` (lib) due to 1 previous error
+    "#]])
+    .err(expect_test::expect![[r#"
+        the rule "fundamental rigid type" at (is_local.rs) failed because
+          condition evaluated to false: `is_fundamental(decls, name)`
+            decls = program([crate core { trait CoreTrait <ty> { } struct ForeignWrapper <ty> { value : ^ty0_0 } }, crate foo { struct FooStruct { } impl <lt> CoreTrait for &^lt0_0 ForeignWrapper<FooStruct> { } }], 222)
+            name = (adt ForeignWrapper)
+
+        crates/formality-rust/src/prove/prove_normalize.rs:18:1: no applicable rules for prove_normalize { p: ForeignWrapper<FooStruct>, assumptions: {}, env: Env { variables: [!lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+        the rule "local rigid type" at (is_local.rs) failed because
+          condition evaluated to false: `decls.is_local_adt_id(a)`
+            decls = program([crate core { trait CoreTrait <ty> { } struct ForeignWrapper <ty> { value : ^ty0_0 } }, crate foo { struct FooStruct { } impl <lt> CoreTrait for &^lt0_0 ForeignWrapper<FooStruct> { } }], 222)
+            a = ForeignWrapper
+
+        crates/formality-rust/src/prove/prove_normalize.rs:18:1: no applicable rules for prove_normalize { p: &!lt_0 ForeignWrapper<FooStruct>, assumptions: {}, env: Env { variables: [!lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+        the rule "local trait" at (is_local.rs) failed because
+          condition evaluated to false: `decls.is_local_trait_id(&goal.trait_id)`
+            decls = program([crate core { trait CoreTrait <ty> { } struct ForeignWrapper <ty> { value : ^ty0_0 } }, crate foo { struct FooStruct { } impl <lt> CoreTrait for &^lt0_0 ForeignWrapper<FooStruct> { } }], 222)
+            &goal.trait_id = CoreTrait"#]])
 }
 
 #[test]
@@ -292,6 +354,22 @@ fn ref_CoreStruct_is_not_local() {
     crate foo {
         impl CoreTrait for &'static CoreStruct {}
     }])
+    .rustc_err(expect_test::expect![[r#"
+        error[E0117]: only traits defined in the current crate can be implemented for arbitrary types
+         --> lib.rs
+          |
+        3 | impl CoreTrait for &'static CoreStruct {}
+          | ^^^^^^^^^^^^^^^^^^^-------------------
+          |                    |
+          |                    `mycore::CoreStruct` is not defined in the current crate
+          |
+          = note: impl doesn't have any local type before any uncovered type parameters
+          = note: for more information see https://doc.rust-lang.org/reference/items/implementations.html#orphan-rules
+          = note: define and implement a trait or new type instead
+
+        For more information about this error, try `rustc --explain E0117`.
+        error: could not compile `foo` (lib) due to 1 previous error
+    "#]])
     .err(expect_test::expect![[r#"
         the rule "fundamental rigid type" at (is_local.rs) failed because
           condition evaluated to false: `is_fundamental(decls, name)`

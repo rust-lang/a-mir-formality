@@ -376,11 +376,86 @@ fn T_where_Bar_and_ref_T() {
         impl<T> Foo for T where T: Bar {}
         impl<T> Foo for &'static T {}
     }])
+    .rustc_err(expect_test::expect![[r#"
+        error[E0119]: conflicting implementations of trait `Foo` for type `&'static _`
+         --> lib.rs
+          |
+        5 | impl<T00> Foo for T00 where T00: Bar {}
+          | ------------------------------------ first implementation here
+        6 |
+        7 | impl<T00> Foo for &'static T00 {}
+          | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ conflicting implementation for `&'static _`
+          |
+          = note: downstream crates may implement trait `Bar` for type `&'static _`
+
+        For more information about this error, try `rustc --explain E0119`.
+        error: could not compile `mycore` (lib) due to 1 previous error
+    "#]])
     .err(expect_test::expect![[r#"
         the rule "check_coherence" at (coherence.rs) failed because
           impls may overlap:
           impl <ty> Foo for ^ty0_0 where ^ty0_0 : Bar { }
           impl <ty> Foo for &' static ^ty0_0 { }"#]])
+}
+
+#[test]
+fn T_where_Bar_and_mut_ref_T() {
+    FormalityTest::new(crates![crate core {
+        trait Foo {}
+        trait Bar {}
+        impl<T> Foo for T where T: Bar {}
+        impl<T> Foo for &'static mut T {}
+    }])
+    .rustc_err(expect_test::expect![[r#"
+        error[E0119]: conflicting implementations of trait `Foo` for type `&'static mut _`
+         --> lib.rs
+          |
+        5 | impl<T00> Foo for T00 where T00: Bar {}
+          | ------------------------------------ first implementation here
+        6 |
+        7 | impl<T00> Foo for &'static mut T00 {}
+          | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ conflicting implementation for `&'static mut _`
+          |
+          = note: downstream crates may implement trait `Bar` for type `&'static mut _`
+
+        For more information about this error, try `rustc --explain E0119`.
+        error: could not compile `mycore` (lib) due to 1 previous error
+    "#]])
+    .err(expect_test::expect![[r#"
+        the rule "check_coherence" at (coherence.rs) failed because
+          impls may overlap:
+          impl <ty> Foo for ^ty0_0 where ^ty0_0 : Bar { }
+          impl <ty> Foo for &' static mut ^ty0_0 { }"#]])
+}
+
+#[test]
+fn T_where_Bar_and_nested_ref_T() {
+    FormalityTest::new(crates![crate core {
+        trait Foo {}
+        trait Bar {}
+        impl<T> Foo for T where T: Bar {}
+        impl<T> Foo for &'static &'static T {}
+    }])
+    .rustc_err(expect_test::expect![[r#"
+        error[E0119]: conflicting implementations of trait `Foo` for type `&'static &'static _`
+         --> lib.rs
+          |
+        5 | impl<T00> Foo for T00 where T00: Bar {}
+          | ------------------------------------ first implementation here
+        6 |
+        7 | impl<T00> Foo for &'static &'static T00 {}
+          | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ conflicting implementation for `&'static &'static _`
+          |
+          = note: downstream crates may implement trait `Bar` for type `&'static &'static _`
+
+        For more information about this error, try `rustc --explain E0119`.
+        error: could not compile `mycore` (lib) due to 1 previous error
+    "#]])
+    .err(expect_test::expect![[r#"
+        the rule "check_coherence" at (coherence.rs) failed because
+          impls may overlap:
+          impl <ty> Foo for ^ty0_0 where ^ty0_0 : Bar { }
+          impl <ty> Foo for &' static &' static ^ty0_0 { }"#]])
 }
 
 #[test]
