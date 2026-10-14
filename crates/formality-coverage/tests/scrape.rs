@@ -3,6 +3,7 @@
 //! on the live `formality-rust` source layout.
 
 use std::collections::{BTreeMap, BTreeSet};
+use std::path::Path;
 
 use expect_test::expect;
 use formality_core::judgment::coverage::{FailedRuleNode, FailedTreeNode, ProofTreeNode};
@@ -10,7 +11,9 @@ use formality_coverage::jsonl::{
     self, Coverage, CoveredRule, NoApplicableRuleLoc, PremiseLoc, TestLoc,
 };
 use formality_coverage::report;
-use formality_coverage::scrape::{scrape_text, Judgment, Premise, PremiseKind, Rule};
+use formality_coverage::scrape::{
+    is_test_source, scrape_text, Judgment, Premise, PremiseKind, Rule,
+};
 
 fn premise(raw: &str, kind: PremiseKind, fallible: bool, line: u32) -> Premise {
     Premise {
@@ -173,6 +176,105 @@ judgment_fn! {
     assert!(all_inf.premises.iter().all(|p| !p.fallible));
 }
 
+#[test]
+fn source_extract_keeps_the_header_and_drops_the_rules() {
+    let got = scrape_text(FIXTURE, "fixture.rs");
+    expect![[r#"
+        judgment_fn! {
+            /// doc comment
+            pub fn prove_thing(x: u32) => () {
+                /* rules omitted */
+            }
+        }"#]]
+    .assert_eq(&got[0].source_extract);
+}
+
+/// A judgment whose doc comment contains a code example: the example must not
+/// be read as the judgment's own source (`prove_outlives` used to be scraped
+/// under the name `main` for exactly this reason).
+#[test]
+fn doc_comment_examples_are_not_scraped() {
+    const SRC: &str = r#"
+/// Documented with an example:
+///
+/// ```rust,ignore
+/// judgment_fn! {
+///     fn not_a_judgment(x: u32) => () { }
+/// }
+///
+/// fn main() {
+///     documented(1);
+/// }
+/// ```
+judgment_fn! {
+    pub fn documented(x: u32) => () {
+        (
+            (if x > 0)
+            --- ("positive")
+            (documented(x) => ())
+        )
+    }
+}
+"#;
+    let got = scrape_text(SRC, "src.rs");
+    let names: Vec<&str> = got.iter().map(|j| j.name.as_str()).collect();
+    assert_eq!(names, vec!["documented"]);
+    assert_eq!(got[0].signature, "documented(x: u32) => ()");
+}
+
+#[test]
+fn skips_judgments_in_cfg_test_mods() {
+    const SRC: &str = r#"
+judgment_fn! {
+    fn real(x: u32) => () {
+        (
+            (if x > 0)
+            --- ("real")
+            (real(x) => ())
+        )
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    judgment_fn! {
+        fn fixture(x: u32) => () {
+            (
+                (if x > 0)
+                --- ("fixture")
+                (fixture(x) => ())
+            )
+        }
+    }
+}
+"#;
+    let names: Vec<String> = scrape_text(SRC, "src.rs")
+        .into_iter()
+        .map(|j| j.name)
+        .collect();
+    assert_eq!(names, vec!["real"]);
+}
+
+#[test]
+fn recognizes_test_sources() {
+    assert!(is_test_source(
+        Path::new("formality-core/tests/coverage.rs"),
+        ""
+    ));
+    assert!(is_test_source(
+        Path::new("formality-core/src/judgment/test_for_all.rs"),
+        "#![cfg(test)]
+
+use crate::judgment_fn;
+",
+    ));
+    assert!(!is_test_source(
+        Path::new("formality-rust/src/prove/prove_wc.rs"),
+        "use crate::judgment_fn;
+",
+    ));
+}
+
 /// Two-rule `prove_thing` judgment: `positive` (premise on line 9, tested
 /// negatively) and `zero` (premise on line 15, never tested negatively).
 fn prove_thing_judgment() -> Judgment {
@@ -180,6 +282,7 @@ fn prove_thing_judgment() -> Judgment {
         name: "prove_thing".into(),
         doc_comment: String::new(),
         signature: "prove_thing(x: u32) => ()".into(),
+        source_extract: String::new(),
         file: "fixture.rs".into(),
         line: 4,
         rules: vec![
@@ -243,6 +346,11 @@ fn markdown_index_snapshot() {
         | **[prove_thing](./prove_thing.md)** | - | - |
         | ↳ [positive](./prove_thing.md#positive) | [1 test](./prove_thing__positive__pos.md) | 1/1 |
         | ↳ [zero](./prove_thing.md#zero) | ✗ | 0/1 |
+
+
+        ---
+
+        [How to read this page](./coverage-how-to-read.md)
     "#]]
     .assert_eq(&md);
 }
@@ -251,15 +359,11 @@ fn markdown_index_snapshot() {
 fn markdown_subpage_snapshot() {
     let j = prove_thing_judgment();
     let cov = prove_thing_coverage();
-    let md = report::render_subpage(&j, &cov, "md");
+    let md = report::render_subpage(&j, &cov, "md", None);
     expect![[r##"
-        # Judgment `prove_thing` at fixture.rs:4
+        # Judgment `prove_thing`
 
-        **Signature:**
-
-        ```rust,ignore
-        prove_thing(x: u32) => ()
-        ```
+        Source: `fixture.rs:4`
 
         The number on each rule's conclusion is **positive** coverage; the number on each premise is **negative** coverage. Click a number to browse the tests.
 
@@ -310,6 +414,11 @@ fn markdown_subpage_snapshot() {
         </table>
         </div>
 
+
+
+        ---
+
+        [How to read this page](./coverage-how-to-read.md)
     "##]].assert_eq(&md);
 }
 
@@ -717,6 +826,7 @@ fn detail_pages_embed_test_source_when_root_given() {
         name: "j".into(),
         doc_comment: String::new(),
         signature: String::new(),
+        source_extract: String::new(),
         file: "fixture.rs".into(),
         line: 1,
         rules: vec![rule_with_premise("r", 3, 2)],
@@ -752,6 +862,7 @@ fn infallible_premise_renders_as_na() {
         name: "easy".into(),
         doc_comment: String::new(),
         signature: String::new(),
+        source_extract: String::new(),
         file: "fixture.rs".into(),
         line: 1,
         rules: vec![Rule {
@@ -771,12 +882,19 @@ fn infallible_premise_renders_as_na() {
         | --- | --- | --- |
         | **[easy](./easy.md)** | - | - |
         | ↳ [trivial](./easy.md#trivial) | ✗ | N/A |
+
+
+        ---
+
+        [How to read this page](./coverage-how-to-read.md)
     "#]]
     .assert_eq(&index);
 
-    let subpage = report::render_subpage(&j, &cov, "md");
+    let subpage = report::render_subpage(&j, &cov, "md", None);
     expect![[r##"
-        # Judgment `easy` at fixture.rs:1
+        # Judgment `easy`
+
+        Source: `fixture.rs:1`
 
         The number on each rule's conclusion is **positive** coverage; the number on each premise is **negative** coverage. Click a number to browse the tests.
 
@@ -817,6 +935,11 @@ fn infallible_premise_renders_as_na() {
         </table>
         </div>
 
+
+
+        ---
+
+        [How to read this page](./coverage-how-to-read.md)
     "##]].assert_eq(&subpage);
 }
 
@@ -839,10 +962,15 @@ fn no_applicable_rule_renders_in_index_and_subpage() {
         | **[prove_thing](./prove_thing.md)** | - | no applicable rule observed |
         | ↳ [positive](./prove_thing.md#positive) | ✗ | 0/1 |
         | ↳ [zero](./prove_thing.md#zero) | ✗ | 0/1 |
+
+
+        ---
+
+        [How to read this page](./coverage-how-to-read.md)
     "#]]
     .assert_eq(&index);
 
-    let subpage = report::render_subpage(&j, &cov, "md");
+    let subpage = report::render_subpage(&j, &cov, "md", None);
     assert!(subpage.contains("_No applicable rule observed:"));
 }
 
@@ -852,16 +980,24 @@ fn empty_rules_renders_no_rules_message() {
         name: "lonely".into(),
         doc_comment: String::new(),
         signature: String::new(),
+        source_extract: String::new(),
         file: "fixture.rs".into(),
         line: 1,
         rules: vec![],
     };
     let cov = Coverage::default();
-    let md = report::render_subpage(&j, &cov, "md");
+    let md = report::render_subpage(&j, &cov, "md", None);
     expect![[r#"
-        # Judgment `lonely` at fixture.rs:1
+        # Judgment `lonely`
+
+        Source: `fixture.rs:1`
 
         _No rules discovered._
+
+
+        ---
+
+        [How to read this page](./coverage-how-to-read.md)
     "#]]
     .assert_eq(&md);
 }
@@ -1046,6 +1182,11 @@ fn by_test_index_groups_tests_by_file() {
         | --- | --- | --- |
         | [line 42](./test__tests_prove_thing_rs__42.md) | 1 | 0 |
         | [line 99](./test__tests_prove_thing_rs__99.md) | 0 | 1 |
+
+
+        ---
+
+        [How to read this page](./coverage-how-to-read.md)
     "#]]
     .assert_eq(&md);
 }
@@ -1060,6 +1201,11 @@ fn by_test_index_says_so_when_nothing_was_recorded() {
         The same data as the [coverage report](./coverage.md), organized by test rather than by judgment: each test lists the rules it proves and the premises it is observed to fail on.
 
         _No coverage recorded._
+
+
+        ---
+
+        [How to read this page](./coverage-how-to-read.md)
     "#]]
     .assert_eq(&md);
 }
@@ -1128,6 +1274,11 @@ fn test_pages_link_to_the_cells_they_cover() {
 
         _This test records no negative coverage._
 
+
+
+        ---
+
+        [How to read this page](./coverage-how-to-read.md)
     "#]]
     .assert_eq(&pages[0].content);
 
@@ -1182,6 +1333,11 @@ fn test_pages_link_to_the_cells_they_cover() {
         | --- | --- | --- | --- |
         | [prove_thing](./prove_thing.md) | [positive](./prove_thing.md#positive) | `if true` (line 9) | [1 test](./prove_thing__positive__p9__neg.md) |
 
+
+
+        ---
+
+        [How to read this page](./coverage-how-to-read.md)
     "#]]
     .assert_eq(&pages[1].content);
 }

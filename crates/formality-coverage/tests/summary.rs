@@ -24,6 +24,7 @@ fn judgment(rules: Vec<Rule>) -> Judgment {
         name: "prove".into(),
         doc_comment: String::new(),
         signature: "prove(x) => ()".into(),
+        source_extract: String::new(),
         file: "crates/x/src/lib.rs".into(),
         line: 1,
         rules,

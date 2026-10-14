@@ -5,6 +5,14 @@
 //! only scan for `judgment_fn!` and walk the body with brace/paren matching
 //! that ignores strings and `//` line comments. If the macro syntax changes,
 //! the logic here must follow.
+//!
+//! Doc comments are masked out before scanning (see [`mask_line_comments`]),
+//! since several judgments document themselves with a `judgment_fn!` or a
+//! `fn main()` example that would otherwise be read as source.
+//!
+//! Judgments defined by tests are skipped (see [`is_test_source`] and the
+//! `#[cfg(test)]` handling in [`parse_judgment_fns`]): they are fixtures for
+//! the test suite, not part of the model the coverage report describes.
 
 use anyhow::Result;
 use regex::Regex;
@@ -18,6 +26,12 @@ pub struct Judgment {
     pub name: String,
     pub doc_comment: String,
     pub signature: String,
+    /// The `judgment_fn!` invocation as written in the source, dedented, with
+    /// the rules replaced by `/* rules omitted */`. Unlike [`Judgment::signature`]
+    /// this keeps the original line breaks, indentation, and any comments
+    /// inside the macro, so a report page can show the judgment as its author
+    /// wrote it.
+    pub source_extract: String,
     pub file: String,
     pub line: u32,
     pub rules: Vec<Rule>,
@@ -77,11 +91,24 @@ pub fn scrape_dir(root: &Path) -> Result<Vec<Judgment>> {
             continue;
         }
         let contents = std::fs::read_to_string(path)?;
+        if is_test_source(path, &contents) {
+            continue;
+        }
         let rel = normalize_path(path, root);
         out.extend(parse_judgment_fns(&contents, &rel));
     }
     out.sort_by(|a, b| (a.file.as_str(), a.line).cmp(&(b.file.as_str(), b.line)));
     Ok(out)
+}
+
+/// Whether a file holds test-only code, and so should be skipped: either it
+/// lives under a `tests/` directory (an integration test) or it is a module
+/// gated by an inner `#![cfg(test)]` attribute. Judgments defined inside an
+/// inline `#[cfg(test)] mod` are skipped separately, in
+/// [`parse_judgment_fns`], since the rest of such a file is real source.
+pub fn is_test_source(path: &Path, contents: &str) -> bool {
+    path.components().any(|c| c.as_os_str() == "tests")
+        || contents.lines().any(|l| l.trim() == "#![cfg(test)]")
 }
 
 fn normalize_path(path: &Path, root: &Path) -> String {
@@ -96,16 +123,27 @@ pub fn scrape_text(text: &str, file: &str) -> Vec<Judgment> {
     parse_judgment_fns(text, file)
 }
 
-/// Find every `judgment_fn! { ... }` invocation in `content` and parse it.
+/// Find every `judgment_fn! { ... }` invocation in `content` and parse it,
+/// ignoring those inside a `#[cfg(test)] mod` (see [`cfg_test_mod_ranges`]).
 pub fn parse_judgment_fns(content: &str, file: &str) -> Vec<Judgment> {
     let mut judgments = Vec::new();
+    // Search the mask, slice the original: offsets are the same in both.
+    let masked = mask_line_comments(content);
+    let cfg_test_mods = cfg_test_mod_ranges(&masked);
     let mut pos = 0;
 
-    while let Some(start) = content[pos..].find("judgment_fn!") {
+    while let Some(start) = masked[pos..].find("judgment_fn!") {
         let abs_start = pos + start;
+        if let Some(&(_, end)) = cfg_test_mods
+            .iter()
+            .find(|(s, e)| (*s..*e).contains(&abs_start))
+        {
+            pos = end;
+            continue;
+        }
         let jf_line = line_number(content, abs_start);
 
-        let Some(brace_rel) = content[abs_start..].find('{') else {
+        let Some(brace_rel) = masked[abs_start..].find('{') else {
             pos = abs_start + "judgment_fn!".len();
             continue;
         };
@@ -116,15 +154,14 @@ pub fn parse_judgment_fns(content: &str, file: &str) -> Vec<Judgment> {
             continue;
         };
 
-        let block = &content[brace_start + 1..brace_end];
-        let block_start_line = line_number(content, brace_start + 1);
-
         if let Some(judgment) = parse_single_judgment(
-            block,
-            &content[..abs_start],
+            content,
+            &masked,
+            abs_start,
+            brace_start,
+            brace_end,
             file,
             jf_line,
-            block_start_line,
         ) {
             judgments.push(judgment);
         }
@@ -135,37 +172,164 @@ pub fn parse_judgment_fns(content: &str, file: &str) -> Vec<Judgment> {
     judgments
 }
 
+/// A copy of `content` with the body of every `//` line comment (including
+/// `///` and `//!` doc comments) replaced by spaces. Byte offsets are
+/// preserved, so anything found in the mask can be sliced out of the original.
+/// Block comments are left alone: no judgment documents itself with one.
+fn mask_line_comments(content: &str) -> String {
+    let mut out = String::with_capacity(content.len());
+    let mut in_string = false;
+    let mut in_line_comment = false;
+    let mut prev = '\0';
+
+    for ch in content.chars() {
+        if in_line_comment {
+            if ch == '\n' {
+                in_line_comment = false;
+                out.push(ch);
+            } else {
+                out.extend(std::iter::repeat_n(' ', ch.len_utf8()));
+            }
+        } else if in_string {
+            if ch == '"' && prev != '\\' {
+                in_string = false;
+            }
+            out.push(ch);
+        } else if ch == '/' && prev == '/' {
+            in_line_comment = true;
+            // Blank the first slash we already emitted, too.
+            out.pop();
+            out.push_str("  ");
+        } else {
+            if ch == '"' {
+                in_string = true;
+            }
+            out.push(ch);
+        }
+        prev = ch;
+    }
+
+    out
+}
+
+/// Byte ranges spanned by each `#[cfg(test)] mod ... { ... }` in `content`,
+/// from the attribute to the module's closing brace. A `#[cfg(test)]` on
+/// anything other than a module yields no range: only a module can contain a
+/// `judgment_fn!` invocation.
+fn cfg_test_mod_ranges(content: &str) -> Vec<(usize, usize)> {
+    const ATTR: &str = "#[cfg(test)]";
+    let mut ranges = Vec::new();
+    let mut pos = 0;
+
+    while let Some(rel) = content[pos..].find(ATTR) {
+        let attr_start = pos + rel;
+        let after_attr = attr_start + ATTR.len();
+        pos = after_attr;
+
+        let rest = content[after_attr..].trim_start();
+        if !rest.starts_with("mod ") && !rest.starts_with("pub mod ") {
+            continue;
+        }
+        let Some(brace_rel) = content[after_attr..].find('{') else {
+            continue;
+        };
+        let Some(close) = find_matching_brace(content, after_attr + brace_rel) else {
+            continue;
+        };
+        ranges.push((attr_start, close));
+        pos = close;
+    }
+
+    ranges
+}
+
+/// Parse the judgment defined by the `judgment_fn!` invocation that starts at
+/// `macro_start` and whose block runs from `brace_start` to `brace_end`.
 fn parse_single_judgment(
-    block: &str,
-    preceding: &str,
+    content: &str,
+    masked: &str,
+    macro_start: usize,
+    brace_start: usize,
+    brace_end: usize,
     file: &str,
     jf_line: u32,
-    block_start_line: u32,
 ) -> Option<Judgment> {
     static FN_RE: LazyLock<Regex> = LazyLock::new(|| {
         Regex::new(r"(?s)(pub\s+)?fn\s+(\w+)\s*\((.*?)\)\s*=>\s*([^{]+)\{").unwrap()
     });
 
-    let doc_comment = extract_doc_comment(preceding);
-    let captures = FN_RE.captures(block)?;
+    let block = &content[brace_start + 1..brace_end];
+    let doc_comment = extract_doc_comment(&content[..macro_start]);
+    // Match against the masked block so a `fn` inside a doc comment cannot be
+    // mistaken for the judgment's own signature, then read the captures out of
+    // the real block at the same offsets.
+    let captures = FN_RE.captures(&masked[brace_start + 1..brace_end])?;
+    let at = |i: usize| captures.get(i).map(|m| &block[m.start()..m.end()]);
 
-    let name = captures.get(2)?.as_str().to_string();
-    let params = captures.get(3)?.as_str();
-    let return_ty = captures.get(4)?.as_str().trim();
+    let name = at(2)?.to_string();
+    let params = at(3)?;
+    let return_ty = at(4)?.trim();
 
     let clean_params = clean_params(params);
     let signature = format!("{name}({clean_params}) => {return_ty}");
 
-    let rules = extract_rules(block, block_start_line);
+    // The fn's opening brace ends the regex match, so everything from the
+    // macro name up to there is the judgment's header.
+    let header_end = brace_start + 1 + captures.get(0)?.end();
+    let source_extract = source_extract(content, macro_start, header_end);
+
+    let rules = extract_rules(block, line_number(content, brace_start + 1));
 
     Some(Judgment {
         name,
         doc_comment,
         signature,
+        source_extract,
         file: file.to_string(),
         line: jf_line,
         rules,
     })
+}
+
+/// The judgment's header (`judgment_fn! {` through the fn's opening brace,
+/// which is where `header_end` points) with the rules elided, dedented so it
+/// can be dropped into a code block. The closing braces are rebuilt rather
+/// than copied, since the ones in the source come after the rules.
+fn source_extract(content: &str, macro_start: usize, header_end: usize) -> String {
+    // Start at the beginning of the macro's line so its own indentation is
+    // part of the text `dedent` measures.
+    let line_start = content[..macro_start].rfind('\n').map_or(0, |i| i + 1);
+    let header = dedent(&content[line_start..header_end]);
+    // The header's last line closes the parameter list (`) => Foo {`), so its
+    // indentation is the fn's.
+    let fn_indent: String = header
+        .lines()
+        .next_back()
+        .unwrap_or_default()
+        .chars()
+        .take_while(|c| c.is_whitespace())
+        .collect();
+    format!("{header}\n{fn_indent}    /* rules omitted */\n{fn_indent}}}\n}}")
+}
+
+/// Strip the smallest indentation shared by all non-empty lines.
+fn dedent(text: &str) -> String {
+    let min_indent = text
+        .lines()
+        .filter(|l| !l.trim().is_empty())
+        .map(|l| l.len() - l.trim_start().len())
+        .min()
+        .unwrap_or(0);
+    text.lines()
+        .map(|l| {
+            if l.len() >= min_indent {
+                &l[min_indent..]
+            } else {
+                l.trim()
+            }
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
 }
 
 fn extract_doc_comment(preceding: &str) -> String {

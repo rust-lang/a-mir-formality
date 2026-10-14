@@ -1,7 +1,7 @@
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
-use formality_coverage::scrape::{Judgment, Rule, parse_judgment_fns, scrape_dir};
+use formality_coverage::scrape::{Judgment, Rule, is_test_source, parse_judgment_fns, scrape_dir};
 use formality_coverage::{jsonl, report, summary};
 use mdbook_preprocessor::book::{Book, BookItem, Chapter, SectionNumber};
 use mdbook_preprocessor::{Preprocessor, PreprocessorContext};
@@ -135,6 +135,9 @@ fn append_coverage_chapters(
     // Subpage filenames come from `report::slug` so they match the `./{slug}.md`
     // links `render_index` emits. Two judgments collapsing to one slug would
     // clobber each other's page; warn, mirroring `report::write_all`.
+    // The how-to-read page takes the first of those top-level numbers, so the
+    // index and everything nested under it start one later.
+    let index_top = next_top + 1;
     let mut seen_slugs: HashSet<String> = HashSet::new();
     let mut subpages: Vec<BookItem> = Vec::new();
     // Detail pages write their sidecar `args` JSON here, under the book source
@@ -150,11 +153,11 @@ fn append_coverage_chapters(
         }
         let mut chapter = Chapter::new(
             &j.name,
-            report::render_subpage(j, &cov, "html"),
+            report::render_subpage(j, &cov, "html", github_base),
             PathBuf::from(format!("{slug}.md")),
             vec!["Coverage report".to_string()],
         );
-        chapter.number = Some(SectionNumber::new(vec![next_top, (i + 1) as u32]));
+        chapter.number = Some(SectionNumber::new(vec![index_top, (i + 1) as u32]));
 
         // Per-cell detail pages (the test lists each coverage cell links to)
         // hang off this judgment's subpage with a third section-number
@@ -184,7 +187,7 @@ fn append_coverage_chapters(
                 vec!["Coverage report".to_string(), j.name.clone()],
             );
             detail.number = Some(SectionNumber::new(vec![
-                next_top,
+                index_top,
                 (i + 1) as u32,
                 (k + 1) as u32,
             ]));
@@ -194,13 +197,24 @@ fn append_coverage_chapters(
         subpages.push(BookItem::Chapter(chapter));
     }
 
+    // The standing explanation of the report's notation, which every generated
+    // page links to in its footer.
+    let mut how_to_read = Chapter::new(
+        "How to read the coverage report",
+        report::render_how_to_read(),
+        PathBuf::from(format!("{}.md", report::HOW_TO_READ_SLUG)),
+        vec![],
+    );
+    how_to_read.number = Some(SectionNumber::new(vec![next_top]));
+    book.push_item(how_to_read);
+
     let mut index_chapter = Chapter::new(
         "Coverage report",
         report::render_index(&judgments, &cov),
         PathBuf::from("coverage.md"),
         vec![],
     );
-    index_chapter.number = Some(SectionNumber::new(vec![next_top]));
+    index_chapter.number = Some(SectionNumber::new(vec![index_top]));
     index_chapter.sub_items = subpages;
     book.push_item(index_chapter);
 
@@ -210,7 +224,7 @@ fn append_coverage_chapters(
         github_base,
         root.parent(),
         &args_dir,
-        next_top + 1,
+        index_top + 1,
         &mut seen_slugs,
         book,
     )?;
@@ -296,6 +310,12 @@ pub fn scan_source_files(src_dir: &Path, root: &Path) -> anyhow::Result<SourceIn
 
     for entry in walk_rs_files(src_dir)? {
         let content = std::fs::read_to_string(&entry)?;
+        // Judgments defined by tests are fixtures, not part of the model; skip
+        // them here as well as in `scrape_dir`, since this index is what the
+        // coverage chapters are rendered from.
+        if is_test_source(&entry, &content) {
+            continue;
+        }
         let canonical_entry = entry.canonicalize().unwrap_or_else(|_| entry.clone());
         let rel_path = canonical_entry
             .strip_prefix(root)
