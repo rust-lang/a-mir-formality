@@ -149,6 +149,7 @@ pub enum Expr {
     /// Assign a value to a place expression. Evaluates to `()`.
     /// The left-hand side must be a place expression (variable, deref, field).
     #[grammar($place = $expr)]
+    #[precedence(0, right)]
     Assign { place: PlaceExpr, expr: Arc<Expr> },
 
     /// `call callee<tys>(args)`
@@ -156,6 +157,9 @@ pub enum Expr {
     /// Call a function. The callee is a named function reference.
     /// Returns the call's result as a value.
     #[grammar($callee ($,args))]
+    // Restrict the callee without restricting precedence inside the arguments.
+    #[reject(Expr::Assign { .. }, _)]
+    #[reject(Expr::BinOp { .. }, _)]
     Call { callee: Arc<Expr>, args: Vec<Expr> },
 
     #[cast]
