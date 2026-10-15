@@ -104,10 +104,7 @@ impl FormalityTest {
         formality_core::judgment::coverage::record_coverage(std::iter::once(&proof_tree));
 
         if !skip_execute {
-            let stdout = execute_program(&input);
-            if let Some(expected) = expected_output {
-                assert_eq!(stdout, expected, "program output mismatch");
-            }
+            execute_and_check_output(&input, expected_output.as_deref());
         }
 
         if let Some(expect) = rustc_override {
@@ -190,7 +187,7 @@ impl FormalityTest {
                         &proof_tree,
                     ));
                     if mode == BorrowCheckFailure::Nll && !self.skip_execute {
-                        execute_program(&self.input);
+                        execute_and_check_output(&self.input, self.expected_output.as_deref());
                     }
 
                     if error.is_err() {
@@ -217,6 +214,14 @@ impl FormalityTest {
         }
 
         error
+    }
+}
+#[track_caller]
+fn execute_and_check_output(input: &str, expected_output: Option<&str>) {
+    let stdout = execute_program(input);
+
+    if let Some(expected) = expected_output {
+        assert_eq!(stdout, expected, "program output mismatch");
     }
 }
 
