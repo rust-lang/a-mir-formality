@@ -557,6 +557,10 @@ judgment_fn! {
             (let provided_names: Set<&FieldName> = field_exprs.iter().map(|fe| &fe.name).collect())
             (if expected_names == provided_names)
 
+            // Check that no field is specified more than once by comparing counts
+            // If field_exprs has duplicates, the set will be smaller
+            (if field_exprs.len() == provided_names.len())
+
             // Type-check each field expression
             (for_all(i in 0..field_exprs.len()) with(state)
                 (field in fields)
