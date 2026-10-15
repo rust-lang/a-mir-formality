@@ -97,17 +97,32 @@ pub fn lower_rigid_ty(ctx: &mut Context, rigid_ty: &RigidTy) -> Fallible<syntax:
 pub fn lower_alias_ty(ctx: &mut Context, alias_ty: &AliasTy) -> Fallible<syntax::Type> {
     match &alias_ty.name {
         crate::grammar::AliasName::AssociatedTyId(associated_ty_name) => {
+            let minimum_arg_count = associated_ty_name
+                .item_arity
+                .checked_add(1)
+                .ok_or_else(|| anyhow::anyhow!("associated type item arity is too large"))?;
+            if alias_ty.parameters.len() < minimum_arg_count {
+                anyhow::bail!(
+                    "associated type argument count mismatch: expected at least {minimum_arg_count}, found {}",
+                    alias_ty.parameters.len(),
+                );
+            }
+
             let trait_arg_count = alias_ty.parameters.len() - associated_ty_name.item_arity;
             let (trait_parameters, assoc_parameters) =
                 alias_ty.parameters.split_at(trait_arg_count);
             let (self_parameter, trait_args) = trait_parameters
                 .split_first()
-                .ok_or_else(|| anyhow::anyhow!("alias type is mising self type argument"))?;
+                .ok_or_else(|| anyhow::anyhow!("associated type is missing self type argument"))?;
 
             let ty = match self_parameter {
                 Parameter::Ty(ty) => lower_ty(ctx, ty)?,
-                Parameter::Lt(_) => todo!(),
-                Parameter::Const(_) => todo!(),
+                Parameter::Lt(_) => {
+                    anyhow::bail!("associated type self argument must be a type, found lifetime")
+                }
+                Parameter::Const(_) => {
+                    anyhow::bail!("associated type self argument must be a type, found const")
+                }
             };
 
             let trait_args = trait_args
@@ -269,7 +284,21 @@ pub fn lower_fn_ptr(
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::grammar::{AdtId, BoundVar, DebruijnIndex, ExistentialVar, VarIndex, Variable};
+    use crate::grammar::{
+        AdtId, AliasName, AssociatedItemId, AssociatedTyName, BoundVar, DebruijnIndex,
+        ExistentialVar, ScalarValue, TraitId, VarIndex, Variable,
+    };
+
+    fn associated_alias(item_arity: usize, parameters: Vec<Parameter>) -> AliasTy {
+        AliasTy {
+            name: AliasName::AssociatedTyId(AssociatedTyName {
+                trait_id: TraitId::new("Trait"),
+                item_id: AssociatedItemId::new("Assoc"),
+                item_arity,
+            }),
+            parameters,
+        }
+    }
 
     #[test]
     fn pretty_print_adt() {
@@ -522,6 +551,53 @@ mod test {
                 }
             ],
             expect_test::expect!["impl<T00, T01, T02> A for T00 where <T00 as B<T01>>::C<T02>: A {}"]
+        );
+    }
+
+    #[test]
+    fn alias_ty_rejects_too_few_arguments() {
+        let alias_ty = associated_alias(
+            2,
+            vec![Parameter::Ty(
+                Ty::RigidTy(RigidTy {
+                    name: RigidName::ScalarId(ScalarId::U8),
+                    parameters: vec![],
+                })
+                .into(),
+            )],
+        );
+
+        let error = lower_alias_ty(&mut Context::default(), &alias_ty).unwrap_err();
+        assert_eq!(
+            error.to_string(),
+            "associated type argument count mismatch: expected at least 3, found 1"
+        );
+    }
+
+    #[test]
+    fn alias_ty_rejects_lifetime_self_argument() {
+        let alias_ty = associated_alias(0, vec![Parameter::Lt(Lt::Static.into())]);
+
+        let error = lower_alias_ty(&mut Context::default(), &alias_ty).unwrap_err();
+        assert_eq!(
+            error.to_string(),
+            "associated type self argument must be a type, found lifetime"
+        );
+    }
+
+    #[test]
+    fn alias_ty_rejects_const_self_argument() {
+        let alias_ty = associated_alias(
+            0,
+            vec![Parameter::Const(
+                Const::Scalar(ScalarValue::Bool(true)).into(),
+            )],
+        );
+
+        let error = lower_alias_ty(&mut Context::default(), &alias_ty).unwrap_err();
+        assert_eq!(
+            error.to_string(),
+            "associated type self argument must be a type, found const"
         );
     }
 }
