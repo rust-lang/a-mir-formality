@@ -878,6 +878,32 @@ fn test_non_adt_ty_for_struct() {
               no ADT named `Nonexistent`"#]])
 }
 
+/// Test that duplicate fields in struct construction are rejected.
+#[test]
+fn duplicate_fields_are_rejected() {
+    FormalityTest::new(crates![crate Foo {
+        struct S { x: u32 }
+        fn main() -> () {
+            let s: S = S { x: 1_u32, x: 2_u32 };
+        }
+    }])
+    .rustc_err(expect_test::expect![[r#"
+        error[E0062]: field `x` specified more than once
+         --> lib.rs
+          |
+        6 |     let mut s: S = S { x: 1_u32, x: 2_u32 };
+          |                        --------  ^ used more than once
+          |                        |
+          |                        first use of `x`
+
+        For more information about this error, try `rustc --explain E0062`.
+        error: could not compile `Foo` (lib) due to 1 previous error
+    "#]])
+    .err(expect_test::expect![[r#"
+            the rule "struct" at (nll.rs) failed because
+              condition evaluated to false: `field_exprs.len() == provided_names.len()`"#]])
+}
+
 /// Test that the `false` literal type-checks as `bool`.
 ///
 /// ```rust,ignore
