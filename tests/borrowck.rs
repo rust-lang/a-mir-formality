@@ -13,6 +13,37 @@
 use a_mir_formality::{crates, BorrowCheckFailure, FormalityTest};
 use formality_core::test;
 
+#[test]
+#[should_panic(expected = "program output mismatch")]
+fn borrowck_checks_output_expectation() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () { println!(1_u32); }
+    }])
+    .expect_output("999\n")
+    .borrowck_ok();
+}
+
+#[test]
+fn borrowck_accepts_matching_output() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () { println!(1_u32); }
+    }])
+    .expect_output("1\n")
+    .borrowck_ok();
+}
+
+#[test]
+fn borrowck_skipped_execution_does_not_check_output() {
+    let program = crates![crate Foo {
+        fn example() -> () {}
+    }];
+
+    FormalityTest::new(program)
+        .expect_output("999\n")
+        .skip_execute()
+        .borrowck_ok();
+}
+
 // ===================================================================
 // Initialization and move tracking tests
 //
