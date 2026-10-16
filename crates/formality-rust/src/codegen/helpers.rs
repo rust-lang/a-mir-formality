@@ -22,6 +22,61 @@ use super::minirust::*;
 use super::scope::{CodegenFn, CodegenGlobal, CodegenScope, MonoKey};
 
 // ===========================================================================
+// Type normalization helpers
+// ===========================================================================
+
+/// Normalize a type for codegen by resolving any aliases to concrete types.
+fn normalize_ty_for_codegen(cfn: &CodegenFn, ty: &Ty) -> Fallible<Ty> {
+    use crate::check::borrow_check::flow_state::FlowState;
+    use crate::grammar::{Parameter, RigidTy};
+    use formality_core::Upcast;
+    
+    match ty {
+        Ty::AliasTy(alias_ty) => {
+            // Use the typeck_env to normalize the alias type
+            let alias_param: Parameter = alias_ty.clone().upcast();
+            let normalized = cfn.typeck_env.prove_normalize(
+                &cfn.assumptions,
+                &FlowState::default(),
+                &alias_param,
+            );
+            
+            match normalized.into_singleton() {
+                Ok(((normalized_param, _state), _)) => {
+                    // Extract the normalized Ty from the Parameter
+                    if let Parameter::Ty(normalized_ty) = normalized_param {
+                        // Recursively normalize in case the result is also an alias
+                        normalize_ty_for_codegen(cfn, normalized_ty.as_ref())
+                    } else {
+                        anyhow::bail!("normalized alias did not produce a type: {:?}", normalized_param);
+                    }
+                }
+                Err(e) => {
+                    anyhow::bail!("failed to normalize alias {:?}: {}", alias_ty, e.format_leaves())
+                }
+            }
+        }
+        Ty::RigidTy(rigid) => {
+            // Recursively normalize any nested types (e.g., in references)
+            let mut normalized_params = Vec::new();
+            for param in &rigid.parameters {
+                if let Parameter::Ty(ty) = param {
+                    let normalized = normalize_ty_for_codegen(cfn, ty)?;
+                    normalized_params.push(normalized.upcast());
+                } else {
+                    normalized_params.push(param.clone());
+                }
+            }
+            Ok(Ty::RigidTy(RigidTy {
+                name: rigid.name.clone(),
+                parameters: normalized_params,
+            }))
+        }
+        _ => Ok(ty.clone()),
+    }
+}
+
+// ===========================================================================
 // Function setup and build
 // ===========================================================================
 
@@ -36,14 +91,14 @@ pub(super) fn setup_fn_args(
     CodegenFn,
 )> {
     let mut cfn: CodegenFn = cfn.upcast();
-    let ret_ty = minirust_ty(&cfn.crates, &fn_data.output_ty)?;
+    let ret_ty = minirust_ty(&cfn, &fn_data.output_ty)?;
     let (ret_local, f2) = cfn.alloc_local(ret_ty);
     cfn = f2;
     let mut arg_locals = list![];
     let flow_state = FlowState::for_fn_body(&Env::default(), &fn_data.input_args)?;
     let mut scope = CodegenScope::new(ret_local, flow_state);
     for arg in &fn_data.input_args {
-        let mr_ty = minirust_ty(&cfn.crates, &arg.ty)?;
+        let mr_ty = minirust_ty(&cfn, &arg.ty)?;
         let (local, f2) = cfn.alloc_local(mr_ty);
         cfn = f2;
         arg_locals.push(local);
@@ -169,14 +224,16 @@ pub(super) fn typed_place_to_minirust(
                 operand: GcCow::new(lang::ValueExpr::Load {
                     source: GcCow::new(pp),
                 }),
-                ty: minirust_ty(&cfn.crates, pointee_ty)?,
+                ty: minirust_ty(cfn, pointee_ty)?,
             })
         }
         TypedPlaceExpressionData::Field(prefix, field_name, adt_id, _) => {
             let pp = typed_place_to_minirust(cfn, s, prefix)?;
-            let prefix_rigid = match &prefix.ty {
+            // Normalize the prefix type to resolve any aliases
+            let prefix_ty = normalize_ty_for_codegen(cfn, &prefix.ty)?;
+            let prefix_rigid = match &prefix_ty {
                 Ty::RigidTy(r) => r,
-                _ => anyhow::bail!("field on non-rigid type"),
+                _ => anyhow::bail!("field on non-rigid type after normalization"),
             };
             let idx =
                 struct_field_index(&cfn.crates, adt_id, &prefix_rigid.parameters, field_name)?.0;
