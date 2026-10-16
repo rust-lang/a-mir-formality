@@ -369,6 +369,135 @@ fn u32_T_impls() {
 }
 
 #[test]
+fn T_where_Bar_and_ref_T() {
+    FormalityTest::new(crates![crate core {
+        trait Foo {}
+        trait Bar {}
+        impl<T> Foo for T where T: Bar {}
+        impl<T> Foo for &'static T {}
+    }])
+    .rustc_err(expect_test::expect![[r#"
+        error[E0119]: conflicting implementations of trait `Foo` for type `&'static _`
+         --> lib.rs
+          |
+        5 | impl<T00> Foo for T00 where T00: Bar {}
+          | ------------------------------------ first implementation here
+        6 |
+        7 | impl<T00> Foo for &'static T00 {}
+          | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ conflicting implementation for `&'static _`
+          |
+          = note: downstream crates may implement trait `Bar` for type `&'static _`
+
+        For more information about this error, try `rustc --explain E0119`.
+        error: could not compile `mycore` (lib) due to 1 previous error
+    "#]])
+    .err(expect_test::expect![[r#"
+        the rule "different trait" at (coherence.rs) failed because
+          condition evaluated to false: `impl_a.trait_id() != impl_b.trait_id()`
+
+        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: ! Bar(!ty_0), via: !ty_0 = &' static !ty_1, assumptions: {!ty_0 = &' static !ty_1, Bar(!ty_0)}, env: Env { variables: [!ty_0, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: ! Bar(!ty_0), via: Bar(!ty_0), assumptions: {!ty_0 = &' static !ty_1, Bar(!ty_0)}, env: Env { variables: [!ty_0, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+        the rule "negative impl" at (prove_predicate.rs) failed because
+          expression evaluated to an empty collection: `decls.neg_impl_decls(&trait_ref.trait_id)`
+
+        the rule "not goal" at (coherence.rs) failed because
+          failed to prove {!ty_1 = &' static !ty_2, Bar(!ty_1)} given {}, got [Constraints { env: Env { variables: [!ty_1, !ty_2], bias: Soundness, pending: [], allow_pending_outlives: false }, known_true: false, substitution: {} }]
+
+        the rule "same impl" at (coherence.rs) failed because
+          condition evaluated to false: `impl_a == impl_b`
+            impl_a = impl <ty> Foo for ^ty0_0 where ^ty0_0 : Bar { }
+            impl_b = impl <ty> Foo for &' static ^ty0_0 { }"#]])
+}
+
+#[test]
+fn T_where_Bar_and_mut_ref_T() {
+    FormalityTest::new(crates![crate core {
+        trait Foo {}
+        trait Bar {}
+        impl<T> Foo for T where T: Bar {}
+        impl<T> Foo for &'static mut T {}
+    }])
+    .rustc_err(expect_test::expect![[r#"
+        error[E0119]: conflicting implementations of trait `Foo` for type `&'static mut _`
+         --> lib.rs
+          |
+        5 | impl<T00> Foo for T00 where T00: Bar {}
+          | ------------------------------------ first implementation here
+        6 |
+        7 | impl<T00> Foo for &'static mut T00 {}
+          | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ conflicting implementation for `&'static mut _`
+          |
+          = note: downstream crates may implement trait `Bar` for type `&'static mut _`
+
+        For more information about this error, try `rustc --explain E0119`.
+        error: could not compile `mycore` (lib) due to 1 previous error
+    "#]])
+    .err(expect_test::expect![[r#"
+        the rule "different trait" at (coherence.rs) failed because
+          condition evaluated to false: `impl_a.trait_id() != impl_b.trait_id()`
+
+        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: ! Bar(!ty_0), via: !ty_0 = &' static mut !ty_1, assumptions: {!ty_0 = &' static mut !ty_1, Bar(!ty_0)}, env: Env { variables: [!ty_0, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: ! Bar(!ty_0), via: Bar(!ty_0), assumptions: {!ty_0 = &' static mut !ty_1, Bar(!ty_0)}, env: Env { variables: [!ty_0, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+        the rule "negative impl" at (prove_predicate.rs) failed because
+          expression evaluated to an empty collection: `decls.neg_impl_decls(&trait_ref.trait_id)`
+
+        the rule "not goal" at (coherence.rs) failed because
+          failed to prove {!ty_1 = &' static mut !ty_2, Bar(!ty_1)} given {}, got [Constraints { env: Env { variables: [!ty_1, !ty_2], bias: Soundness, pending: [], allow_pending_outlives: false }, known_true: false, substitution: {} }]
+
+        the rule "same impl" at (coherence.rs) failed because
+          condition evaluated to false: `impl_a == impl_b`
+            impl_a = impl <ty> Foo for ^ty0_0 where ^ty0_0 : Bar { }
+            impl_b = impl <ty> Foo for &' static mut ^ty0_0 { }"#]])
+}
+
+#[test]
+fn T_where_Bar_and_nested_ref_T() {
+    FormalityTest::new(crates![crate core {
+        trait Foo {}
+        trait Bar {}
+        impl<T> Foo for T where T: Bar {}
+        impl<T> Foo for &'static &'static T {}
+    }])
+    .rustc_err(expect_test::expect![[r#"
+        error[E0119]: conflicting implementations of trait `Foo` for type `&'static &'static _`
+         --> lib.rs
+          |
+        5 | impl<T00> Foo for T00 where T00: Bar {}
+          | ------------------------------------ first implementation here
+        6 |
+        7 | impl<T00> Foo for &'static &'static T00 {}
+          | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ conflicting implementation for `&'static &'static _`
+          |
+          = note: downstream crates may implement trait `Bar` for type `&'static &'static _`
+
+        For more information about this error, try `rustc --explain E0119`.
+        error: could not compile `mycore` (lib) due to 1 previous error
+    "#]])
+    .err(expect_test::expect![[r#"
+        the rule "different trait" at (coherence.rs) failed because
+          condition evaluated to false: `impl_a.trait_id() != impl_b.trait_id()`
+
+        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: ! Bar(!ty_0), via: !ty_0 = &' static &' static !ty_1, assumptions: {!ty_0 = &' static &' static !ty_1, Bar(!ty_0)}, env: Env { variables: [!ty_0, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: ! Bar(!ty_0), via: Bar(!ty_0), assumptions: {!ty_0 = &' static &' static !ty_1, Bar(!ty_0)}, env: Env { variables: [!ty_0, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+        the rule "negative impl" at (prove_predicate.rs) failed because
+          expression evaluated to an empty collection: `decls.neg_impl_decls(&trait_ref.trait_id)`
+
+        the rule "not goal" at (coherence.rs) failed because
+          failed to prove {!ty_1 = &' static &' static !ty_2, Bar(!ty_1)} given {}, got [Constraints { env: Env { variables: [!ty_1, !ty_2], bias: Soundness, pending: [], allow_pending_outlives: false }, known_true: false, substitution: {} }]
+
+        the rule "same impl" at (coherence.rs) failed because
+          condition evaluated to false: `impl_a == impl_b`
+            impl_a = impl <ty> Foo for ^ty0_0 where ^ty0_0 : Bar { }
+            impl_b = impl <ty> Foo for &' static &' static ^ty0_0 { }"#]])
+}
+
+#[test]
 fn T_and_T_bar() {
     FormalityTest::new(crates![crate core {
         trait Foo { }
