@@ -329,6 +329,87 @@ implicit upcast or the collection type.
 This syntax is available inside a judgment's `let` premise; it is not an ordinary
 Rust expression. The `for_all` body does not select a collection type.
 
+### Entering and leaving scopes
+
+A proof sometimes needs temporary context: for example, fresh variables used to
+check the body of a binder. Before the proof's result can be used outside that
+context, it may need to be checked or transformed. A result that still refers to
+a temporary variable might not be meaningful outside the binder.
+
+The `scope` condition groups the premises that use this temporary context and
+passes their results through an explicit exit operation:
+
+```rust,ignore
+(scope(enter_binder(env, binder) => (env, body)) with(result)
+    (check_body(env, body) => result))
+```
+
+Here `enter_binder` and `check_body` are hypothetical helpers for the language
+being modeled. The macro does not provide binder handling itself. The general
+syntax is:
+
+```text
+(scope(enter_expression => inside_pattern) with(exported_names)
+    (premise)
+    ...)
+```
+
+The entry expression returns a pair: **a scope object and the values available
+inside it**. For the example above, its return type might be:
+
+```rust,ignore
+fn enter_binder(env: &Env, binder: &Binder) -> (BinderScope, (Env, Term))
+```
+
+The pattern `(env, body)` matches only the second element, `(Env, Term)`. The
+macro keeps the `BinderScope` object in a hidden local. The inner `env` shadows
+the outer one for the nested premises; after the scope, `env` refers to the
+outer environment again.
+
+#### Exporting results with `with`
+
+Bindings introduced inside the scope are local to its nested premises. List
+what the rest of the rule needs in `with(...)`. In the example, each successful
+proof of `check_body` supplies a `result` to the exit operation. The rest of the
+rule receives the result returned by that operation, which may differ from the
+one computed inside.
+
+Use `with(a, b)` to export two values, or `with()` when the nested premises only
+need to establish that something holds. Even with no exported values, the exit
+operation runs for each successful inner proof. Scopes can also be nested.
+
+#### Defining what it means to leave
+
+The scope object implements this trait from `formality_core::judgment`:
+
+```rust,ignore
+pub trait Scope<Values> {
+    fn leave(&self, values: Values) -> ProvenSet<Values>;
+}
+```
+
+`Values` is the tuple of exported values: `with(result)` uses `(ResultType,)`,
+`with(a, b)` uses `(A, B)`, and `with()` uses `()`. Thus the example requires an
+implementation of `Scope<(ResultType,)>` for `BinderScope`. The pair `(env, body)`
+is the input to the nested premises, not the object implementing `Scope`.
+
+For every successful inner proof, the macro effectively calls:
+
+```rust,ignore
+Scope::leave(&scope_object, (result,))
+```
+
+`leave` runs for each successful inner proof.
+`leave` returns a `ProvenSet`, so it can reject that result, return one
+transformed result, or produce several alternatives. The remaining premises
+of the rule run for each successful result returned by `leave`. If no inner
+proof can leave the scope successfully, this rule produces no result.
+
+The entry expression can use `?` to report a failure, just like other premise
+expressions. The `inside_pattern` must be irrefutable. A match confirmation
+marker `!` cannot appear inside a scope; put it on a premise before the scope
+when needed.
+
 ### Handling cycles
 
 Judgment functions must be **inductive**, which means that cycles are considered failures. We have a tabling implementation, which means we detect cycles and try to handle them intelligently. Basically we track a stack and, if a cycle is detected, we return an empty set of results. But we remember that the cycle happened. Then, once we are done, we'll have computed some intermediate set of results `R[0]`, and we execute again. This time, when we get the cycle, we return `R[0]` instead of an empty set. This will compute some new set of results, `R[1]`. So then we try again. We keep doing this until the new set of results `R[i]` is equal to the previous set of results `R[i-1]`. At that point, we have reached a fixed point, so we stop. Of course, it could be that you get an infinitely growing set of results, and execution never terminates. This means your rules are broken. Don't do that.
