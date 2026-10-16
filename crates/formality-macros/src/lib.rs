@@ -11,7 +11,6 @@ mod cast;
 mod constructors;
 mod custom;
 mod debug;
-mod fixed_point;
 mod fold;
 mod parse;
 mod precedence;
@@ -41,16 +40,6 @@ pub fn term(args: TokenStream, input: TokenStream) -> TokenStream {
 }
 
 synstructure::decl_derive!([Visit] => visit::derive_visit);
-
-#[proc_macro_attribute]
-pub fn fixed_point(args: TokenStream, input: TokenStream) -> TokenStream {
-    let args = syn::parse_macro_input!(args as fixed_point::FixedPointArgs);
-    let input = syn::parse_macro_input!(input as syn::ItemFn);
-    match fixed_point::fixed_point(args, input) {
-        Ok(s) => quote!(#s).into(),
-        Err(e) => e.into_compile_error().into(),
-    }
-}
 
 #[proc_macro_attribute]
 pub fn test(args: TokenStream, input: TokenStream) -> TokenStream {
