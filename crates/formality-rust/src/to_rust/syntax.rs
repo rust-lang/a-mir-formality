@@ -974,6 +974,11 @@ pub enum Expr {
         args: Vec<GenericArg>,
         fields: StructExprFields,
     },
+    BinOp {
+        lhs: Box<Expr>,
+        op: String,
+        rhs: Box<Expr>,
+    },
 }
 
 impl Display for Expr {
@@ -1031,6 +1036,9 @@ impl Display for Expr {
                         f.write_char(')')
                     }
                 }
+            }
+            Expr::BinOp { lhs, op, rhs } => {
+                write!(f, "{lhs} {op} {rhs}")
             }
         }
     }

@@ -571,3 +571,54 @@ fn break_from_labeled_block() {
     .expect_output("1\n3\n")
     .ok()
 }
+
+#[test]
+fn integer_addition() {
+    FormalityTest::new(crates![crate test {
+        fn main() -> () {
+            let x: i32 = 1_i32 + 2_i32;
+            println!(x);
+        }
+    }])
+    .expect_output("3\n")
+    .ok()
+}
+
+#[test]
+fn addition_in_assignment() {
+    FormalityTest::new(crates![crate test {
+        fn main() -> () {
+            let x: u32 = 0_u32;
+            x = 1_u32 + 2_u32 + 3_u32;
+            println!(x);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("6\n")
+    .ok()
+}
+
+#[test]
+fn addition_evaluates_calls_left_to_right() {
+    FormalityTest::new(crates![crate test {
+        fn left() -> i32 { println!(1_i32); return 10_i32; }
+        fn right() -> i32 { println!(2_i32); return 20_i32; }
+        fn main() -> () { println!(left() + right()); }
+    }])
+    .rustc_ok()
+    .expect_output("1\n2\n30\n")
+    .ok()
+}
+
+#[test]
+fn addition_in_call_arguments() {
+    FormalityTest::new(crates![crate test {
+        fn sum(x: i32, y: i32) -> i32 { return x + y; }
+        fn main() -> () {
+            println!(sum(1_i32 + 2_i32, sum(3_i32, 4_i32)));
+        }
+    }])
+    .rustc_ok()
+    .expect_output("10\n")
+    .ok()
+}
