@@ -30,7 +30,7 @@ fn normalize_ty_for_codegen(cfn: &CodegenFn, ty: &Ty) -> Fallible<Ty> {
     use crate::check::borrow_check::flow_state::FlowState;
     use crate::grammar::{Parameter, RigidTy};
     use formality_core::Upcast;
-    
+
     match ty {
         Ty::AliasTy(alias_ty) => {
             // Use the typeck_env to normalize the alias type
@@ -40,7 +40,7 @@ fn normalize_ty_for_codegen(cfn: &CodegenFn, ty: &Ty) -> Fallible<Ty> {
                 &FlowState::default(),
                 &alias_param,
             );
-            
+
             match normalized.into_singleton() {
                 Ok(((normalized_param, _state), _)) => {
                     // Extract the normalized Ty from the Parameter
@@ -48,11 +48,18 @@ fn normalize_ty_for_codegen(cfn: &CodegenFn, ty: &Ty) -> Fallible<Ty> {
                         // Recursively normalize in case the result is also an alias
                         normalize_ty_for_codegen(cfn, normalized_ty.as_ref())
                     } else {
-                        anyhow::bail!("normalized alias did not produce a type: {:?}", normalized_param);
+                        anyhow::bail!(
+                            "normalized alias did not produce a type: {:?}",
+                            normalized_param
+                        );
                     }
                 }
                 Err(e) => {
-                    anyhow::bail!("failed to normalize alias {:?}: {}", alias_ty, e.format_leaves())
+                    anyhow::bail!(
+                        "failed to normalize alias {:?}: {}",
+                        alias_ty,
+                        e.format_leaves()
+                    )
                 }
             }
         }

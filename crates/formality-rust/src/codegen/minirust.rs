@@ -203,15 +203,13 @@ fn normalize_alias_ty(cfn: &CodegenFn, alias_ty: &crate::grammar::AliasTy) -> Fa
     use crate::check::borrow_check::flow_state::FlowState;
     use crate::grammar::Parameter;
     use formality_core::Upcast;
-    
+
     // Use the typeck_env to normalize the alias type
     let alias_param: Parameter = alias_ty.clone().upcast();
-    let normalized = cfn.typeck_env.prove_normalize(
-        &cfn.assumptions,
-        &FlowState::default(),
-        &alias_param,
-    );
-    
+    let normalized =
+        cfn.typeck_env
+            .prove_normalize(&cfn.assumptions, &FlowState::default(), &alias_param);
+
     match normalized.into_singleton() {
         Ok(((normalized_param, _state), _)) => {
             // Extract the normalized Ty from the Parameter
@@ -219,11 +217,18 @@ fn normalize_alias_ty(cfn: &CodegenFn, alias_ty: &crate::grammar::AliasTy) -> Fa
                 // Recursively translate the normalized type
                 minirust_ty(cfn, normalized_ty.as_ref())
             } else {
-                anyhow::bail!("normalized alias did not produce a type: {:?}", normalized_param);
+                anyhow::bail!(
+                    "normalized alias did not produce a type: {:?}",
+                    normalized_param
+                );
             }
         }
         Err(e) => {
-            anyhow::bail!("failed to normalize alias {:?}: {}", alias_ty, e.format_leaves())
+            anyhow::bail!(
+                "failed to normalize alias {:?}: {}",
+                alias_ty,
+                e.format_leaves()
+            )
         }
     }
 }
