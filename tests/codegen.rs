@@ -1,6 +1,79 @@
 use a_mir_formality::{crates, FormalityTest};
 
 #[test]
+#[should_panic(expected = "execution step limit reached after 5 steps")]
+fn execution_limit_stops_an_endless_loop() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            'a: loop {}
+        }
+    }])
+    .execution_step_limit(5)
+    .ok();
+}
+
+#[test]
+fn execution_limit_finishes_within_allowance() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () { println!(1_u32); }
+    }])
+    .execution_step_limit(20)
+    .expect_output("1\n")
+    .ok();
+}
+
+#[test]
+fn execution_limit_finishes_on_last_allowed_step() {
+    // This program currently takes 11 MiniRust steps, including MachineStop.
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () { println!(1_u32); }
+    }])
+    .execution_step_limit(11)
+    .expect_output("1\n")
+    .ok();
+}
+
+#[test]
+#[should_panic(expected = "execution step limit reached after 10 steps")]
+fn execution_limit_stops_when_allowance_is_too_small() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () { println!(1_u32); }
+    }])
+    .execution_step_limit(10)
+    .ok();
+}
+
+#[test]
+fn execution_limit_skipped_execution_needs_no_steps() {
+    let program = crates![crate Foo {
+        fn example() -> () {}
+    }];
+
+    FormalityTest::new(program)
+        .execution_step_limit(0)
+        .skip_execute()
+        .ok();
+}
+
+#[test]
+fn execution_limit_default_allowance_runs_small_programs() {
+    let program = crates![crate Foo {
+        fn main() -> () { println!(1_u32); }
+    }];
+    FormalityTest::new(program).expect_output("1\n").ok();
+}
+
+#[test]
+#[should_panic(expected = "execution step limit reached after 0 steps")]
+fn execution_limit_zero_allowance_prevents_execution() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () { println!(1_u32); }
+    }])
+    .execution_step_limit(0)
+    .ok();
+}
+
+#[test]
 #[should_panic(expected = "program output mismatch")]
 fn ok_checks_output_expectation() {
     FormalityTest::new(crates![crate Foo {
