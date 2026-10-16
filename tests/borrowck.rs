@@ -14,6 +14,58 @@ use a_mir_formality::{crates, BorrowCheckFailure, FormalityTest};
 use formality_core::test;
 
 #[test]
+#[should_panic(expected = "execution step limit reached after 10 steps")]
+fn execution_limit_borrowck_respects_step_limit() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () { println!(1_u32); }
+    }])
+    .execution_step_limit(10)
+    .borrowck_ok();
+}
+
+#[test]
+fn execution_limit_skipped_execution_needs_no_steps() {
+    let program = crates![crate Foo {
+        fn example() -> () {}
+    }];
+
+    FormalityTest::new(program)
+        .execution_step_limit(0)
+        .skip_execute()
+        .borrowck_ok();
+}
+
+#[test]
+fn execution_limit_default_allowance_runs_small_programs() {
+    let program = crates![crate Foo {
+        fn main() -> () { println!(1_u32); }
+    }];
+    FormalityTest::new(program)
+        .expect_output("1\n")
+        .borrowck_ok();
+}
+
+#[test]
+fn execution_limit_borrowck_finishes_on_last_allowed_step() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () { println!(1_u32); }
+    }])
+    .execution_step_limit(11)
+    .expect_output("1\n")
+    .borrowck_ok();
+}
+
+#[test]
+#[should_panic(expected = "execution step limit reached after 0 steps")]
+fn execution_limit_borrowck_zero_allowance_prevents_execution() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () { println!(1_u32); }
+    }])
+    .execution_step_limit(0)
+    .borrowck_ok();
+}
+
+#[test]
 #[should_panic(expected = "program output mismatch")]
 fn borrowck_checks_output_expectation() {
     FormalityTest::new(crates![crate Foo {

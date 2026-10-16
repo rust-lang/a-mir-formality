@@ -45,12 +45,17 @@ impl BorrowCheckFailure {
     }
 }
 
+/// Default maximum number of MiniRust `machine.step()` calls per execution.
+/// Tests needing more steps can override this with `execution_step_limit`.
+const DEFAULT_EXECUTION_STEP_LIMIT: usize = 10_000;
+
 /// Builder for a test program and its per-backend expectations.
 pub struct FormalityTest {
     input: String,
     rustc_override: Option<BackendExpect>,
     skip_execute: bool,
     expected_output: Option<String>,
+    execution_step_limit: usize,
 }
 
 impl FormalityTest {
@@ -60,6 +65,7 @@ impl FormalityTest {
             rustc_override: None,
             skip_execute: false,
             expected_output: None,
+            execution_step_limit: DEFAULT_EXECUTION_STEP_LIMIT,
         }
     }
 
@@ -73,6 +79,17 @@ impl FormalityTest {
     /// Assert that execution produces the given stdout output.
     pub fn expect_output(mut self, output: impl Into<String>) -> Self {
         self.expected_output = Some(output.into());
+        self
+    }
+
+    /// Set the maximum number of MiniRust `machine.step()` calls for this test.
+    ///
+    /// The default is 10,000 steps. This applies to both `ok` and the borrow-check
+    /// runner, and is ignored when execution is skipped. A zero limit permits no
+    /// steps; finishing on the last allowed step succeeds. This bounds execution
+    /// steps, not elapsed time or the work of parsing, checking, and codegen.
+    pub fn execution_step_limit(mut self, limit: usize) -> Self {
+        self.execution_step_limit = limit;
         self
     }
 
@@ -98,13 +115,14 @@ impl FormalityTest {
             rustc_override,
             skip_execute,
             expected_output,
+            execution_step_limit,
         } = self;
 
         let proof_tree = test_program_ok(&input).expect("expected program to pass");
         formality_core::judgment::coverage::record_coverage(std::iter::once(&proof_tree));
 
         if !skip_execute {
-            execute_and_check_output(&input, expected_output.as_deref());
+            execute_and_check_output(&input, expected_output.as_deref(), execution_step_limit);
         }
 
         let rustc_expect = match rustc_override {
@@ -124,6 +142,7 @@ impl FormalityTest {
             rustc_override,
             skip_execute: _,
             expected_output: _,
+            execution_step_limit: _,
         } = self;
 
         test_program_ok(&input).assert_err_leaves(expect);
@@ -191,7 +210,11 @@ impl FormalityTest {
                         &proof_tree,
                     ));
                     if mode == BorrowCheckFailure::Nll && !self.skip_execute {
-                        execute_and_check_output(&self.input, self.expected_output.as_deref());
+                        execute_and_check_output(
+                            &self.input,
+                            self.expected_output.as_deref(),
+                            self.execution_step_limit,
+                        );
                     }
 
                     if error.is_err() {
@@ -221,8 +244,8 @@ impl FormalityTest {
     }
 }
 #[track_caller]
-fn execute_and_check_output(input: &str, expected_output: Option<&str>) {
-    let stdout = execute_program(input);
+fn execute_and_check_output(input: &str, expected_output: Option<&str>, step_limit: usize) {
+    let stdout = execute_program(input, step_limit);
 
     if let Some(expected) = expected_output {
         assert_eq!(stdout, expected, "program output mismatch");
@@ -230,7 +253,7 @@ fn execute_and_check_output(input: &str, expected_output: Option<&str>) {
 }
 
 #[track_caller]
-fn execute_program(input: &str) -> String {
+fn execute_program(input: &str, step_limit: usize) -> String {
     let crates: formality_rust::grammar::Crates =
         formality_rust::rust::try_term(input).expect("failed to parse program");
 
@@ -258,14 +281,20 @@ fn execute_program(input: &str) -> String {
             .get_internal()
             .expect("machine creation failed");
 
+    // Check before each call so a stop on the final permitted step still succeeds.
+    let mut steps = 0;
     loop {
+        if steps >= step_limit {
+            panic!("execution step limit reached after {steps} steps; increase .execution_step_limit(n) if this program needs more steps");
+        }
+
+        steps += 1;
         match machine.step().get_internal() {
             Ok(()) => continue,
             Err(minirust_rs::prelude::TerminationInfo::MachineStop) => break,
             Err(e) => panic!("execution error: {e:?}"),
         }
     }
-
     let bytes = stdout_buf.lock().unwrap().clone();
     String::from_utf8(bytes).expect("stdout was not valid UTF-8")
 }
