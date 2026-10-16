@@ -32,6 +32,7 @@ members = [
     "crates/formality-core",
     "crates/formality-rust",
     "crates/formality-mdbook",
+    "crates/formality-mdbook-skills",
     "crates/formality-coverage",
     "crates/minirust-rs",
 ]
