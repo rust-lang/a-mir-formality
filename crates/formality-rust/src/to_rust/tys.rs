@@ -97,7 +97,19 @@ pub fn lower_rigid_ty(ctx: &mut Context, rigid_ty: &RigidTy) -> Fallible<syntax:
 pub fn lower_alias_ty(ctx: &mut Context, alias_ty: &AliasTy) -> Fallible<syntax::Type> {
     match &alias_ty.name {
         crate::grammar::AliasName::AssociatedTyId(associated_ty_name) => {
-            let trait_arg_count = alias_ty.parameters.len() - associated_ty_name.item_arity;
+            let trait_arg_count = alias_ty
+                .parameters
+                .len()
+                .checked_sub(associated_ty_name.item_arity)
+                .ok_or_else(|| {
+                    anyhow::anyhow!(
+                        "alias type `{}::{}` expects {} associated-type parameter(s) in addition to the trait parameters, but only {} parameter(s) were provided in total",
+                        associated_ty_name.trait_id.deref(),
+                        associated_ty_name.item_id.deref(),
+                        associated_ty_name.item_arity,
+                        alias_ty.parameters.len(),
+                    )
+                })?;
             let (trait_parameters, assoc_parameters) =
                 alias_ty.parameters.split_at(trait_arg_count);
             let (self_parameter, trait_args) = trait_parameters
@@ -106,8 +118,15 @@ pub fn lower_alias_ty(ctx: &mut Context, alias_ty: &AliasTy) -> Fallible<syntax:
 
             let ty = match self_parameter {
                 Parameter::Ty(ty) => lower_ty(ctx, ty)?,
-                Parameter::Lt(_) => todo!(),
-                Parameter::Const(_) => todo!(),
+                Parameter::Lt(_) | Parameter::Const(_) => anyhow::bail!(
+                    "alias type `{}::{}` must have a type as its self argument, found {}",
+                    associated_ty_name.trait_id.deref(),
+                    associated_ty_name.item_id.deref(),
+                    match self_parameter {
+                        Parameter::Lt(_) => "a lifetime",
+                        _ => "a const",
+                    },
+                ),
             };
 
             let trait_args = trait_args
@@ -269,7 +288,36 @@ pub fn lower_fn_ptr(
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::grammar::{AdtId, BoundVar, DebruijnIndex, ExistentialVar, VarIndex, Variable};
+    use crate::grammar::{
+        AdtId, AliasName, AssociatedItemId, AssociatedTyName, BoundVar, DebruijnIndex,
+        ExistentialVar, TraitId, VarIndex, Variable,
+    };
+
+    fn alias(item_arity: usize, parameters: Vec<Parameter>) -> AliasTy {
+        AliasTy {
+            name: AliasName::AssociatedTyId(AssociatedTyName {
+                trait_id: TraitId::new("Trait"),
+                item_id: AssociatedItemId::new("Assoc"),
+                item_arity,
+            }),
+            parameters,
+        }
+    }
+
+    #[test]
+    fn alias_with_too_few_arguments_is_an_error() {
+        let mut ctx = Context::default();
+        let err = lower_alias_ty(&mut ctx, &alias(2, Vec::new())).unwrap_err();
+        assert!(err.to_string().contains("expects 2"), "{err}");
+    }
+
+    #[test]
+    fn alias_with_lifetime_self_is_an_error() {
+        let mut ctx = Context::default();
+        let err = lower_alias_ty(&mut ctx, &alias(0, vec![Parameter::Lt(Lt::Static.into())]))
+            .unwrap_err();
+        assert!(err.to_string().contains("self argument"), "{err}");
+    }
 
     #[test]
     fn pretty_print_adt() {

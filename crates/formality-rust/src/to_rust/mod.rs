@@ -146,8 +146,12 @@ pub fn lower_generics_for_binder(
                     .get_mut(&name)
                     .ok_or_else(|| anyhow::anyhow!("no generic parameter named '{name}'"))?;
                 match param {
-                    syntax::GenericParam::Type(_) => todo!(),
-                    syntax::GenericParam::Lifetime(_) => todo!(),
+                    syntax::GenericParam::Type(_) => anyhow::bail!(
+                        "`TypeOfConst` bound refers to `{name}`, which is a type parameter, not a const parameter"
+                    ),
+                    syntax::GenericParam::Lifetime(_) => anyhow::bail!(
+                        "`TypeOfConst` bound refers to `{name}`, which is a lifetime parameter, not a const parameter"
+                    ),
                     syntax::GenericParam::Const {
                         name: _name,
                         ty: existing_ty,
