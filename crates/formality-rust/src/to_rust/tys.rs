@@ -103,7 +103,7 @@ pub fn lower_alias_ty(ctx: &mut Context, alias_ty: &AliasTy) -> Fallible<syntax:
                 .checked_sub(associated_ty_name.item_arity)
                 .ok_or_else(|| {
                     anyhow::anyhow!(
-                        "alias type `{}::{}` expects {} associated-type argument(s) but only {} argument(s) were provided",
+                        "alias type `{}::{}` expects {} associated-type parameter(s) in addition to the trait parameters, but only {} parameter(s) were provided in total",
                         associated_ty_name.trait_id.deref(),
                         associated_ty_name.item_id.deref(),
                         associated_ty_name.item_arity,
