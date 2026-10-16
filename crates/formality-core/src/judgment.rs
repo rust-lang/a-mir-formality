@@ -10,7 +10,8 @@ mod memo;
 mod proven_set;
 pub use proven_set::{
     insert_smallest_proof, member_of, CheckProven, EachProof, FailedJudgment, FailedRule,
-    FailureLocation, FailureReason, LeafFailure, ProofTree, Proven, ProvenSet, RuleFailureCause,
+    FailureLocation, FailureReason, LeafFailure, ProofNode, ProofTree, Proven, ProvenSet,
+    RuleFailureCause,
 };
 
 mod scope;

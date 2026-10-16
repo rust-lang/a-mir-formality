@@ -1,5 +1,9 @@
 //! Root-scoped memoization for completed judgment evaluations.
 //!
+//! For pseudocode and worked examples, see the book's
+//! [Fixed points and memoization](https://rust-lang.github.io/a-mir-formality/formality_core/fixed_points.html)
+//! chapter.
+//!
 //! The judgment runtime computes recursive judgments by repeatedly executing
 //! their rules until the set of proven output values reaches a fixed point.
 //! During that process it distinguishes two kinds of reuse, checked in this
@@ -590,5 +594,71 @@ mod tests {
         root.complete(&InputB(0), &Map::from([(44_u32, small_proof())]));
         assert_eq!(active_iteration_count(), 0);
         assert_eq!(lookup_iteration::<InputA, u32>(&InputA(0)), None);
+    }
+
+    #[derive(Clone, Debug, Eq, Hash, PartialEq)]
+    struct ChainInput(usize);
+
+    thread_local! {
+        static CHAIN_CACHE: crate::judgment::JudgmentCache<ChainInput, u32> = Default::default();
+    }
+
+    fn proof_chain(depth: usize) -> ProofMap<u32> {
+        crate::judgment::execute_judgment(
+            |_| tracing::Span::none(),
+            &CHAIN_CACHE,
+            ChainInput(depth),
+            |_| {
+                let children = if depth == 0 {
+                    vec![]
+                } else {
+                    proof_chain(depth - 1).into_values().collect()
+                };
+                Map::from([(0, ProofTree::new("chain", None, children))])
+            },
+        )
+    }
+
+    #[test]
+    fn completed_chain_shares_subproofs_across_all_cached_results() {
+        let _mode = TestModeGuard::new(true);
+        let root = IterationGuard::begin();
+        let result = proof_chain(255);
+
+        // 256 logical proofs of lengths 1 through 256 retain only 256 nodes.
+        with_context(|context| {
+            let table = context.active_iterations[0].by_judgment[&TypeId::of::<ChainInput>()]
+                .as_any()
+                .downcast_ref::<MemoTable<ChainInput, u32>>()
+                .unwrap();
+            assert_eq!(table.entries.len(), 256);
+            let logical_nodes: usize = table
+                .entries
+                .values()
+                .flat_map(|outputs| outputs.values())
+                .map(ProofTree::total_nodes)
+                .sum();
+            assert_eq!(logical_nodes, 32_896);
+
+            let mut unique_nodes = std::collections::HashSet::new();
+            let mut pending: Vec<_> = table
+                .entries
+                .values()
+                .flat_map(|outputs| outputs.values())
+                .collect();
+            while let Some(proof) = pending.pop() {
+                if unique_nodes.insert(std::ptr::from_ref(&**proof)) {
+                    pending.extend(&proof.children);
+                }
+            }
+            assert_eq!(unique_nodes.len(), 256);
+
+            let cached = &table.entries[&ChainInput(255)][&0];
+            assert!(std::ptr::eq(&**cached, &*result[&0]));
+        });
+
+        drop(root);
+        assert_eq!(active_iteration_count(), 0);
+        assert_eq!(result[&0].total_nodes(), 256);
     }
 }

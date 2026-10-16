@@ -3,7 +3,9 @@ use std::{
     collections::BTreeSet,
     fmt::Debug,
     hash::{Hash, Hasher},
+    ops::Deref,
     panic::Location,
+    sync::Arc,
 };
 
 /// Represents a set of items that were successfully proven using a judgment.
@@ -301,9 +303,26 @@ impl<J: Hash> Hash for ProvenSetData<J> {
 
 pub type Proven<J> = (J, ProofTree);
 
+/// An immutable proof whose clones share the same node and subproofs.
+///
+/// Equality, ordering, and hashing compare proof contents, not allocation identity.
+/// Read the node's fields through `Deref`; construct proofs with the `ProofTree`
+/// constructors so cached results and their callers can safely share them.
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Hash)]
 #[must_use]
-pub struct ProofTree {
+pub struct ProofTree(Arc<ProofNode>);
+
+impl Deref for ProofTree {
+    type Target = ProofNode;
+
+    fn deref(&self) -> &ProofNode {
+        &self.0
+    }
+}
+
+/// The contents of one shared proof node, exposed for read-only traversal.
+#[derive(PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct ProofNode {
     /// Name of the judgment being proved
     pub judgment_name: String,
 
@@ -346,7 +365,7 @@ impl ProofTree {
         column: u32,
         children: Vec<ProofTree>,
     ) -> Self {
-        Self {
+        Self(Arc::new(ProofNode {
             judgment_name: judgment_name.to_string(),
             attributes,
             rule_name,
@@ -354,7 +373,7 @@ impl ProofTree {
             line,
             column,
             children,
-        }
+        }))
     }
 
     /// Create a "proof tree" from a value.
@@ -366,7 +385,7 @@ impl ProofTree {
         children: Vec<ProofTree>,
     ) -> Self {
         let caller = Location::caller();
-        let proof = ProofTree {
+        Self(Arc::new(ProofNode {
             judgment_name: judgment.to_string(),
             attributes: Vec::new(),
             rule_name,
@@ -374,8 +393,7 @@ impl ProofTree {
             line: caller.line(),
             column: caller.column(),
             children,
-        };
-        proof
+        }))
     }
 
     /// Create a "proof tree" with explicit attributes.
@@ -388,7 +406,7 @@ impl ProofTree {
         children: Vec<ProofTree>,
     ) -> Self {
         let caller = Location::caller();
-        ProofTree {
+        Self(Arc::new(ProofNode {
             judgment_name: judgment_name.to_string(),
             attributes,
             rule_name,
@@ -396,10 +414,11 @@ impl ProofTree {
             line: caller.line(),
             column: caller.column(),
             children,
-        }
+        }))
     }
 
-    /// Total number of nodes in the proof tree.
+    /// Number of node occurrences in the logical proof tree.
+    /// Shared subproofs count once per occurrence, preserving proof-size ordering.
     pub fn total_nodes(&self) -> usize {
         1 + self.children.iter().map(|c| c.total_nodes()).sum::<usize>()
     }
@@ -1093,5 +1112,33 @@ impl CheckProven for &ProvenSet<()> {
         self.clone()
             .check_proven()
             .map_err(|e| RuleFailureCause::FailedJudgment(e.clone()))
+    }
+}
+
+#[cfg(test)]
+mod shared_proof_tests {
+    use super::*;
+
+    fn leaf() -> ProofTree {
+        ProofTree::with_all("leaf", vec![], None, "test.rs", 1, 1, vec![])
+    }
+
+    #[test]
+    fn sharing_preserves_structural_comparison_and_logical_size() {
+        let shared = leaf();
+        let proof = ProofTree::new("parent", None, vec![shared.clone(), shared.clone()]);
+        assert!(Arc::ptr_eq(&proof.children[0].0, &proof.children[1].0));
+        assert_eq!(proof.total_nodes(), 3);
+
+        let independent = leaf();
+        assert!(!Arc::ptr_eq(&shared.0, &independent.0));
+        assert_eq!(shared, independent);
+        assert_eq!(shared.cmp(&independent), std::cmp::Ordering::Equal);
+        let hash = |proof: &ProofTree| {
+            let mut hasher = std::collections::hash_map::DefaultHasher::new();
+            proof.hash(&mut hasher);
+            hasher.finish()
+        };
+        assert_eq!(hash(&shared), hash(&independent));
     }
 }

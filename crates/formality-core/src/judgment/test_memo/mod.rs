@@ -168,6 +168,7 @@ judgment_fn! {
 // `invalidation_b` first completes using the initial approximation of `a`.
 // When `a` grows, its enclosing iteration is invalidated and `b` must execute
 // again rather than reuse the result computed under the older approximation.
+// ANCHOR: book_invalidation_a
 judgment_fn! {
     fn invalidation_a() => u32 {
         debug()
@@ -185,15 +186,19 @@ judgment_fn! {
         )
     }
 }
+// ANCHOR_END: book_invalidation_a
 
+// ANCHOR: book_invalidation_b_start
 judgment_fn! {
     fn invalidation_b() => u32 {
         debug()
 
         (
+// ANCHOR_END: book_invalidation_b_start
             (let () = INVALIDATED_CHILD_EXECUTIONS.set(
                 INVALIDATED_CHILD_EXECUTIONS.get() + 1,
             ))
+// ANCHOR: book_invalidation_b_end
             --- ("base")
             (invalidation_b() => 1)
         )
@@ -206,3 +211,4 @@ judgment_fn! {
         )
     }
 }
+// ANCHOR_END: book_invalidation_b_end

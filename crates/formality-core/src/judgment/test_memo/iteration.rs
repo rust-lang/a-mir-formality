@@ -17,20 +17,25 @@ thread_local! {
     static GRANDCHILD_EXECUTIONS: Cell<usize> = const { Cell::new(0) };
 }
 
+// ANCHOR: book_shared_leaf_start
 judgment_fn! {
     fn propagated_grandchild() => u32 {
         debug()
 
         (
+// ANCHOR_END: book_shared_leaf_start
             (let () = GRANDCHILD_EXECUTIONS.set(
                 GRANDCHILD_EXECUTIONS.get() + 1,
             ))
+// ANCHOR: book_shared_leaf_end
             --- ("value")
             (propagated_grandchild() => 22)
         )
     }
 }
+// ANCHOR_END: book_shared_leaf_end
 
+// ANCHOR: book_left_child
 judgment_fn! {
     fn propagated_child() => u32 {
         debug()
@@ -42,6 +47,7 @@ judgment_fn! {
         )
     }
 }
+// ANCHOR_END: book_left_child
 
 judgment_fn! {
     fn calls_child_then_grandchild() => u32 {
@@ -132,4 +138,46 @@ fn does_not_cache_failed_children_as_negative_facts() {
 
     assert!(calls_failed_child_twice().is_proven());
     assert_eq!(FAILED_CHILD_EXECUTIONS.get(), 2);
+}
+
+// ANCHOR: book_right_child
+judgment_fn! {
+    fn propagated_other_child() => u32 {
+        debug()
+
+        (
+            (propagated_grandchild() => value)
+            --- ("grandchild")
+            (propagated_other_child() => value)
+        )
+    }
+}
+// ANCHOR_END: book_right_child
+
+// ANCHOR: book_sibling_root
+judgment_fn! {
+    fn calls_sibling_children() => u32 {
+        debug()
+
+        (
+            (propagated_child() => left)
+            (propagated_other_child() => right)
+            (if left == right)
+            --- ("siblings")
+            (calls_sibling_children() => left)
+        )
+    }
+}
+// ANCHOR_END: book_sibling_root
+
+#[test]
+fn siblings_reuse_a_descendant_from_their_parent_table() {
+    GRANDCHILD_EXECUTIONS.set(0);
+
+    assert_eq!(values(calls_sibling_children()), crate::set![22]);
+    assert_eq!(GRANDCHILD_EXECUTIONS.get(), 1);
+
+    // Independent roots must not inherit the previous root's completed entries.
+    assert_eq!(values(calls_sibling_children()), crate::set![22]);
+    assert_eq!(GRANDCHILD_EXECUTIONS.get(), 2);
 }
