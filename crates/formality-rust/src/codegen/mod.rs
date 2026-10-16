@@ -353,7 +353,7 @@ judgment_fn! {
                 (let field_expr = find_field_expr(field_exprs, &fields[i])?)
                 (codegen_expr_into(global, cfn, scope, &temps[i], field_expr) => (field_code, global, cfn))
                 (let (code, cfn) = cfn.append_from(code, field_code)))
-            (let struct_value = tuple_value(&temps, adt_id, turbofish, &cfn.crates)?)
+            (let struct_value = tuple_value(&temps, adt_id, turbofish, &cfn)?)
             ---- ("struct")
             (codegen_expr_into(global, cfn, scope, target, Expr::Struct { field_exprs, adt_id, turbofish }) => (
                 code.assign(target, struct_value),
