@@ -42,11 +42,9 @@ pub fn lower_const(ctx: &mut Context, konst: &Const) -> Fallible<syntax::ConstEx
                 suffix: suffix.to_owned(),
             })
         }
-        Const::Block(block) => {
-            Ok(syntax::ConstExpr::Block(
-                crate::to_rust::expr::lower_block(ctx, block)?,
-            ))
-        }
+        Const::Block(block) => Ok(syntax::ConstExpr::Block(crate::to_rust::expr::lower_block(
+            ctx, block,
+        )?)),
         Const::Variable(core_variable) => Ok(syntax::ConstExpr::Ident(
             ctx.core_variable_to_string(&core_variable)?,
         )),

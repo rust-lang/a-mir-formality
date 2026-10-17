@@ -1,8 +1,8 @@
+use crate::check::borrow_check::{env::TypeckEnv, flow_state::FlowState, nll::borrow_check};
 use crate::grammar::{
     AliasName, AliasTy, AtomicPredicate, Const, Lt, Parameter, Parameters, Predicates, RigidName,
     RigidTy, Ty, UniversalVar,
 };
-use crate::check::borrow_check::{env::TypeckEnv, flow_state::FlowState, nll::borrow_check};
 use formality_core::{judgment_fn, Downcast, ProvenSet, Upcast};
 
 use crate::prove::{combinators::for_all, decls::Program, prove, prove_after::prove_after};
