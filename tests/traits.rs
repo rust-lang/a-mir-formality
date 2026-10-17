@@ -1,6 +1,28 @@
 use a_mir_formality::{crates, FormalityTest};
 
 #[test]
+fn i128_is_copy() {
+    FormalityTest::new(crates![crate test {
+        fn require_copy<T>() -> () where T: Copy { trusted }
+        fn main() -> () { require_copy::<i128>(); }
+    }])
+    .skip_execute()
+    .rustc_ok()
+    .ok();
+}
+
+#[test]
+fn u128_is_copy() {
+    FormalityTest::new(crates![crate test {
+        fn require_copy<T>() -> () where T: Copy { trusted }
+        fn main() -> () { require_copy::<u128>(); }
+    }])
+    .skip_execute()
+    .rustc_ok()
+    .ok();
+}
+
+#[test]
 fn trait_with_valid_fn() {
     FormalityTest::new(crates![
         crate core {
