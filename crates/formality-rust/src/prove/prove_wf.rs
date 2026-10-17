@@ -2,6 +2,7 @@ use crate::grammar::{
     AliasName, AliasTy, AtomicPredicate, Const, Lt, Parameter, Parameters, Predicates, RigidName,
     RigidTy, Ty, UniversalVar,
 };
+use crate::check::borrow_check::{env::TypeckEnv, flow_state::FlowState, nll::borrow_check};
 use formality_core::{judgment_fn, Downcast, ProvenSet, Upcast};
 
 use crate::prove::{combinators::for_all, decls::Program, prove, prove_after::prove_after};
@@ -74,6 +75,12 @@ judgment_fn! {
         (
             --- ("scalar constants are always wf")
             (prove_wf(_decls, env, _assumptions, Const::Scalar(_)) => Constraints::none(env))
+        )
+
+        (
+            (borrow_check(TypeckEnv::for_const(env, decls), assumptions, FlowState::default(), block) => ())
+            --- ("const blocks are wf if they type-check")
+            (prove_wf(decls, env, _assumptions, Const::Block(block)) => Constraints::none(env))
         )
 
         (
