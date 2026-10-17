@@ -126,6 +126,7 @@ pub fn lower_assoc_ty(
         generics,
     ) = open_bounded!(ctx, assoc_ty.binder.clone());
     let mut bounds = Vec::new();
+    let mut forall_where_clauses = Vec::new();
     for ensure in &term.ensures {
         match ensure {
             WhereBound::IsImplemented(trait_id, parameters) => {
@@ -140,11 +141,78 @@ pub fn lower_assoc_ty(
             WhereBound::Outlives(_) => {
                 anyhow::bail!("lowering associated type outlives bounds is not implemented yet")
             }
-            WhereBound::ForAll(_) => {
-                anyhow::bail!("lowering associated type `for` bounds is not implemented yet")
+            WhereBound::ForAll(binder) => {
+                // Check that only lifetime parameters are quantified
+                for kind in binder.kinds() {
+                    if !matches!(kind, crate::grammar::ParameterKind::Lt) {
+                        anyhow::bail!(
+                            "higher-ranked bounds on associated types only support lifetime quantification, found {:?}",
+                            kind
+                        );
+                    }
+                }
+
+                let Wrapped {
+                    ref mut ctx,
+                    ref term,
+                } = ctx.open_universal(binder.as_ref().clone());
+
+                // Recursively lower the inner bound
+                let inner_bound = match term {
+                    WhereBound::IsImplemented(trait_id, parameters) => syntax::TypeBound::Trait {
+                        trait_name: trait_id.deref().clone(),
+                        args: parameters
+                            .iter()
+                            .map(|arg| tys::lower_generic_arg(ctx, arg))
+                            .collect::<Result<Vec<_>, _>>()?,
+                    },
+                    WhereBound::Outlives(_) => {
+                        anyhow::bail!(
+                            "lowering associated type outlives bounds is not implemented yet"
+                        )
+                    }
+                    WhereBound::ForAll(_) => {
+                        anyhow::bail!("nested `for` bounds on associated types are not supported")
+                    }
+                };
+
+                let forall_generics =
+                    to_rust::lower_generics_for_binder(ctx, binder.kinds(), &[], false)?;
+
+                // Create a where clause from the inner bound
+                let inner_where_clause = match inner_bound {
+                    syntax::TypeBound::Trait { trait_name, args } => syntax::WhereClause::Trait {
+                        ty: syntax::Type::Path {
+                            name: "Self".to_string(),
+                            args: Vec::new(),
+                        },
+                        trait_name,
+                        args,
+                    },
+                };
+
+                // Add to where clauses instead of bounds
+                forall_where_clauses.push(syntax::WhereClause::ForAll(syntax::Generics {
+                    params: forall_generics.params,
+                    where_clauses: vec![inner_where_clause],
+                }));
             }
         }
     }
+
+    // Merge forall where clauses into the generics
+    let generics = if forall_where_clauses.is_empty() {
+        generics
+    } else {
+        syntax::Generics {
+            params: generics.params,
+            where_clauses: generics
+                .where_clauses
+                .into_iter()
+                .chain(forall_where_clauses)
+                .collect(),
+        }
+    };
 
     Ok(syntax::AssociatedTypeItem {
         name: assoc_ty.id.deref().clone(),
@@ -392,6 +460,26 @@ impl !Bar for Baz {}"#]]
             ],
             expect_test::expect!["pub trait Foo<T01> where T01: Bar<Self> { }"]
 
+        );
+    }
+
+    #[test]
+    fn assoc_ty_with_lifetime_forall_bound() {
+        crate::assert_rust!(
+            [
+                crate Foo {
+                    trait A { }
+                    trait B {
+                        type Item: [for<'a> A];
+                    }
+                }
+            ],
+            expect_test::expect![[r#"
+                pub trait A { }
+
+                pub trait B {
+                    type Item where for<'a20> Self: A;
+                }"#]]
         );
     }
 }
