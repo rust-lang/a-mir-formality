@@ -224,6 +224,7 @@ impl Display for GenericArg {
 pub enum ConstExpr {
     Ident(String),
     Scalar { value: String, suffix: String },
+    Block(Block),
 }
 
 impl Display for ConstExpr {
@@ -231,6 +232,17 @@ impl Display for ConstExpr {
         match self {
             ConstExpr::Ident(name) => f.write_str(name),
             ConstExpr::Scalar { value, suffix } => write!(f, "{value}_{suffix}"),
+            ConstExpr::Block(block) => {
+                f.write_char('{')?;
+                if !block.stmts.is_empty() {
+                    writeln!(f)?;
+                    for stmt in &block.stmts {
+                        stmt.fmt_pretty(f, 1)?;
+                        writeln!(f)?;
+                    }
+                }
+                f.write_char('}')
+            }
         }
     }
 }
