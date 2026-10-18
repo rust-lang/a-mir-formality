@@ -3809,7 +3809,9 @@ fn cannot_move_from_drop_struct() {
         struct Pair {
             x: Datum,
         }
-        impl Drop for Pair {}
+        impl Drop for Pair {
+            fn drop<'a>(self: &'a mut Pair) -> () {}
+        }
 
         fn foo(f: Pair) -> () {
             let s: Datum = f.x;
@@ -3911,7 +3913,7 @@ fn cannot_move_from_drop_struct() {
           expression evaluated to an empty collection: `decls.trait_invariants()`
 
         the rule "field" at (nll.rs) failed because
-          pattern `None` did not match value `Some(impl Drop for Pair { })`"#]])
+          pattern `None` did not match value `Some(impl Drop for Pair { fn drop <lt> (self : &^lt0_0 mut Pair) { } })`"#]])
 }
 
 #[test]
