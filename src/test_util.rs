@@ -1,5 +1,5 @@
 use expect_test::Expect;
-use formality_core::test_util::AnyhowResultTestExt;
+use formality_core::{test_util::AnyhowResultTestExt, with_tracing_logs};
 use formality_rust::grammar::FeatureGateName;
 
 use crate::{run_rustc, test_program_ok, test_program_ok_with_feature_gates};
@@ -117,8 +117,8 @@ impl FormalityTest {
             expected_output,
             execution_step_limit,
         } = self;
-
-        let proof_tree = test_program_ok(&input).expect("expected program to pass");
+        let proof_tree =
+            with_tracing_logs(|| test_program_ok(&input).expect("expected program to pass"));
         formality_core::judgment::coverage::record_coverage(std::iter::once(&proof_tree));
 
         if !skip_execute {
