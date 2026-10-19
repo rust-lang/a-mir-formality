@@ -100,6 +100,21 @@ pub struct Generics {
 
 impl Generics {
     fn fmt_params(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        self.fmt_params_with(f, false)
+    }
+
+    /// Like `fmt_params`, but adds `?Sized` to every type parameter.
+    ///
+    /// Formality doesn't model `Sized`, but rustc adds an implicit `Sized` bound to every
+    /// type parameter. That bound is unwanted on trait parameters, where it makes rustc
+    /// reject e.g. `trait Foo<T> where T: Bar<Self>` (`Self` is not `Sized`). It can't be
+    /// used everywhere: a by-value fn parameter or struct field of type `T` requires
+    /// `T: Sized`.
+    fn fmt_params_relaxed(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        self.fmt_params_with(f, true)
+    }
+
+    fn fmt_params_with(&self, f: &mut Formatter<'_>, relax_sized: bool) -> fmt::Result {
         if self.params.is_empty() {
             return Ok(());
         }
@@ -109,7 +124,10 @@ impl Generics {
             if index > 0 {
                 f.write_str(", ")?;
             }
-            write!(f, "{param}")?;
+            match param {
+                GenericParam::Type(name) if relax_sized => write!(f, "{name}: ?Sized")?,
+                _ => write!(f, "{param}")?,
+            }
         }
         f.write_char('>')
     }
@@ -662,7 +680,7 @@ impl Pretty for TraitItem {
         }
 
         write!(f, "trait {}", self.name)?;
-        self.generics.fmt_params(f)?;
+        self.generics.fmt_params_relaxed(f)?;
         self.generics.fmt_where_clauses(f)?;
 
         if self.items.is_empty() {

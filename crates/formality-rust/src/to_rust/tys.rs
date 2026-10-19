@@ -577,7 +577,7 @@ mod test {
                     type Assoc;
                 }
 
-                pub trait Bar<T01> { }
+                pub trait Bar<T01: ?Sized> { }
 
                 impl<T00, T01> Bar<T01> for T00 where <T00 as Foo>::Assoc: Bar<T01> {}"#]]
         );

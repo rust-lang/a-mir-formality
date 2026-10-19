@@ -350,7 +350,7 @@ mod tests {
                 }
             ],
             expect_test::expect![[r#"
-                pub trait Foo<T01> {
+                pub trait Foo<T01: ?Sized> {
                     fn blub<T10, T11>(mut k: T10, mut v: T11) -> T01;
                     fn bar<T10, T11>(mut k: T10, mut v: T11) -> T01;
                 }"#]]
