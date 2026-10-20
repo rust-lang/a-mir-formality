@@ -951,6 +951,11 @@ pub enum Expr {
         place: PlaceExpr,
         value: Box<Expr>,
     },
+    AssignOp {
+        place: PlaceExpr,
+        op: String,
+        value: Box<Expr>,
+    },
     Call {
         callee: Box<Expr>,
         args: Vec<Expr>,
@@ -985,6 +990,7 @@ impl Display for Expr {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
             Expr::Assign { place, value } => write!(f, "{place} = {value}"),
+            Expr::AssignOp { place, op, value } => write!(f, "{place} {op}= {value}"),
             Expr::Call { callee, args } => {
                 write!(f, "{callee}(")?;
                 for (index, arg) in args.iter().enumerate() {

@@ -300,6 +300,22 @@ judgment_fn! {
         )
 
         (
+            (resolve_place(cfn, scope, place) => typed_dest)
+            (let dest = typed_place_to_minirust(cfn, scope, &typed_dest)?)
+            (type_expr(cfn, scope, rhs) => rhs_ty)
+            (let (rhs_temp, cfn) = cfn.alloc_temp(rhs_ty)?)
+            (codegen_expr_into(global, cfn, scope, rhs_temp, rhs) => (code, global, cfn))
+            ---- ("assign-op")
+            (codegen_expr_into(global, cfn, scope, target, Expr::AssignOp { place, op, rhs }) => (
+                code
+                    .assign(dest, binop(op, load(dest), load(rhs_temp)))
+                    .assign(target, unit_value()),
+                global,
+                cfn,
+            ))
+        )
+
+        (
             // Turbofish always generates a zero-sized value.
             // The important bits (function name, arguments, etc) show up in the *type*.
             (let code = cfn.fresh_code_block())

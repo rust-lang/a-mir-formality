@@ -441,3 +441,40 @@ fn test_parse_128_bit_integers_extreme_values() {
     let expr_data: Fallible<Expr> = try_term("170141183460469231731687303715884105728 _ i128");
     assert!(expr_data.is_err());
 }
+
+#[test]
+fn test_parse_assign_op() {
+    // A call binds tighter than `+`, which binds tighter than `+=`.
+    let expr: Expr = term("x += a + f(b)");
+    expect_test::expect![[r#"
+        AssignOp {
+            place: Var(
+                x,
+            ),
+            op: Add,
+            rhs: BinOp {
+                lhs: Place(
+                    Var(
+                        a,
+                    ),
+                ),
+                op: Add,
+                rhs: Call {
+                    callee: Place(
+                        Var(
+                            f,
+                        ),
+                    ),
+                    args: [
+                        Place(
+                            Var(
+                                b,
+                            ),
+                        ),
+                    ],
+                },
+            },
+        }
+    "#]]
+    .assert_debug_eq(&expr);
+}
