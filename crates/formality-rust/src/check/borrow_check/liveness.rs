@@ -363,6 +363,11 @@ impl LiveBefore for Expr {
                 Seq(&**expr, Assignment(place)).live_before(env, scopes, places_live)
             }
 
+            // place op= rhs: `rhs` is evaluated first, then `place` is read and overwritten.
+            Expr::AssignOp { place, op: _, rhs } => {
+                Seq(&**rhs, Seq(place, Assignment(place))).live_before(env, scopes, places_live)
+            }
+
             // call callee(args): callee and args are all evaluated (callee first, then args left-to-right).
             Expr::Call { callee, args } => {
                 Seq(&**callee, args).live_before(env, scopes, places_live)

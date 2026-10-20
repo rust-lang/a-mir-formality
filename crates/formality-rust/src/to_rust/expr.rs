@@ -89,6 +89,11 @@ pub fn lower_expr(ctx: &mut Context, expr: &Expr) -> Fallible<syntax::Expr> {
             place: lower_place_expr(ctx, place)?,
             value: Box::new(lower_expr(ctx, expr)?),
         }),
+        Expr::AssignOp { place, op, rhs } => Ok(syntax::Expr::AssignOp {
+            place: lower_place_expr(ctx, place)?,
+            op: op.as_str().to_string(),
+            value: Box::new(lower_expr(ctx, rhs)?),
+        }),
         Expr::Call { callee, args } => Ok(syntax::Expr::Call {
             callee: Box::new(lower_expr(ctx, callee)?),
             args: args
