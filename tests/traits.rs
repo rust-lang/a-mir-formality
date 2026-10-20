@@ -51,6 +51,36 @@ fn trait_with_valid_associated_type() {
 }
 
 #[test]
+fn trait_with_lifetime_forall_on_assoc_type() {
+    FormalityTest::new(crates![
+        crate core {
+            trait A { }
+            trait B {
+                type Item: [for<'a> A];
+            }
+        }
+    ])
+    .skip_execute()
+    .rustc_ok()
+    .ok();
+}
+
+#[test]
+fn trait_with_lifetime_forall_on_assoc_type_with_outer_params() {
+    FormalityTest::new(crates![
+        crate core {
+            trait A<T> { }
+            trait B<U> {
+                type Item: [for<'a> A<U>];
+            }
+        }
+    ])
+    .skip_execute()
+    .rustc_ok()
+    .ok();
+}
+
+#[test]
 #[ignore = "ensures bounds WF check not yet implemented, see FIXME(#228)"]
 fn trait_with_ill_formed_where_clause() {
     FormalityTest::new(crates![
