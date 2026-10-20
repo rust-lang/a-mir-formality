@@ -17,7 +17,7 @@ use crate::prove::{with_variables, Safety};
 use formality_core::judgment::ProofTree;
 use formality_core::{judgment_fn, term, ProvenSet, Set, Union, Upcast};
 
-use crate::check::borrow_check::liveness::{Assignment, Either, LiveBefore, LivePlaces};
+use crate::check::borrow_check::liveness::{Assignment, Either, LiveBefore, LivePlaces, Seq};
 
 // Treats each name brought in by exists as OK to use when checking the code inside.
 fn wf_assumptions_for_existential_vars(vars: &[Parameter]) -> Predicates {
@@ -425,6 +425,29 @@ judgment_fn! {
             (let state = state.with_initialized(&place.to_place_expression()))
             ------------------------------------------------------------ ("assign")
             (borrow_check_expr(env, assumptions, state, Expr::Assign { place, expr }, places_live_on_exit) => (Ty::unit(), state))
+        )
+
+        (
+            // For primitive operands, rustc evaluates `rhs` before it reads `place`.
+            (borrow_check_expr(
+                env,
+                assumptions,
+                state,
+                rhs,
+                Seq(place, Assignment(place)).live_before(env, &state, places_live_on_exit),
+            ) => (rhs_ty, state))
+            (let places_live_before_write = Assignment(place).live_before(env, &state, places_live_on_exit))
+
+            (borrow_check_place_expr(env, assumptions, state, place) => (place, state))
+            (prove_ty_is_rigid(env, assumptions, state, &place.ty) => (RigidTy { name: RigidName::ScalarId(scalar), parameters: _ }, state))
+            (if scalar.is_int())
+            (prove_assignable(env, assumptions, state, rhs_ty, &place.ty) => state)
+
+            (access_permitted(env, assumptions, state, Access::new(AccessKind::Read, place), places_live_before_write) => state)
+            (access_permitted(env, assumptions, state, Access::new(AccessKind::Write, place), places_live_on_exit) => state)
+            (let state = kill_loans(place, state))
+            ------------------------------------------------------------ ("assign-op")
+            (borrow_check_expr(env, assumptions, state, Expr::AssignOp { place, op: _, rhs }, places_live_on_exit) => (Ty::unit(), state))
         )
 
         (

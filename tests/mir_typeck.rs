@@ -1513,3 +1513,78 @@ fn test_fn_value_with_unsatisfied_lifetime_bound() {
     "#]])
     .err(expect_test::expect!["crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: !lt_1, assumptions: {}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }"]);
 }
+
+/// Compound assignment of an integer of a different type should fail.
+#[test]
+fn test_compound_add_mismatched_int_types() {
+    FormalityTest::new(crates![crate Foo {
+        fn foo() -> () {
+            let x: u32 = 1_u32;
+            x += 2_u8;
+        }
+    }])
+    .rustc_err(expect_test::expect![[r#"
+        error[E0308]: mismatched types
+         --> lib.rs
+          |
+        3 |     x += 2_u8;
+          |          ^^^^ expected `u32`, found `u8`
+
+        error[E0277]: cannot add-assign `u8` to `u32`
+           --> lib.rs
+            |
+          3 |     x += 2_u8;
+            |       ^^ no implementation for `u32 += u8`
+            |
+            = help: the trait `AddAssign<u8>` is not implemented for `u32`
+        help: `u32` implements trait `AddAssign<Rhs>`
+           --> arith.rs
+            |
+        788 |         impl const AddAssign for $t {
+            |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^ `AddAssign`
+        ...
+        801 | add_assign_impl! { usize u8 u16 u32 u64 u128 isize i8 i16 i32 i64 i128 f16 f32 f64 f128 }
+            | ----------------------------------------------------------------------------------------- in this macro invocation
+            |
+           ::: internal_macros.rs
+            |
+         61 |         impl const $imp<&$u> for $t {
+            |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^ `AddAssign<&u32>`
+            = note: this error originates in the macro `add_assign_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+        Some errors have detailed explanations: E0277, E0308.
+        For more information about an error, try `rustc --explain E0277`.
+        error: could not compile `Foo` (lib) due to 2 previous errors
+    "#]])
+    .err(expect_test::expect![[r#"
+        crates/formality-rust/src/prove/prove_normalize.rs:22:1: no applicable rules for prove_normalize { p: u8, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+
+        crates/formality-rust/src/prove/prove_normalize.rs:22:1: no applicable rules for prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }"#]])
+}
+
+/// `+=` on `bool` should fail.
+#[test]
+fn test_compound_add_bool() {
+    FormalityTest::new(crates![crate Foo {
+        fn foo() -> () {
+            let x: bool = true;
+            x += false;
+        }
+    }])
+    .rustc_err(expect_test::expect![[r#"
+        error[E0368]: binary assignment operation `+=` cannot be applied to type `bool`
+         --> lib.rs
+          |
+        3 |     x += false;
+          |     -^^^^^^^^^
+          |     |
+          |     cannot use `+=` on type `bool`
+
+        For more information about this error, try `rustc --explain E0368`.
+        error: could not compile `Foo` (lib) due to 1 previous error
+    "#]])
+    .err(expect_test::expect![[r#"
+        the rule "assign-op" at (nll.rs) failed because
+          condition evaluated to false: `scalar.is_int()`
+            scalar = bool"#]])
+}

@@ -1073,3 +1073,33 @@ fn multiplication_reuses_copy_referent() {
     .expect_output("12\n12\n")
     .ok();
 }
+
+#[test]
+fn compound_addition() {
+    FormalityTest::new(crates![crate test {
+        fn main() -> () {
+            let x: u32 = 1_u32;
+            x += 2_u32 + 3_u32;
+            println!(x);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("6\n")
+    .ok()
+}
+
+#[test]
+fn compound_addition_to_field() {
+    FormalityTest::new(crates![crate test {
+        struct Pair { a: u32, b: u32 }
+
+        fn main() -> () {
+            let p: Pair = Pair { a: 1_u32, b: 10_u32 };
+            p.b += p.a;
+            println!(p.b);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("11\n")
+    .ok()
+}
