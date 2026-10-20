@@ -646,3 +646,19 @@ fn parse_and_run_with_128_bit_integers() {
     ))
     .ok()
 }
+
+#[test]
+fn field_evaluation_order() {
+    FormalityTest::new(crates![crate Foo {
+        struct S { a: u32, b: u32 }
+        fn first() -> u32 { println!(1_u32); return 10_u32; }
+        fn second() -> u32 { println!(2_u32); return 20_u32; }
+        fn main() -> () {
+            let s: S = S { b: second(), a: first() };
+            println!(s.a);
+            println!(s.b);
+        }
+    }])
+    .expect_output("2\n1\n10\n20\n")
+    .ok();
+}
