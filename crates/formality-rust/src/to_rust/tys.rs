@@ -191,7 +191,6 @@ pub fn lower_ref(
         })
         .ok_or_else(|| anyhow::anyhow!("reference type is missing pointee type argument"))?;
 
-    // TODO: Match on Lt::Erased after codegen (#369) is merged
     let lifetime = match &lifetime {
         Lt::Variable(Variable::ExistentialVar(_)) => Some("'_".to_string()),
         _ => Some(lower_lt(ctx, &lifetime)?),
@@ -227,7 +226,7 @@ pub fn lower_ptr(
 pub fn lower_lt(ctx: &mut Context, lt: &Lt) -> Fallible<String> {
     match lt {
         Lt::Static => Ok("'static".to_owned()),
-        Lt::Erased => Ok("'erased".to_owned()),
+        Lt::Erased => Ok("'_".to_owned()),
         Lt::Variable(core_variable) => ctx.core_variable_to_string(&core_variable),
     }
 }

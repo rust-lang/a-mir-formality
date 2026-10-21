@@ -1,9 +1,11 @@
 use std::collections::HashMap;
 
+use formality_core::Upcast;
+
 use crate::{
     grammar::{
-        Binder, DebruijnIndex, ExistentialVar, Fallible, ParameterKind, TraitBinder, UniversalVar,
-        VarIndex, Variable,
+        Binder, DebruijnIndex, ExistentialVar, Fallible, Lt, Parameter, ParameterKind, TraitBinder,
+        UniversalVar, VarIndex, Variable,
     },
     rust::{Fold, Term},
 };
@@ -75,22 +77,27 @@ impl Context {
         wrapped
     }
 
-    /// Opens the binder `b` and instatiates ith with a fresh set of
-    /// existential variables and returns the term.
+    /// Opens the binder `b`, replacing its lifetimes with `Lt::Erased`
+    /// (lowered as `'_`), and returns the term.
     pub fn open_exists<T: Term>(&mut self, b: Binder<T>) -> Wrapped<'_, T> {
-        // TODO: Replace Existential Lifetimes with an Erased after codegen (#369) is merged
         let subst = self.existential_substitution(&b);
-        let term = b.instantiate_with(&subst).expect("suitable substitution");
-        let names: Vec<_> = subst
+        let mut names = vec![];
+        let params: Vec<Parameter> = subst
             .into_iter()
-            .map(|var| {
-                (
-                    var.var_index,
-                    format!("{}E{}", self.kind_to_string(&var.kind), var.var_index.index),
-                )
+            .map(|var| match var.kind {
+                // Lifetimes from `exists` are erased, and printed as `'_`.
+                ParameterKind::Lt => Lt::Erased.upcast(),
+                _ => {
+                    names.push((
+                        var.var_index,
+                        format!("{}E{}", self.kind_to_string(&var.kind), var.var_index.index),
+                    ));
+                    var.upcast()
+                }
             })
             .collect();
-        Wrapped::free(self, term.clone(), names)
+        let term = b.instantiate_with(&params).expect("suitable substitution");
+        Wrapped::free(self, term, names)
     }
 
     /// Allocates a new set of fresh names and returns a wrapped `T`.
