@@ -1,8 +1,8 @@
 use std::ops::Deref;
 
 use crate::grammar::{
-    AliasTy, Const, Fallible, Lt, Parameter, Parameters, PtrKind, RefKind, RigidName, RigidTy,
-    ScalarId, ScalarValue, Ty, Variable,
+    AliasTy, Const, Fallible, Lt, Parameter, Parameters, PtrKind, RefKind, RigidConstData,
+    RigidName, RigidTy, ScalarId, ScalarValue, Ty, Variable,
 };
 
 use super::{context::Context, syntax};
@@ -17,9 +17,24 @@ pub fn lower_generic_arg(ctx: &mut Context, parameter: &Parameter) -> Fallible<s
 
 pub fn lower_const(ctx: &mut Context, konst: &Const) -> Fallible<syntax::ConstExpr> {
     match konst {
-        Const::RigidValue(_) => {
-            todo!("lowering rigid const values is not implemented yet")
-        }
+        Const::RigidValue(RigidConstData { name, values, .. }) => match name {
+            RigidName::Tuple(arity) => {
+                if *arity != values.len() {
+                    anyhow::bail!(
+                        "tuple const value has arity {arity} but {} value(s)",
+                        values.len()
+                    );
+                }
+                let values = values
+                    .iter()
+                    .map(|value| lower_const(ctx, value))
+                    .collect::<Fallible<Vec<_>>>()?;
+                Ok(syntax::ConstExpr::Tuple(values))
+            }
+            other => anyhow::bail!(
+                "lowering const values of shape `{other:?}` is not supported yet; only tuples are"
+            ),
+        },
         Const::Scalar(value) => {
             let (value, suffix) = match value {
                 ScalarValue::U8(v) => (v.to_string(), "u8"),
@@ -296,6 +311,96 @@ mod test {
         AdtId, AliasName, AssociatedItemId, AssociatedTyName, BoundVar, DebruijnIndex,
         ExistentialVar, TraitId, VarIndex, Variable,
     };
+
+    fn tuple_const(values: Vec<Const>) -> Const {
+        Const::RigidValue(RigidConstData {
+            name: RigidName::Tuple(values.len()),
+            parameters: Vec::new(),
+            values,
+        })
+    }
+
+    fn u32_const(v: u32) -> Const {
+        Const::Scalar(ScalarValue::U32(v))
+    }
+
+    fn bool_const(v: bool) -> Const {
+        Const::Scalar(ScalarValue::Bool(v))
+    }
+
+    #[test]
+    fn lower_tuple_const() {
+        let mut ctx = Context::default();
+        let konst = tuple_const(vec![u32_const(1), bool_const(true)]);
+        assert_eq!(
+            "(1_u32, true)",
+            lower_const(&mut ctx, &konst).unwrap().to_string()
+        );
+    }
+
+    #[test]
+    fn lower_nested_tuple_const() {
+        let mut ctx = Context::default();
+        let konst = tuple_const(vec![
+            tuple_const(vec![u32_const(1), u32_const(2)]),
+            bool_const(true),
+        ]);
+        assert_eq!(
+            "((1_u32, 2_u32), true)",
+            lower_const(&mut ctx, &konst).unwrap().to_string()
+        );
+    }
+
+    #[test]
+    fn lower_one_element_and_empty_tuple_const() {
+        let mut ctx = Context::default();
+        assert_eq!(
+            "(1_u32,)",
+            lower_const(&mut ctx, &tuple_const(vec![u32_const(1)]))
+                .unwrap()
+                .to_string()
+        );
+        assert_eq!(
+            "()",
+            lower_const(&mut ctx, &tuple_const(vec![]))
+                .unwrap()
+                .to_string()
+        );
+    }
+
+    #[test]
+    fn tuple_const_generic_arg_is_braced() {
+        let mut ctx = Context::default();
+        let arg = Parameter::Const(tuple_const(vec![u32_const(1), bool_const(true)]).into());
+        assert_eq!(
+            "{ (1_u32, true) }",
+            lower_generic_arg(&mut ctx, &arg).unwrap().to_string()
+        );
+    }
+
+    #[test]
+    fn tuple_const_arity_mismatch_is_an_error() {
+        let mut ctx = Context::default();
+        let konst = Const::RigidValue(RigidConstData {
+            name: RigidName::Tuple(3),
+            parameters: Vec::new(),
+            values: vec![u32_const(1), u32_const(2)],
+        });
+        let err = lower_const(&mut ctx, &konst).unwrap_err();
+        assert!(err.to_string().contains("arity"), "{err}");
+    }
+
+    #[test]
+    fn unsupported_rigid_const_shape_is_an_error() {
+        let mut ctx = Context::default();
+        let konst = Const::RigidValue(RigidConstData {
+            name: RigidName::AdtId(AdtId::new("Foo")),
+            parameters: Vec::new(),
+            values: vec![u32_const(1)],
+        });
+        let err = lower_const(&mut ctx, &konst).unwrap_err();
+        assert!(err.to_string().contains("not supported"), "{err}");
+    }
 
     fn alias(item_arity: usize, parameters: Vec<Parameter>) -> AliasTy {
         AliasTy {
