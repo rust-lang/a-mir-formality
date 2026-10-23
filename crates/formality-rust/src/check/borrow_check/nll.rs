@@ -381,6 +381,12 @@ judgment_fn! {
         debug(state, expr, places_live_on_exit, assumptions, env)
 
         (
+            (borrow_check_expr(env, assumptions, state, expr, places_live_on_exit) => (ty, state))
+            ---- ("parenthesized")
+            (borrow_check_expr(env, assumptions, state, Expr::Parens(expr), places_live_on_exit) => (ty, state))
+        )
+
+        (
             // Borrow-check and type-check the RHS value expression
             (borrow_check_expr(
                 env,
