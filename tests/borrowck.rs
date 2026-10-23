@@ -4876,3 +4876,24 @@ fn issue_70044_location_insensitive_constraints() {
     .skip_execute()
     .borrowck_err(BorrowCheckFailure::Nll, expect_test::expect![[""]]);
 }
+
+/// A struct with a lifetime from `exists` in a `let` type and a struct literal.
+/// The Rust translation must print that lifetime as `'_` so rustc can infer it.
+///
+/// rustc: [nll] pass, [polonius] pass, [legacy] pass.
+#[test]
+fn struct_with_exists_lifetime_translates_for_rustc() {
+    FormalityTest::new(crates![crate Foo {
+        struct Wrapper<'a> { value: &'a u32 }
+        fn f() -> u32 {
+            exists<'r0> {
+                let v: u32 = 0_u32;
+                let w: Wrapper<'r0> = Wrapper::<'r0> { value: &'r0 v };
+                return *w.value;
+            }
+        }
+    }])
+    .rustc_ok()
+    .skip_execute()
+    .borrowck_ok();
+}
