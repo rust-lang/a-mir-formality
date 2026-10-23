@@ -974,6 +974,7 @@ pub enum Expr {
         args: Vec<GenericArg>,
         fields: StructExprFields,
     },
+    Paren(Box<Expr>),
     BinOp {
         lhs: Box<Expr>,
         op: String,
@@ -1037,6 +1038,7 @@ impl Display for Expr {
                     }
                 }
             }
+            Expr::Paren(expr) => write!(f, "({expr})"),
             Expr::BinOp { lhs, op, rhs } => {
                 write!(f, "{lhs} {op} {rhs}")
             }
