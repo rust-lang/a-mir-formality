@@ -169,25 +169,6 @@ impl Constraints {
         }
     }
 
-    /// Given a set of variables `v` created via [`Env::instantiate_universally`][]
-    /// or [`Env::instantiate_existentially`][], removes `v` and all variables created *since* `v`
-    /// from the environment and from the substitution.
-    pub fn pop_subst<V>(&self, v: &[V]) -> Self
-    where
-        V: Upcast<Variable> + Copy,
-    {
-        let mut env = self.clone();
-
-        if v.is_empty() {
-            return env.clone();
-        }
-
-        let vars = env.env.pop_vars(v);
-        env.substitution -= vars;
-
-        env
-    }
-
     pub fn is_valid_extension_of(&self, env0: &Env) -> bool {
         self.env.is_valid_extension_of(env0)
     }
