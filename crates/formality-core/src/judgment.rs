@@ -1,16 +1,17 @@
-use std::cell::RefCell;
-
-use crate::{fixed_point::FixedPointStack, Fallible, Map};
+use crate::Fallible;
 
 mod assertion;
 pub use assertion::JudgmentAssertion;
 
 pub mod coverage;
 
+mod memo;
+
 mod proven_set;
 pub use proven_set::{
     insert_smallest_proof, member_of, CheckProven, EachProof, FailedJudgment, FailedRule,
-    FailureLocation, FailureReason, LeafFailure, ProofTree, Proven, ProvenSet, RuleFailureCause,
+    FailureLocation, FailureReason, LeafFailure, ProofNode, ProofTree, Proven, ProvenSet,
+    RuleFailureCause,
 };
 
 mod scope;
@@ -18,14 +19,19 @@ mod scope;
 mod test_comprehension;
 pub use scope::Scope;
 
+mod runtime;
+#[doc(hidden)]
+pub use runtime::{execute_judgment, JudgmentCache};
+
 mod test_explicit_fail;
 mod test_fallible;
 mod test_filtered;
+mod test_fixed_point;
 mod test_for_all;
+mod test_memo;
+mod test_panic;
 mod test_reachable;
 mod test_scope;
-
-pub type JudgmentStack<J, O> = RefCell<FixedPointStack<J, Map<O, ProofTree>>>;
 
 /// `judgment_fn!` allows construction of inference rules using a more logic-like notation.
 ///
@@ -344,9 +350,9 @@ macro_rules! judgment_fn {
 
             let mut failed_rules = $crate::set![];
             let input = __JudgmentStruct($($input_name),*);
-            let output = $crate::fixed_point::fixed_point::<
+            let output = $crate::judgment::execute_judgment::<
                 __JudgmentStruct,
-                $crate::Map<$output, $crate::judgment::ProofTree>,
+                $output,
             >(
                 // Tracing span:
                 |input| {
@@ -357,10 +363,10 @@ macro_rules! judgment_fn {
                     )
                 },
 
-                // Stack:
+                // Per-judgment cache:
                 {
                     thread_local! {
-                        static R: $crate::judgment::JudgmentStack<__JudgmentStruct, $output> = Default::default()
+                        static R: $crate::judgment::JudgmentCache<__JudgmentStruct, $output> = Default::default()
                     }
                     &R
                 },
@@ -368,10 +374,7 @@ macro_rules! judgment_fn {
                 // Input:
                 input.clone(),
 
-                // Default value:
-                |_| Default::default(),
-
-                // Next value:
+                // Execute rules:
                 |input: __JudgmentStruct| {
                     let mut output: $crate::Map<$output, $crate::judgment::ProofTree> = $crate::Map::new();
 
@@ -542,6 +545,15 @@ macro_rules! push_rules {
             if let Some($pat0) = &$crate::Downcast::downcast::<$ty0>($in0) {
                 $crate::push_rules!(@match $conclusion_name inputs($($inputs)*) patterns($($pats)*) args $args);
             }
+        }
+    };
+
+    // Boolean literals also match an `ident` macro fragment. Handle all
+    // literals before the identity-pattern arm so `true` is treated as a
+    // refutable pattern instead of expanding to the invalid `let true = ...`.
+    (@match $conclusion_name:ident inputs($in0:ident $($inputs:tt)*) patterns($pat0:literal, $($pats:tt)*) args $args:tt) => {
+        if let Some($pat0) = &$crate::Downcast::downcast($in0) {
+            $crate::push_rules!(@match $conclusion_name inputs($($inputs)*) patterns($($pats)*) args $args);
         }
     };
 

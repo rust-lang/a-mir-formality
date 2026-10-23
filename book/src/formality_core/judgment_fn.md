@@ -412,4 +412,13 @@ when needed.
 
 ### Handling cycles
 
-Judgment functions must be **inductive**, which means that cycles are considered failures. We have a tabling implementation, which means we detect cycles and try to handle them intelligently. Basically we track a stack and, if a cycle is detected, we return an empty set of results. But we remember that the cycle happened. Then, once we are done, we'll have computed some intermediate set of results `R[0]`, and we execute again. This time, when we get the cycle, we return `R[0]` instead of an empty set. This will compute some new set of results, `R[1]`. So then we try again. We keep doing this until the new set of results `R[i]` is equal to the previous set of results `R[i-1]`. At that point, we have reached a fixed point, so we stop. Of course, it could be that you get an infinitely growing set of results, and execution never terminates. This means your rules are broken. Don't do that.
+Judgment functions are **inductive**: a cycle alone provides no proof. Recursive
+calls read the current approximation of the active judgment's outputs, initially
+empty. Base cases can grow that approximation, and the runtime repeats rule
+evaluation until recursive dependencies have seen a stable set of outputs.
+Rules must preserve previously proven values as their premises gain answers.
+
+Completed results can also be reused within one top-level call. Their memo tables
+are invalidated when an enclosing approximation grows, and discarded when the
+root call finishes. See [Fixed points and memoization](./fixed_points.md) for the
+algorithm, its assumptions, and worked examples.
