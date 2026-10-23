@@ -4,11 +4,15 @@ use a_mir_formality::{crates, FormalityTest};
 #[test]
 fn nonsense_rigid_const_bound() {
     FormalityTest::new(crates![crate Foo {
-        // This where-clause is not *provable*, but it is well-formed.
+        // A fixed value is not permitted as the subject of this bound.
         trait Foo where type_of_const true is u32 {}
     }])
-    .skip_execute()
-    .ok()
+    .err(expect_test::expect![[r#"
+        the rule "check trait" at (traits.rs) failed because
+          prove_where_clauses_well_formed([type_of_const true is u32])
+
+          Caused by:
+              type_of_const requires a universal const parameter, found true"#]])
 }
 
 #[test]
@@ -54,8 +58,12 @@ fn rigid_const_bound() {
     FormalityTest::new(crates![crate Foo {
         trait Foo where type_of_const true is bool {}
     }])
-    .skip_execute()
-    .ok()
+    .err(expect_test::expect![[r#"
+        the rule "check trait" at (traits.rs) failed because
+          prove_where_clauses_well_formed([type_of_const true is bool])
+
+          Caused by:
+              type_of_const requires a universal const parameter, found true"#]])
 }
 
 #[test]
@@ -98,5 +106,62 @@ fn multiple_type_of_const() {
         trait Foo<const C> where type_of_const C is bool, type_of_const C is u32 {}
     }])
     .skip_execute()
+    .ok()
+}
+
+#[test]
+fn nested_const_bound_rejects_fixed_value() {
+    FormalityTest::new(crates![crate Foo {
+        trait Foo where for<'a> type_of_const true is bool {}
+    }])
+    .err(expect_test::expect![[r#"
+        the rule "check trait" at (traits.rs) failed because
+          prove_where_clauses_well_formed([for <lt> type_of_const true is bool])
+
+          Caused by:
+              type_of_const requires a universal const parameter, found true"#]])
+}
+
+#[test]
+fn nested_const_bound_accepts_outer_parameter() {
+    FormalityTest::new(crates![crate Foo {
+        trait Foo<const C> where for<'a> type_of_const C is bool {}
+    }])
+    .skip_execute()
+    .ok()
+}
+
+#[test]
+fn nested_const_bound_accepts_inner_parameter() {
+    FormalityTest::new(crates![crate Foo {
+        #![feature(non_lifetime_binders)]
+        trait Foo where for<const C> type_of_const C is bool {}
+    }])
+    .skip_execute()
+    .ok()
+}
+
+#[test]
+fn function_const_bound_rejects_fixed_value() {
+    FormalityTest::new(crates![crate Foo {
+        fn example() -> () where type_of_const true is bool {}
+    }])
+    .err(expect_test::expect![[r#"
+        the rule "check fn" at (fns.rs) failed because
+          prove_where_clauses_well_formed([type_of_const true is bool])
+
+          Caused by:
+              type_of_const requires a universal const parameter, found true"#]])
+}
+
+#[test]
+fn const_parameter_bounds_translate_to_rust() {
+    FormalityTest::new(crates![crate Foo {
+        trait Foo<const C> where type_of_const C is bool {}
+        impl<const C> Foo<C> for u32 where type_of_const C is bool {}
+        fn example<const C>() -> () where type_of_const C is bool {}
+        fn main() -> () { example::<true>(); }
+    }])
+    .rustc_ok()
     .ok()
 }
