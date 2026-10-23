@@ -160,8 +160,8 @@ fn const_parameter_bounds_translate_to_rust() {
         trait Foo<const C> where type_of_const C is bool {}
         impl<const C> Foo<C> for u32 where type_of_const C is bool {}
         fn example<const C>() -> () where type_of_const C is bool {}
+        fn main() -> () { example::<true>(); }
     }])
-    .skip_execute()
     .rustc_ok()
     .ok()
 }
