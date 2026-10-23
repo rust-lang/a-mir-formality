@@ -403,6 +403,7 @@ pub enum TypeBound {
         trait_name: String,
         args: Vec<GenericArg>,
     },
+    Lifetime(String),
 }
 
 impl Display for TypeBound {
@@ -412,6 +413,7 @@ impl Display for TypeBound {
                 write!(f, "{trait_name}")?;
                 fmt_generic_args(f, args, false)
             }
+            TypeBound::Lifetime(lt) => f.write_str(lt),
         }
     }
 }
