@@ -13,9 +13,12 @@ fn drop_impl_simple_struct() {
                 value: u32,
             }
 
-            impl Drop for MyStruct {}
+            impl Drop for MyStruct {
+                fn drop<'a>(self: &'a mut MyStruct) -> () {}
+            }
         }
     ])
+    .rustc_ok()
     .skip_execute()
     .ok()
 }
@@ -31,7 +34,9 @@ fn drop_impl_generic_struct() {
                 value: T,
             }
 
-            impl<T> Drop for MyStruct<T> where T: Clone {}
+            impl<T> Drop for MyStruct<T> where T: Clone {
+                fn drop<'a>(self: &'a mut MyStruct<T>) -> () where MyStruct<T>: 'a {}
+            }
         }
     ])
     .skip_execute()
@@ -47,18 +52,17 @@ fn drop_impl_generic_no_where_clauses() {
                 value: T,
             }
 
-            impl<T> Drop for Wrapper<T> {}
+            impl<T> Drop for Wrapper<T> {
+                fn drop<'a>(self: &'a mut Wrapper<T>) -> () where Wrapper<T>: 'a {}
+            }
         }
     ])
     .skip_execute()
     .ok()
 }
 
-/// Drop impl with fewer where-clauses than the struct.
-/// FIXME: This should be invalid because the struct requires the bounds for
-/// well-formedness, but without a `fn drop` method in the trait, the WF check
-/// on `MyStruct<T>` is not triggered. This will be caught once we model the
-/// drop method signature.
+/// Drop impl with fewer where-clauses than the struct. `drop` takes
+/// `&mut MyStruct<T>`, which is not well-formed without the struct's bounds.
 #[test]
 fn drop_impl_subset_where_clauses() {
     FormalityTest::new(crates![
@@ -71,11 +75,18 @@ fn drop_impl_subset_where_clauses() {
             }
 
             // Impl has no where-clauses — but the struct requires them.
-            impl<T> Drop for MyStruct<T> {}
+            impl<T> Drop for MyStruct<T> {
+                fn drop<'a>(self: &'a mut MyStruct<T>) -> () where MyStruct<T>: 'a {}
+            }
         }
     ])
-    .skip_execute()
-    .ok()
+    .err(expect_test::expect![[r#"
+        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: @ wf(MyStruct<!ty_0>), via: MyStruct<!ty_0> : !lt_1, assumptions: {MyStruct<!ty_0> : !lt_1}, env: Env { variables: [!ty_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Clone(!ty_0), via: MyStruct<!ty_0> : !lt_1, assumptions: {MyStruct<!ty_0> : !lt_1}, env: Env { variables: [!ty_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+        the rule "trait implied bound" at (prove_predicate.rs) failed because
+          expression evaluated to an empty collection: `decls.trait_invariants()`"#]])
 }
 
 /// Basic Drop impl for an enum.
@@ -87,9 +98,12 @@ fn drop_impl_enum() {
                 Variant{},
             }
 
-            impl Drop for MyEnum {}
+            impl Drop for MyEnum {
+                fn drop<'a>(self: &'a mut MyEnum) -> () {}
+            }
         }
     ])
+    .rustc_ok()
     .skip_execute()
     .ok()
 }
@@ -103,10 +117,13 @@ fn drop_impl_cross_crate_local() {
                 value: u32,
             }
 
-            impl Drop for MyStruct {}
+            impl Drop for MyStruct {
+                fn drop<'a>(self: &'a mut MyStruct) -> () {}
+            }
         },
         crate b {}
     ])
+    .rustc_ok()
     .skip_execute()
     .ok()
 }
@@ -114,6 +131,35 @@ fn drop_impl_cross_crate_local() {
 // ===================================================================
 // Drop trait: invalid impls
 // ===================================================================
+
+/// Drop impl that does not define `drop`.
+#[test]
+fn drop_impl_missing_drop_fn() {
+    FormalityTest::new(crates![
+        crate Foo {
+            struct MyStruct {
+                value: u32,
+            }
+
+            impl Drop for MyStruct {}
+        }
+    ])
+    .rustc_err(expect_test::expect![[r#"
+        error[E0046]: not all trait items implemented, missing: `drop`
+         --> lib.rs
+          |
+        5 | impl Drop for MyStruct {}
+          | ^^^^^^^^^^^^^^^^^^^^^^ missing `drop` in implementation
+          |
+          = help: implement the missing item: `fn drop(&mut self) { todo!() }`
+
+        For more information about this error, try `rustc --explain E0046`.
+        error: could not compile `Foo` (lib) due to 1 previous error
+    "#]])
+    .err(expect_test::expect![[r#"
+        the rule "check_trait_impl" at (impls.rs) failed because
+          not all trait items implemented, missing: `drop`"#]])
+}
 
 /// Drop impl with extra where-clause not on the struct.
 #[test]
@@ -126,7 +172,9 @@ fn drop_impl_extra_where_clause() {
                 value: T,
             }
 
-            impl<T> Drop for MyStruct<T> where T: Clone {}
+            impl<T> Drop for MyStruct<T> where T: Clone {
+                fn drop<'a>(self: &'a mut MyStruct<T>) -> () where MyStruct<T>: 'a {}
+            }
         }
     ])
     .err(expect_test::expect![[r#"
@@ -148,7 +196,9 @@ fn drop_impl_concrete_type_param() {
                 value: T,
             }
 
-            impl Drop for MyStruct<u32> {}
+            impl Drop for MyStruct<u32> {
+                fn drop<'a>(self: &'a mut MyStruct<u32>) -> () {}
+            }
         }
     ])
     .err(expect_test::expect![[r#"
@@ -185,7 +235,9 @@ fn drop_impl_enum_extra_where_clause() {
                 Value{value: T},
             }
 
-            impl<T> Drop for MyEnum<T> where T: Clone {}
+            impl<T> Drop for MyEnum<T> where T: Clone {
+                fn drop<'a>(self: &'a mut MyEnum<T>) -> () where MyEnum<T>: 'a {}
+            }
         }
     ])
     .err(expect_test::expect![[r#"
@@ -208,7 +260,9 @@ fn drop_impl_foreign_adt() {
             }
         },
         crate b {
-            impl Drop for MyStruct {}
+            impl Drop for MyStruct {
+                fn drop<'a>(self: &'a mut MyStruct) -> () {}
+            }
         }
     ])
     .err(expect_test::expect![[r#"
@@ -221,7 +275,9 @@ fn drop_impl_foreign_adt() {
 fn drop_impl_for_non_adt() {
     FormalityTest::new(crates![
         crate Foo {
-            impl Drop for u32 {}
+            impl Drop for u32 {
+                fn drop<'a>(self: &'a mut u32) -> () {}
+            }
         }
     ])
     .err(expect_test::expect![[r#"
