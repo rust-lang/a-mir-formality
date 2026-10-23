@@ -357,6 +357,7 @@ pub(super) fn struct_field_index(
 pub(super) fn binop(op: &BinOpKind, left: MiniRustValue, right: MiniRustValue) -> MiniRustValue {
     let operator = match op {
         BinOpKind::Add => lang::BinOp::Int(lang::IntBinOp::Add),
+        BinOpKind::Sub => lang::BinOp::Int(lang::IntBinOp::Sub),
     };
     MiniRustValue(lang::ValueExpr::BinOp {
         operator,

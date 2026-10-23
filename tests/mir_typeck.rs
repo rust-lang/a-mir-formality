@@ -1220,3 +1220,16 @@ fn test_add_mismatched_int_types() {
 
         crates/formality-rust/src/prove/prove_normalize.rs:21:1: no applicable rules for prove_normalize { p: i32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }"#]])
 }
+
+#[test]
+fn test_sub_mismatched_int_types() {
+    FormalityTest::new(crates![crate Foo {
+        fn foo() -> () {
+            let x: i32 = 10_i32 - 3_u32;
+        }
+    }])
+    .err(expect_test::expect![[r#"
+        crates/formality-rust/src/prove/prove_normalize.rs:21:1: no applicable rules for prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+
+        crates/formality-rust/src/prove/prove_normalize.rs:21:1: no applicable rules for prove_normalize { p: i32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }"#]])
+}

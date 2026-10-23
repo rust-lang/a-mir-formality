@@ -152,6 +152,12 @@ pub enum Stmt {
 
 #[term]
 pub enum Expr {
+    /// Group a value expression without changing its meaning.
+    /// Parenthesized places are handled by `PlaceExpr::Parens`.
+    #[grammar(($v0))]
+    #[reject(Expr::Place(_))]
+    Parens(Arc<Expr>),
+
     /// `place = expr`
     ///
     /// Assign a value to a place expression. Evaluates to `()`.
@@ -311,12 +317,15 @@ pub enum FnName {
 pub enum BinOpKind {
     #[grammar(+)]
     Add,
+    #[grammar(-)]
+    Sub,
 }
 
 impl BinOpKind {
     pub fn as_str(&self) -> &'static str {
         match self {
             BinOpKind::Add => "+",
+            BinOpKind::Sub => "-",
         }
     }
 }
