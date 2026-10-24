@@ -4944,8 +4944,20 @@ fn later_field_keeps_shared_borrow_live() {
             }
         }
     }])
-    // No `.rustc_err(..)`: the Rust translation turns `Pair<'r1, 'r0>` into undeclared
-    // lifetimes (E0261), so rustc can't be compared here. Checked by hand (see doc comment).
+    .rustc_err(expect_test::expect![[r#"
+        error[E0502]: cannot borrow `v` as mutable because it is also borrowed as immutable
+          --> lib.rs
+           |
+         9 |         let mut r: &'_ u32 = &v;
+           |                              -- immutable borrow occurs here
+        10 |         let mut p: Pair<'_, '_> = Pair::<'_, '_> { a: &mut v, b: r };
+           |                                                       ^^^^^^     - immutable borrow later used here
+           |                                                       |
+           |                                                       mutable borrow occurs here
+
+        For more information about this error, try `rustc --explain E0502`.
+        error: could not compile `Foo` (lib) due to 1 previous error
+    "#]])
     .skip_execute()
     .borrowck_err(
         BorrowCheckFailure::All,
@@ -5029,6 +5041,7 @@ fn mut_borrows_of_disjoint_fields_in_arguments() {
     .skip_execute()
     .borrowck_ok();
 }
+
 /// A later argument reads a shared borrow of a *different* local, so the
 /// mutable borrow of `v` does not conflict with it.
 ///
@@ -5044,6 +5057,27 @@ fn later_argument_reads_borrow_of_other_local() {
                 let r: &'r0 u32 = &'r0 w;
                 let x: u32 = pair::<'r1, 'r0>(&'r1 mut v, r);
                 return x;
+            }
+        }
+    }])
+    .rustc_ok()
+    .skip_execute()
+    .borrowck_ok();
+}
+
+/// A struct with a lifetime from `exists` in a `let` type and a struct literal.
+/// The Rust translation must print that lifetime as `'_` so rustc can infer it.
+///
+/// rustc: [nll] pass, [polonius] pass, [legacy] pass.
+#[test]
+fn struct_with_exists_lifetime_translates_for_rustc() {
+    FormalityTest::new(crates![crate Foo {
+        struct Wrapper<'a> { value: &'a u32 }
+        fn f() -> u32 {
+            exists<'r0> {
+                let v: u32 = 0_u32;
+                let w: Wrapper<'r0> = Wrapper::<'r0> { value: &'r0 v };
+                return *w.value;
             }
         }
     }])
