@@ -12,6 +12,7 @@ mod constructors;
 mod custom;
 mod debug;
 mod fold;
+mod judgment;
 mod parse;
 mod precedence;
 mod reject;
@@ -92,4 +93,9 @@ pub fn respan(t: TokenStream) -> TokenStream {
             })
             .collect()
     }
+}
+
+#[proc_macro]
+pub fn judgment(input: TokenStream) -> TokenStream {
+    judgment::judgment(input)
 }
