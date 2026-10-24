@@ -1272,3 +1272,31 @@ fn test_sub_mismatched_int_types() {
 
         crates/formality-rust/src/prove/prove_normalize.rs:21:1: no applicable rules for prove_normalize { p: i32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }"#]])
 }
+
+/// Multiplying integers of different types should fail.
+#[test]
+fn test_mul_mismatched_int_types() {
+    FormalityTest::new(crates![crate Foo {
+        fn foo() -> () {
+            let x: i32 = 3_i32 * 4_u32;
+        }
+    }])
+    .err(expect_test::expect![[r#"
+        crates/formality-rust/src/prove/prove_normalize.rs:21:1: no applicable rules for prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+
+        crates/formality-rust/src/prove/prove_normalize.rs:21:1: no applicable rules for prove_normalize { p: i32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }"#]])
+}
+
+/// Multiplication requires integers, even when both operands have the same type.
+#[test]
+fn test_mul_boolean_operands() {
+    FormalityTest::new(crates![crate Foo {
+        fn foo() -> () {
+            let x: bool = true * false;
+        }
+    }])
+    .err(expect_test::expect![[r#"
+        the rule "binop" at (nll.rs) failed because
+          condition evaluated to false: `scalar.is_int()`
+            scalar = bool"#]])
+}

@@ -358,6 +358,7 @@ pub(super) fn binop(op: &BinOpKind, left: MiniRustValue, right: MiniRustValue) -
     let operator = match op {
         BinOpKind::Add => lang::BinOp::Int(lang::IntBinOp::Add),
         BinOpKind::Sub => lang::BinOp::Int(lang::IntBinOp::Sub),
+        BinOpKind::Mul => lang::BinOp::Int(lang::IntBinOp::Mul),
     };
     MiniRustValue(lang::ValueExpr::BinOp {
         operator,

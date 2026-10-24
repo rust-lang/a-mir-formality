@@ -174,6 +174,7 @@ pub enum Expr {
     // Restrict the callee without restricting precedence inside the arguments.
     #[reject(Expr::Assign { .. }, _)]
     #[reject(Expr::BinOp { .. }, _)]
+    #[reject(Expr::Mul { .. }, _)]
     Call { callee: Arc<Expr>, args: Vec<Expr> },
 
     #[cast]
@@ -216,11 +217,17 @@ pub enum Expr {
 
     #[grammar($lhs $op $rhs)]
     #[precedence(1)]
+    #[reject(_, BinOpKind::Mul, _)]
     BinOp {
         lhs: Arc<Expr>,
         op: BinOpKind,
         rhs: Arc<Expr>,
     },
+
+    // Multiplication comes before addition.
+    #[grammar($lhs * $rhs)]
+    #[precedence(2)]
+    Mul { lhs: Arc<Expr>, rhs: Arc<Expr> },
 }
 
 // ANCHOR: PlaceExpr
@@ -319,6 +326,8 @@ pub enum BinOpKind {
     Add,
     #[grammar(-)]
     Sub,
+    #[grammar(*)]
+    Mul,
 }
 
 impl BinOpKind {
@@ -326,6 +335,7 @@ impl BinOpKind {
         match self {
             BinOpKind::Add => "+",
             BinOpKind::Sub => "-",
+            BinOpKind::Mul => "*",
         }
     }
 }
