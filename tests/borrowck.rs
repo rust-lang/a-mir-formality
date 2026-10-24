@@ -4877,6 +4877,194 @@ fn issue_70044_location_insensitive_constraints() {
     .borrowck_err(BorrowCheckFailure::Nll, expect_test::expect![[""]]);
 }
 
+/// A later argument reads `r`, so the shared borrow of `v` is still live
+/// when the first argument borrows `v` mutably.
+///
+/// rustc: [nll] error, [polonius] error, [legacy] error. (E0502)
+#[test]
+fn later_argument_keeps_shared_borrow_live() {
+    FormalityTest::new(crates![crate Foo {
+        fn pair<'a, 'b>(a: &'a mut u32, b: &'b u32) -> u32 { return 0_u32; }
+        fn f() -> u32 {
+            exists<'r0, 'r1> {
+                let v: u32 = 0_u32;
+                let r: &'r0 u32 = &'r0 v;
+                let x: u32 = pair::<'r1, 'r0>(&'r1 mut v, r);
+                return x;
+            }
+        }
+    }])
+    .rustc_err(expect_test::expect![[r#"
+        error[E0502]: cannot borrow `v` as mutable because it is also borrowed as immutable
+         --> lib.rs
+          |
+        8 |         let mut r: &'_ u32 = &v;
+          |                              -- immutable borrow occurs here
+        9 |         let mut x: u32 = pair(&mut v, r);
+          |                               ^^^^^^  - immutable borrow later used here
+          |                               |
+          |                               mutable borrow occurs here
+
+        For more information about this error, try `rustc --explain E0502`.
+        error: could not compile `Foo` (lib) due to 1 previous error
+    "#]])
+    .skip_execute()
+    .borrowck_err(
+        BorrowCheckFailure::All,
+        expect_test::expect![[r#"
+        the rule "borrow of disjoint places" at (nll.rs) failed because
+          condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
+            &loan.place = v : u32
+            &access.place = v : u32
+
+        the rule "loan_cannot_outlive" at (nll.rs) failed because
+          condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+            outlived_by_loan = {?lt_1}
+            &lifetime.upcast() = ?lt_1
+
+        the rule "write-indirect" at (nll.rs) failed because
+          pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `v`"#]],
+    );
+}
+
+/// Same as above, but with struct fields: field `b` reads `r` after
+/// field `a` borrows `v` mutably.
+///
+/// rustc: [nll] error, [polonius] error, [legacy] error. (E0502)
+#[test]
+fn later_field_keeps_shared_borrow_live() {
+    FormalityTest::new(crates![crate Foo {
+        struct Pair<'a, 'b> { a: &'a mut u32, b: &'b u32 }
+        fn f() -> u32 {
+            exists<'r0, 'r1> {
+                let v: u32 = 0_u32;
+                let r: &'r0 u32 = &'r0 v;
+                let p: Pair<'r1, 'r0> = Pair::<'r1, 'r0> { a: &'r1 mut v, b: r };
+                return 0_u32;
+            }
+        }
+    }])
+    .rustc_err(expect_test::expect![[r#"
+        error[E0502]: cannot borrow `v` as mutable because it is also borrowed as immutable
+          --> lib.rs
+           |
+         9 |         let mut r: &'_ u32 = &v;
+           |                              -- immutable borrow occurs here
+        10 |         let mut p: Pair<'_, '_> = Pair::<'_, '_> { a: &mut v, b: r };
+           |                                                       ^^^^^^     - immutable borrow later used here
+           |                                                       |
+           |                                                       mutable borrow occurs here
+
+        For more information about this error, try `rustc --explain E0502`.
+        error: could not compile `Foo` (lib) due to 1 previous error
+    "#]])
+    .skip_execute()
+    .borrowck_err(
+        BorrowCheckFailure::All,
+        expect_test::expect![[r#"
+        the rule "struct" at (nll.rs) failed because
+          condition evaluated to false: `field.name == field_exprs[i].name`
+
+        the rule "borrow of disjoint places" at (nll.rs) failed because
+          condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
+            &loan.place = v : u32
+            &access.place = v : u32
+
+        the rule "loan_cannot_outlive" at (nll.rs) failed because
+          condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+            outlived_by_loan = {?lt_1}
+            &lifetime.upcast() = ?lt_1
+
+        the rule "write-indirect" at (nll.rs) failed because
+          pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `v`"#]],
+    );
+}
+
+/// `v` is copied as the first argument before `&mut v` is created,
+/// so there is no conflict.
+///
+/// rustc: [nll] pass, [polonius] pass, [legacy] pass.
+#[test]
+fn copy_before_mut_borrow_in_arguments() {
+    FormalityTest::new(crates![crate Foo {
+        fn cb<'a>(b: u32, a: &'a mut u32) -> u32 { return b; }
+        fn f() -> u32 {
+            exists<'r0> {
+                let v: u32 = 0_u32;
+                let x: u32 = cb::<'r0>(v, &'r0 mut v);
+                return x;
+            }
+        }
+    }])
+    .rustc_ok()
+    .skip_execute()
+    .borrowck_ok();
+}
+
+/// Two shared borrows of the same local as arguments are allowed.
+///
+/// rustc: [nll] pass, [polonius] pass, [legacy] pass.
+#[test]
+fn two_shared_borrows_in_arguments() {
+    FormalityTest::new(crates![crate Foo {
+        fn ss<'a, 'b>(a: &'a u32, b: &'b u32) -> u32 { return 0_u32; }
+        fn f() -> u32 {
+            exists<'r0, 'r1> {
+                let v: u32 = 0_u32;
+                let x: u32 = ss::<'r0, 'r1>(&'r0 v, &'r1 v);
+                return x;
+            }
+        }
+    }])
+    .rustc_ok()
+    .skip_execute()
+    .borrowck_ok();
+}
+
+/// Mutable borrows of two different fields of the same struct are allowed.
+///
+/// rustc: [nll] pass, [polonius] pass, [legacy] pass.
+#[test]
+fn mut_borrows_of_disjoint_fields_in_arguments() {
+    FormalityTest::new(crates![crate Foo {
+        struct S { a: u32, b: u32 }
+        fn both<'a, 'b>(a: &'a mut u32, b: &'b mut u32) -> u32 { return 0_u32; }
+        fn f() -> u32 {
+            exists<'r0, 'r1> {
+                let s: S = S { a: 0_u32, b: 0_u32 };
+                let x: u32 = both::<'r0, 'r1>(&'r0 mut s.a, &'r1 mut s.b);
+                return x;
+            }
+        }
+    }])
+    .rustc_ok()
+    .skip_execute()
+    .borrowck_ok();
+}
+
+/// A later argument reads a shared borrow of a *different* local, so the
+/// mutable borrow of `v` does not conflict with it.
+///
+/// rustc: [nll] pass, [polonius] pass, [legacy] pass.
+#[test]
+fn later_argument_reads_borrow_of_other_local() {
+    FormalityTest::new(crates![crate Foo {
+        fn pair<'a, 'b>(a: &'a mut u32, b: &'b u32) -> u32 { return 0_u32; }
+        fn f() -> u32 {
+            exists<'r0, 'r1> {
+                let v: u32 = 0_u32;
+                let w: u32 = 0_u32;
+                let r: &'r0 u32 = &'r0 w;
+                let x: u32 = pair::<'r1, 'r0>(&'r1 mut v, r);
+                return x;
+            }
+        }
+    }])
+    .rustc_ok()
+    .skip_execute()
+    .borrowck_ok();
+}
+
 /// A struct with a lifetime from `exists` in a `let` type and a struct literal.
 /// The Rust translation must print that lifetime as `'_` so rustc can infer it.
 ///
