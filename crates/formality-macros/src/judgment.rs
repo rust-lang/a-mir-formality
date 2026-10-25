@@ -2,6 +2,7 @@
 #![expect(unused_variables)]
 
 use proc_macro::TokenStream;
+use quote::quote;
 use syn::parse::{Parse, ParseStream, Result};
 use syn::punctuated::Punctuated;
 use syn::token::Paren;
@@ -546,9 +547,236 @@ fn parse_for_all(input: &mut ParseStream) -> Result<PremiseKind> {
     }))
 }
 
+fn emit(judgment: Judgment) -> proc_macro2::TokenStream {
+    let attributes = &judgment.attributes;
+    let signature_tokens = emit_signature(&judgment.signature);
+    let judgment_struct = emit_judgment_struct(&judgment.signature, &judgment.body.debug);
+    let function_body = emit_function_body(&judgment);
+
+    quote! {
+        #(#attributes)*
+        #signature_tokens {
+            #judgment_struct
+
+            #function_body
+        }
+    }
+}
+
+fn emit_signature(
+    Signature {
+        visibility,
+        name,
+        arguments,
+        return_,
+    }: &Signature,
+) -> proc_macro2::TokenStream {
+    let args: Vec<_> = arguments
+        .iter()
+        .map(|Argument { name, ty }| quote! { #name: impl ::formality_core::Upcast<#ty> })
+        .collect();
+
+    quote! {
+        #visibility fn #name(#(#args),*) -> ::formality_core::ProvenSet<#return_>
+    }
+}
+
+fn emit_judgment_struct(judgment: &Signature, debug: &Debug) -> proc_macro2::TokenStream {
+    let tys: Vec<_> = judgment
+        .arguments
+        .iter()
+        .map(|Argument { name, ty }| ty)
+        .collect();
+
+    let names: Vec<_> = judgment
+        .arguments
+        .iter()
+        .map(|Argument { name, ty }| name)
+        .collect();
+
+    let name = &judgment.name;
+    let idents = &debug.idents;
+
+    quote! {
+        #[derive(Ord, PartialOrd, Eq, PartialEq, Hash, Clone)]
+        struct __JudgmentStruct(#(#tys),*);
+
+        // TODO: Fix hard coded path
+        ::formality_core::cast_impl!(__JudgmentStruct);
+
+        impl std::fmt::Debug for __JudgmentStruct {
+            fn fmt(&self, fmt: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                let mut f = fmt.debug_struct(stringify!(#name));
+                let __JudgmentStruct(#(#names),*) = self;
+                #(
+                    f.field(stringify!(#idents), #idents);
+                )*
+                f.finish()
+            }
+        }
+    }
+}
+
+fn emit_function_body(judgment: &Judgment) -> proc_macro2::TokenStream {
+    let input_name: Vec<_> = judgment
+        .signature
+        .arguments
+        .iter()
+        .map(|Argument { name, ty }| name)
+        .collect();
+
+    let input_ty: Vec<_> = judgment
+        .signature
+        .arguments
+        .iter()
+        .map(|Argument { name, ty }| ty)
+        .collect();
+
+    let assert_expr: Vec<_> = judgment
+        .body
+        .asserts
+        .assertions
+        .iter()
+        .map(|Assert { assertion }| assertion)
+        .collect();
+
+    let trivial_expr: Vec<_> = judgment
+        .body
+        .trivials
+        .trivials
+        .iter()
+        .map(
+            |Trivial {
+                 hypothesis,
+                 conclusion,
+             }| hypothesis,
+        )
+        .collect();
+    let trivial_result: Vec<_> = judgment
+        .body
+        .trivials
+        .trivials
+        .iter()
+        .map(
+            |Trivial {
+                 hypothesis,
+                 conclusion,
+             }| conclusion,
+        )
+        .collect();
+
+    let output = &judgment.signature.return_;
+    let name = &judgment.signature.name;
+    let debug_input_name = &judgment.body.debug.idents;
+
+    quote! {
+        // TODO: Fix hard coded path
+        #(let #input_name: #input_ty = ::formality_core::Upcast::upcast(#input_name);)*
+
+        {
+            #(
+                #[allow(unused_variables)]
+                let #input_name = &#input_name;
+            )*
+            #(
+                // TODO: Fix hard coded path
+                ::formality_core::respan!(
+                    #assert_expr
+                    (
+                        // TODO: Fix hard coded path
+                        ::formality_core::judgment::JudgmentAssertion::assert(#assert_expr, stringify!(#assert_expr));
+                    )
+                )
+            )*
+        }
+
+        #(
+            // Trivial cases are an (important) optimization that lets
+            // you cut out all the normal rules.
+            if #trivial_expr {
+                let trivial_result = #trivial_result;
+                // TODO: Fix hard coded path
+                let (file, line, column) = ::formality_core::respan!(
+                    #trivial_expr
+                        ((file!(), line!(), column!()))
+                );
+                // TODO: Fix hard coded path
+                let proof_tree = ::formality_core::judgment::ProofTree::with_all(
+                    format!("trivial, as {} is true: {trivial_result:?}", stringify!(#trivial_expr)),
+                    Default::default(),
+                    None,
+                    file,
+                    line,
+                    column,
+                    Default::default(),
+                );
+                // TODO: Fix hard coded path
+                return ::formality_core::ProvenSet::singleton((trivial_result, proof_tree));
+            }
+        )*
+
+        // TODO: Fix hard coded path
+        let mut failed_rules = ::formality_core::set![];
+        let input = __JudgmentStruct(#(#input_name),*);
+        // TODO: Fix hard coded path
+        let output = ::formality_core::fixed_point::fixed_point::<
+            __JudgmentStruct,
+        // TODO: Fix hard coded path
+        ::formality_core::Map<#output, ::formality_core::judgment::ProofTree>,
+        >(
+            // Tracing span:
+            |input| {
+                let __JudgmentStruct(#(#input_name),*) = input;
+                tracing::debug_span!(
+                    stringify!(#name),
+                    #(?#debug_input_name),*
+                )
+            },
+
+            // Stack:
+            {
+                thread_local! {
+                    static R: ::formality_core::judgment::JudgmentStack<__JudgmentStruct, #output> = Default::default()
+                }
+                &R
+            },
+
+            // Input:
+            input.clone(),
+
+            // Default value:
+            |_| Default::default(),
+
+            // Next value:
+            |input: __JudgmentStruct| {
+                let mut output: ::formality_core::Map<#output, ::formality_core::judgment::ProofTree> = ::formality_core::Map::new();
+
+                failed_rules.clear();
+
+                #[allow(unused)]
+                let input_string = format!("{:?}", input);
+
+                // TODO: Implement push_rules!
+                output
+            },
+        );
+
+        if !output.is_empty() {
+            ::formality_core::ProvenSet::proven(output)
+        } else {
+            ::formality_core::ProvenSet::failed_rules(
+                &input,
+                ::formality_core::judgment::FailureLocation::caller(),
+                failed_rules,
+            )
+        }
+    }
+}
+
 pub fn judgment(input: TokenStream) -> TokenStream {
-    let _input = parse_macro_input!(input as Judgment);
-    TokenStream::new()
+    let input = parse_macro_input!(input as Judgment);
+    let tokens = emit(input);
+    TokenStream::from(tokens)
 }
 
 mod keyword {
