@@ -128,3 +128,25 @@ fn trait_with_lifetime_forall_on_assoc_type_with_outer_params() {
     .rustc_ok()
     .ok();
 }
+
+/// The higher-ranked bound applies to `Item`, not to the type implementing `B`.
+/// `u32` implements `A` for every lifetime; `S` deliberately does not.
+#[test]
+fn higher_ranked_associated_type_bound_does_not_require_self_bound() {
+    FormalityTest::new(crates![crate Foo {
+        trait A<'a> {}
+        trait B {
+            type Item: [for<'a> A<'a>];
+        }
+
+        impl<'a> A<'a> for u32 {}
+        struct S {}
+        impl B for S {
+            type Item = u32;
+        }
+
+        fn main() -> () {}
+    }])
+    .rustc_ok()
+    .ok();
+}
