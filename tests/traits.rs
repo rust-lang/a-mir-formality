@@ -98,3 +98,33 @@ fn associated_type_trait_and_outlives_bounds() {
     .rustc_ok()
     .ok();
 }
+
+#[test]
+fn trait_with_lifetime_forall_on_assoc_type() {
+    FormalityTest::new(crates![
+        crate core {
+            trait A { }
+            trait B {
+                type Item: [for<'a> A];
+            }
+        }
+    ])
+    .skip_execute()
+    .rustc_ok()
+    .ok();
+}
+
+#[test]
+fn trait_with_lifetime_forall_on_assoc_type_with_outer_params() {
+    FormalityTest::new(crates![
+        crate core {
+            trait A<T> { }
+            trait B<U> {
+                type Item: [for<'a> A<U>];
+            }
+        }
+    ])
+    .skip_execute()
+    .rustc_ok()
+    .ok();
+}
