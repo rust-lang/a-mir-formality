@@ -375,6 +375,69 @@ mod test {
     }
 
     #[test]
+    fn tuple_const_generic_args_compile_and_execute() {
+        let cases = [
+            (tuple_const(vec![]), "()", "()"),
+            (tuple_const(vec![u32_const(7)]), "(u32,)", "(7_u32,)"),
+            (
+                tuple_const(vec![u32_const(1), bool_const(true)]),
+                "(u32, bool)",
+                "(1_u32, true)",
+            ),
+            (
+                tuple_const(vec![
+                    tuple_const(vec![u32_const(2), u32_const(3)]),
+                    bool_const(false),
+                ]),
+                "((u32, u32), bool)",
+                "((2_u32, 3_u32), false)",
+            ),
+        ];
+        // Supply gates in this Rust test wrapper until the input grammar supports them.
+        let mut source = String::from(
+            "#![feature(adt_const_params, unsized_const_params)]\n\
+             #![allow(incomplete_features)]\n",
+        );
+        let mut body = String::from("fn main() {\n");
+        let mut ctx = Context::default();
+        for (i, (constant, ty, expected)) in cases.into_iter().enumerate() {
+            let arg = Parameter::Const(constant.into());
+            let rust_arg = lower_generic_arg(&mut ctx, &arg).unwrap();
+            source.push_str(&format!("fn value_{i}<const V: {ty}>() -> {ty} {{ V }}\n"));
+            body.push_str(&format!(
+                "assert_eq!(value_{i}::<{rust_arg}>(), {expected});\n"
+            ));
+        }
+        body.push_str("}\n");
+        source.push_str(&body);
+
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("tuple_consts.rs");
+        let binary = dir
+            .path()
+            .join(format!("tuple_consts{}", std::env::consts::EXE_SUFFIX));
+        std::fs::write(&path, &source).unwrap();
+        let output = std::process::Command::new("rustc")
+            .arg("--edition=2021")
+            .arg(&path)
+            .arg("-o")
+            .arg(&binary)
+            .output()
+            .unwrap();
+        assert!(
+            output.status.success(),
+            "generated Rust:\n{source}\nrustc stderr:\n{}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        let output = std::process::Command::new(&binary).output().unwrap();
+        assert!(
+            output.status.success(),
+            "{}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+    }
+
+    #[test]
     fn tuple_const_arity_mismatch_is_an_error() {
         let mut ctx = Context::default();
         let konst = Const::RigidValue(RigidConstData {
