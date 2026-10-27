@@ -15,6 +15,6 @@ regex = "1.12.3"
 tracing = "0.1"
 fn-error-context = "0.2.0"
 minirust-rs = { path = "../minirust-rs" }
-libspecr = "=0.1.40"
+libspecr = "=0.1.41"
 tempfile = "3.27.0"
 expect-test = "1.4.0"

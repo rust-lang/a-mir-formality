@@ -398,7 +398,13 @@ pub trait Memory: libspecr::hidden::Obj {
     type Provenance: libspecr::hidden::Obj + for<'de> serde::Deserialize<'de> + serde::Serialize;
     /// Extra information for each stack frame.
     type FrameExtra: libspecr::hidden::Obj + for<'de> serde::Deserialize<'de> + serde::Serialize;
-    fn new() -> Self;
+    /// Parameters controlling memory model behavior, passed at construction time.
+    type Params: Default
+        + libspecr::hidden::Obj
+        + for<'de> serde::Deserialize<'de>
+        + serde::Serialize;
+    /// Create a new instance of the memory model with the given parameters.
+    fn new(params: Self::Params) -> Self;
     /// Create a new allocation.
     /// The initial contents of the allocation are `AbstractByte::Uninit`.
     ///
@@ -465,6 +471,7 @@ pub trait Memory: libspecr::hidden::Obj {
         ptr: Pointer<Self::Provenance>,
         _ptr_type: PtrType,
         _fn_entry: bool,
+        _fn_implicit_writes: bool,
         _vtable_lookup: impl Fn(ThinPointer<Self::Provenance>) -> crate::lang::VTable + 'static,
     ) -> Result<Pointer<Self::Provenance>> {
         ret(ptr)
@@ -555,9 +562,9 @@ pub struct Access {
     len: Size,
 }
 impl<M: Memory + libspecr::hidden::Obj> ConcurrentMemory<M> {
-    pub fn new() -> Self {
+    pub fn new(params: M::Params) -> Self {
         Self {
-            memory: M::new(),
+            memory: M::new(params),
             accesses: list![],
         }
     }
@@ -631,10 +638,17 @@ impl<M: Memory + libspecr::hidden::Obj> ConcurrentMemory<M> {
         ptr: Pointer<M::Provenance>,
         ptr_type: PtrType,
         fn_entry: bool,
+        fn_implicit_writes: bool,
         vtable_lookup: impl Fn(ThinPointer<M::Provenance>) -> crate::lang::VTable + 'static,
     ) -> Result<Pointer<M::Provenance>> {
-        self.memory
-            .retag_ptr(frame_extra, ptr, ptr_type, fn_entry, vtable_lookup)
+        self.memory.retag_ptr(
+            frame_extra,
+            ptr,
+            ptr_type,
+            fn_entry,
+            fn_implicit_writes,
+            vtable_lookup,
+        )
     }
     /// Memory model hook invoked at the end of each function call.
     pub fn end_call(&mut self, extra: M::FrameExtra) -> Result {
@@ -952,7 +966,9 @@ impl<T: Target + libspecr::hidden::Obj + for<'de> serde::Deserialize<'de> + serd
     /// The basic memory model does not need any per-frame data,
     /// so we set `FrameExtra` to the unit type.
     type FrameExtra = ();
-    fn new() -> Self {
+    /// The basic memory model does not have any configuration parameters.
+    type Params = ();
+    fn new(_params: ()) -> Self {
         Self::new()
     }
     fn allocate(
@@ -1440,6 +1456,7 @@ impl PermissionProt {
     fn init_access(self) -> Option<AccessKind> {
         match self {
             PermissionProt::Cell => None,
+            PermissionProt::Unique => Some(AccessKind::Write),
             _ => Some(AccessKind::Read),
         }
     }
@@ -1506,12 +1523,6 @@ impl Permission {
         };
         Ok(())
     }
-    fn init_access(self) -> Option<AccessKind> {
-        match self {
-            Permission::Unprot(p) => p.init_access(),
-            Permission::Prot(p) => p.init_access(),
-        }
-    }
     /// When a protector is released, we transition to the unprotected state machine.
     /// Additionally, we might emit a _protector end access_, depending on our current state.
     /// The second state indicates that access, or is `None` when no access should happen.
@@ -1544,6 +1555,12 @@ impl Permission {
             matches!(self, Permission::Prot(_))
         } else {
             matches!(self, Permission::Unprot(_))
+        }
+    }
+    fn init_access(self) -> Option<AccessKind> {
+        match self {
+            Permission::Unprot(p) => p.init_access(),
+            Permission::Prot(p) => p.init_access(),
         }
     }
 }
@@ -1624,8 +1641,8 @@ impl UnsafeCellStrategy {
                 LayoutStrategy::Tuple { head, tail },
                 _,
             ) => {
-                let tail_cells = tail_cells.extract();
                 let tail = tail.extract();
+                let tail_cells = tail_cells.extract();
                 {
                     let mut mask = cells_to_freeze_mask(head_cells, head.end);
                     mask.append(tail_cells.freeze_mask(tail, ptr_metadata, vtable_lookup));
@@ -1643,14 +1660,16 @@ impl ReborrowSettings {
         ptr: Pointer<TreeBorrowsProvenance>,
         ptr_type: PtrType,
         fn_entry: bool,
+        params: TreeBorrowsParams,
+        fn_implicit_writes: bool,
         vtable_lookup: impl Fn(ThinPointer<TreeBorrowsProvenance>) -> crate::lang::VTable + 'static,
     ) -> Option<Self> {
         let Some(pointee_info) = ptr_type.safe_pointee() else {
             return None;
         };
         if matches!(
-            ptr_type, PtrType::Ref { mutbl : Mutability::Mutable, pointee } if ! pointee
-            .unpin
+            ptr_type, PtrType::Ref { mutbl : Mutability::Mutable, pointee } |
+            PtrType::Box { pointee } if ! pointee.unpin
         ) {
             return None;
         }
@@ -1662,53 +1681,66 @@ impl ReborrowSettings {
         } else {
             Protected::No
         };
-        let mk_perm = |unprot, prot| {
-            if protected.yes() {
-                Permission::Prot(prot)
-            } else {
-                Permission::Unprot(unprot)
+        let implicit_writes_enabled =
+            protected.yes() && params.implicit_writes && fn_implicit_writes;
+        let perm = |inside: bool, frozen: bool| {
+            let mk_perm = |unprot, prot| {
+                if protected.yes() {
+                    Permission::Prot(prot)
+                } else {
+                    Permission::Unprot(unprot)
+                }
+            };
+            match ptr_type {
+                PtrType::Ref {
+                    mutbl: Mutability::Immutable,
+                    ..
+                } => {
+                    if frozen {
+                        mk_perm(
+                            PermissionUnprot::Frozen,
+                            PermissionProt::Frozen {
+                                had_local_read: false,
+                            },
+                        )
+                    } else {
+                        mk_perm(PermissionUnprot::Cell, PermissionProt::Cell)
+                    }
+                }
+                PtrType::Ref {
+                    mutbl: Mutability::Mutable,
+                    ..
+                }
+                | PtrType::Box { .. } => {
+                    if implicit_writes_enabled && inside {
+                        assert!(protected.yes());
+                        Permission::Prot(PermissionProt::Unique)
+                    } else {
+                        mk_perm(
+                            if frozen {
+                                PermissionUnprot::Reserved
+                            } else {
+                                PermissionUnprot::ReservedIm
+                            },
+                            PermissionProt::Reserved {
+                                had_local_read: false,
+                                had_foreign_read: false,
+                            },
+                        )
+                    }
+                }
+                PtrType::Raw { .. } | PtrType::FnPtr | PtrType::VTablePtr(_) => {
+                    unreachable!(
+                        "safe_pointee() returns None for Raw, FnPtr, and VTablePtr; should have returned early on function entry"
+                    )
+                }
             }
-        };
-        let no_cell_perm = match ptr_type {
-            PtrType::Ref {
-                mutbl: Mutability::Immutable,
-                ..
-            } => mk_perm(
-                PermissionUnprot::Frozen,
-                PermissionProt::Frozen {
-                    had_local_read: false,
-                },
-            ),
-            _ => mk_perm(
-                PermissionUnprot::Reserved,
-                PermissionProt::Reserved {
-                    had_local_read: false,
-                    had_foreign_read: false,
-                },
-            ),
-        };
-        let cell_perm = match ptr_type {
-            PtrType::Ref {
-                mutbl: Mutability::Immutable,
-                ..
-            } => mk_perm(PermissionUnprot::Cell, PermissionProt::Cell),
-            _ => mk_perm(
-                PermissionUnprot::ReservedIm,
-                PermissionProt::Reserved {
-                    had_local_read: false,
-                    had_foreign_read: false,
-                },
-            ),
         };
         let inside = pointee_info
             .unsafe_cells
             .freeze_mask(pointee_info.layout, ptr.metadata, vtable_lookup)
-            .map(|freeze| if freeze { no_cell_perm } else { cell_perm });
-        let outside = if pointee_info.freeze {
-            no_cell_perm
-        } else {
-            cell_perm
-        };
+            .map(|freeze| perm(true, freeze));
+        let outside = perm(false, pointee_info.freeze);
         Some(ReborrowSettings {
             protected,
             inside,
@@ -1737,6 +1769,25 @@ type ChildId = Int;
 /// A path from the root of a tree to some node inside the tree.
 type Path = List<ChildId>;
 type TreeBorrowsProvenance = (AllocId, Path);
+/// Global parameters controlling Tree Borrows behavior.
+#[derive(
+    Default,
+    GcCompat,
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Hash,
+    PartialOrd,
+    Ord,
+    serde::Serialize,
+    serde::Deserialize,
+)]
+pub struct TreeBorrowsParams {
+    /// Whether implicit writes are enabled or not.
+    pub implicit_writes: bool,
+}
 #[derive(
     GcCompat,
     Debug,
@@ -1751,6 +1802,7 @@ type TreeBorrowsProvenance = (AllocId, Path);
     serde::Deserialize,
 )]
 pub struct TreeBorrowsMemory<T: Target + libspecr::hidden::Obj> {
+    params: TreeBorrowsParams,
     mem: BasicMemory<T, Path, TreeBorrowsAllocationExtra>,
 }
 #[derive(
@@ -1859,9 +1911,11 @@ impl<T: Target + libspecr::hidden::Obj + for<'de> serde::Deserialize<'de> + serd
     type Provenance = TreeBorrowsProvenance;
     type FrameExtra = TreeBorrowsFrameExtra;
     type T = T;
-    fn new() -> Self {
+    type Params = TreeBorrowsParams;
+    fn new(params: TreeBorrowsParams) -> Self {
         Self {
             mem: BasicMemory::new(),
+            params,
         }
     }
     fn allocate(
@@ -1934,10 +1988,18 @@ impl<T: Target + libspecr::hidden::Obj + for<'de> serde::Deserialize<'de> + serd
         ptr: Pointer<Self::Provenance>,
         ptr_type: PtrType,
         fn_entry: bool,
+        fn_implicit_writes: bool,
         vtable_lookup: impl Fn(ThinPointer<Self::Provenance>) -> crate::lang::VTable + 'static,
     ) -> Result<Pointer<Self::Provenance>> {
         ret(
-            if let Some(perms) = ReborrowSettings::new(ptr, ptr_type, fn_entry, vtable_lookup) {
+            if let Some(perms) = ReborrowSettings::new(
+                ptr,
+                ptr_type,
+                fn_entry,
+                self.params,
+                fn_implicit_writes,
+                vtable_lookup,
+            ) {
                 self.reborrow(ptr.thin_pointer, perms, frame_extra)?
                     .widen(ptr.metadata)
             } else {

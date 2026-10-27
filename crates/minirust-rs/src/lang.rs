@@ -228,8 +228,8 @@ impl UnsafeCellStrategy {
                 },
                 LayoutStrategy::Tuple { head, tail },
             ) => {
-                let tail = tail.extract();
                 let tail_cells = tail_cells.extract();
+                let tail = tail.extract();
                 {
                     Self::check_cells(head_cells, head.end)?;
                     tail_cells.check_wf::<T>(tail)?;
@@ -1089,8 +1089,8 @@ impl ValueExpr {
                 left,
                 right,
             } => {
-                let right = right.extract();
                 let left = left.extract();
+                let right = right.extract();
                 {
                     use lang::BinOp::*;
                     let left = left.check_wf::<T>(locals, prog)?;
@@ -2609,6 +2609,8 @@ pub struct Function {
     pub blocks: Map<BbName, BasicBlock>,
     /// The basic block where execution starts.
     pub start: BbName,
+    /// Whether implicit writes are enabled for this function.
+    pub implicit_writes: bool,
 }
 /// A basic block is a sequence of statements followed by a terminator.
 #[derive(
@@ -3068,9 +3070,14 @@ impl<M: Memory + libspecr::hidden::Obj> Machine<M> {
             throw_ub!("transmuted value is not valid at new type")
         }
     }
-    pub fn new(prog: Program, stdout: DynWrite, stderr: DynWrite) -> NdResult<Machine<M>> {
+    pub fn new(
+        prog: Program,
+        mem_params: M::Params,
+        stdout: DynWrite,
+        stderr: DynWrite,
+    ) -> NdResult<Machine<M>> {
         prog.check_wf::<M::T>()?;
-        let mut mem = ConcurrentMemory::<M>::new();
+        let mut mem = ConcurrentMemory::<M>::new(mem_params);
         let mut global_ptrs = Map::new();
         let mut fn_ptrs = Map::new();
         let mut vtable_ptrs = Map::new();
@@ -3640,7 +3647,14 @@ impl<M: Memory + libspecr::hidden::Obj> Machine<M> {
             (Value::Ptr(ptr), Type::Ptr(ptr_type)) => {
                 let lookup = self.vtable_lookup();
                 let val = self.mutate_cur_frame(|frame, mem| {
-                    mem.retag_ptr(&mut frame.extra, ptr, ptr_type, fn_entry, lookup)
+                    mem.retag_ptr(
+                        &mut frame.extra,
+                        ptr,
+                        ptr_type,
+                        fn_entry,
+                        frame.func.implicit_writes,
+                        lookup,
+                    )
                 })?;
                 Value::Ptr(val)
             }
@@ -4676,7 +4690,7 @@ impl<M: Memory + libspecr::hidden::Obj> Machine<M> {
                     self.check_value(Value::Ptr(place.ptr), Type::Ptr(ptr_ty))?;
                     let lookup = self.vtable_lookup();
                     let ptr = self.mutate_cur_frame(|frame, mem| {
-                        mem.retag_ptr(&mut frame.extra, place.ptr, ptr_ty, false, lookup)
+                        mem.retag_ptr(&mut frame.extra, place.ptr, ptr_ty, false, true, lookup)
                     })?;
                     ret((Value::Ptr(ptr), Type::Ptr(ptr_ty)))
                 }
@@ -4694,8 +4708,8 @@ impl<M: Memory + libspecr::hidden::Obj> Machine<M> {
                 left,
                 right,
             } => {
-                let left = left.extract();
                 let right = right.extract();
+                let left = left.extract();
                 {
                     use lang::BinOp::*;
                     let left = self.eval_value(left)?;
