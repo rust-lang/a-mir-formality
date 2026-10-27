@@ -161,6 +161,76 @@ fn drop_impl_missing_drop_fn() {
           not all trait items implemented, missing: `drop`"#]])
 }
 
+/// `drop` must take a mutable reference to the implementing type.
+#[test]
+fn drop_impl_shared_receiver() {
+    FormalityTest::new(crates![crate Foo {
+        struct MyStruct {}
+
+        impl Drop for MyStruct {
+            fn drop<'a>(self: &'a MyStruct) -> () {}
+        }
+    }])
+    .rustc_err(expect_test::expect![[r#"
+        error[E0053]: method `drop` has an incompatible type for trait
+         --> lib.rs
+          |
+        4 |     fn drop<'a10>(mut self: &'a10 MyStruct) -> () {}
+          |                             ^^^^^^^^^^^^^^ types differ in mutability
+          |
+          = note: expected signature `fn(&mut MyStruct)`
+                     found signature `fn(&MyStruct)`
+        help: change the self-receiver type to match the trait
+          |
+        4 -     fn drop<'a10>(mut self: &'a10 MyStruct) -> () {}
+        4 +     fn drop<'a10>(mut &mut self) -> () {}
+          |
+
+        For more information about this error, try `rustc --explain E0053`.
+        error: could not compile `Foo` (lib) due to 1 previous error
+    "#]])
+    .err(expect_test::expect![[r#"
+        crates/formality-rust/src/prove/prove_normalize.rs:21:1: no applicable rules for prove_normalize { p: &!lt_0 mut MyStruct, assumptions: {}, env: Env { variables: [!lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+        crates/formality-rust/src/prove/prove_normalize.rs:21:1: no applicable rules for prove_normalize { p: &!lt_0 MyStruct, assumptions: {}, env: Env { variables: [!lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }"#]]);
+}
+
+/// `drop` must return unit, even when its body matches another return type.
+#[test]
+fn drop_impl_non_unit_return() {
+    FormalityTest::new(crates![crate Foo {
+        struct MyStruct {}
+
+        impl Drop for MyStruct {
+            fn drop<'a>(self: &'a mut MyStruct) -> u32 {
+                return 0_u32;
+            }
+        }
+    }])
+    .rustc_err(expect_test::expect![[r#"
+        error[E0053]: method `drop` has an incompatible type for trait
+         --> lib.rs
+          |
+        4 |     fn drop<'a10>(mut self: &'a10 mut MyStruct) -> u32 {
+          |                                                    ^^^ expected `()`, found `u32`
+          |
+          = note: expected signature `fn(&mut MyStruct) -> ()`
+                     found signature `fn(&mut MyStruct) -> u32`
+        help: change the output type to match the trait
+          |
+        4 -     fn drop<'a10>(mut self: &'a10 mut MyStruct) -> u32 {
+        4 +     fn drop<'a10>(mut self: &'a10 mut MyStruct) -> () {
+          |
+
+        For more information about this error, try `rustc --explain E0053`.
+        error: could not compile `Foo` (lib) due to 1 previous error
+    "#]])
+    .err(expect_test::expect![[r#"
+        crates/formality-rust/src/prove/prove_normalize.rs:21:1: no applicable rules for prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+        crates/formality-rust/src/prove/prove_normalize.rs:21:1: no applicable rules for prove_normalize { p: (), assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: false } }"#]]);
+}
+
 /// Drop impl with extra where-clause not on the struct.
 #[test]
 fn drop_impl_extra_where_clause() {
