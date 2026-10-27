@@ -368,6 +368,8 @@ impl LiveBefore for Expr {
                 Seq(&**callee, args).live_before(env, scopes, places_live)
             }
 
+            Expr::Parens(expr) => expr.live_before(env, scopes, places_live),
+
             // Literals don't access any places.
             Expr::Literal { .. } | Expr::True | Expr::False => places_live,
 

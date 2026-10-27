@@ -102,6 +102,7 @@ pub fn lower_expr(ctx: &mut Context, expr: &Expr) -> Fallible<syntax::Expr> {
             },
             suffix: tys::scalar_to_string(ty),
         }),
+        Expr::Parens(expr) => Ok(syntax::Expr::Paren(Box::new(lower_expr(ctx, expr)?))),
         Expr::True => Ok(syntax::Expr::Bool(true)),
         Expr::False => Ok(syntax::Expr::Bool(false)),
         Expr::Ref { kind, lt: _, place } => Ok(syntax::Expr::Ref {

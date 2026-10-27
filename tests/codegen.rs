@@ -662,3 +662,113 @@ fn field_evaluation_order() {
     .expect_output("2\n1\n10\n20\n")
     .ok();
 }
+
+#[test]
+fn integer_subtraction() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(10_i32 - 3_i32);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("7\n")
+    .ok();
+}
+
+#[test]
+fn integer_subtraction_negative_result() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(3_i32 - 10_i32);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("-7\n")
+    .ok();
+}
+
+#[test]
+fn integer_subtraction_is_left_associative() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(10_i32 - 3_i32 - 2_i32);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("5\n")
+    .ok();
+}
+
+#[test]
+fn integer_subtraction_with_addition() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(10_i32 - 3_i32 + 2_i32);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("9\n")
+    .ok();
+}
+
+#[test]
+fn subtraction_evaluates_calls_left_to_right() {
+    FormalityTest::new(crates![crate Foo {
+        fn left() -> i32 { println!(1_i32); return 10_i32; }
+        fn right() -> i32 { println!(2_i32); return 3_i32; }
+        fn main() -> () { println!(left() - right()); }
+    }])
+    .rustc_ok()
+    .expect_output("1\n2\n7\n")
+    .ok();
+}
+
+#[test]
+fn integer_subtraction_unsigned() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(10_u32 - 3_u32);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("7\n")
+    .ok();
+}
+
+#[test]
+fn integer_subtraction_with_parentheses() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(10_i32 - (3_i32 - 2_i32));
+        }
+    }])
+    .rustc_ok()
+    .expect_output("9\n")
+    .ok();
+}
+
+#[test]
+fn nested_parentheses_preserve_grouping() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(20_i32 - (10_i32 - (3_i32 - 1_i32)));
+        }
+    }])
+    .rustc_ok()
+    .expect_output("12\n")
+    .ok();
+}
+
+#[test]
+fn parenthesized_assignment_updates_local() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            let x: i32 = 10_i32;
+            (x = (x - 3_i32));
+            println!(x);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("7\n")
+    .ok();
+}
