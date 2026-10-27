@@ -670,6 +670,7 @@ fn integer_subtraction() {
             println!(10_i32 - 3_i32);
         }
     }])
+    .rustc_ok()
     .expect_output("7\n")
     .ok();
 }
@@ -681,6 +682,7 @@ fn integer_subtraction_negative_result() {
             println!(3_i32 - 10_i32);
         }
     }])
+    .rustc_ok()
     .expect_output("-7\n")
     .ok();
 }
@@ -692,6 +694,7 @@ fn integer_subtraction_is_left_associative() {
             println!(10_i32 - 3_i32 - 2_i32);
         }
     }])
+    .rustc_ok()
     .expect_output("5\n")
     .ok();
 }
@@ -703,6 +706,7 @@ fn integer_subtraction_with_addition() {
             println!(10_i32 - 3_i32 + 2_i32);
         }
     }])
+    .rustc_ok()
     .expect_output("9\n")
     .ok();
 }
@@ -740,5 +744,31 @@ fn integer_subtraction_with_parentheses() {
     }])
     .rustc_ok()
     .expect_output("9\n")
+    .ok();
+}
+
+#[test]
+fn nested_parentheses_preserve_grouping() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(20_i32 - (10_i32 - (3_i32 - 1_i32)));
+        }
+    }])
+    .rustc_ok()
+    .expect_output("12\n")
+    .ok();
+}
+
+#[test]
+fn parenthesized_assignment_updates_local() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            let x: i32 = 10_i32;
+            (x = (x - 3_i32));
+            println!(x);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("7\n")
     .ok();
 }
