@@ -536,20 +536,24 @@ judgment_fn! {
             (if !state.has_local(id))!
             (let fn_decl = env.crates().fn_named(id)?)
             (if fn_decl.binder.len() == 0)
+            (let FnBoundData { input_args: _, output_ty: _, where_clauses, body: _ } =
+                fn_decl.binder.instantiate_with(Vec::<Parameter>::new())?)
+            (prove_where_clauses(env, assumptions, state, where_clauses) => state)
             (let ty = Ty::rigid(RigidName::fn_def(id), ()))
-            // FIXME: check where clauses from fn
             ------------------------------------------------------------ ("fn-name")
-            (borrow_check_expr(env, _assumptions, state, Expr::Place(place), _places_live_on_exit) => (ty, state))
+            (borrow_check_expr(env, assumptions, state, Expr::Place(place), _places_live_on_exit) => (ty, state))
         )
 
         (
             // A function name with explicit type arguments (e.g., `foo::<'a, T>(args)`).
             (let fn_decl = env.crates().fn_named(id)?)
             (if fn_decl.binder.len() == args.len())
+            (let FnBoundData { input_args: _, output_ty: _, where_clauses, body: _ } =
+                fn_decl.binder.instantiate_with(args)?)
+            (prove_where_clauses(env, assumptions, state, where_clauses) => state)
             (let ty = Ty::rigid(RigidName::fn_def(id), args))
-            // FIXME: check where clauses from fn
             ------------------------------------------------------------ ("turbofish")
-            (borrow_check_expr(env, _assumptions, state, Expr::Turbofish { id, args }, _places_live_on_exit) => (ty, state))
+            (borrow_check_expr(env, assumptions, state, Expr::Turbofish { id, args }, _places_live_on_exit) => (ty, state))
         )
 
         // fn foo<'a, T>() where T: 'a { }
