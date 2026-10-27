@@ -70,6 +70,7 @@ judgment_fn! {
         (
             (check_for_duplicate_items(program) => ())
             (check_for_non_lifetime_binders(c) => ())
+            (check_for_tuple_consts(c) => ())
             (for_all(item in &c.items)
                 (check_crate_item(program, item, &c.id) => ()))
             (check_coherence(program, c) => ())
@@ -146,6 +147,52 @@ fn check_for_non_lifetime_binders(c: &Crate) -> Fallible<ProofTree> {
     }
 
     Ok(ProofTree::leaf("check_for_non_lifetime_binders: ok"))
+}
+
+fn check_for_tuple_consts(c: &Crate) -> Fallible<ProofTree> {
+    let gate_enabled = |name: FeatureGateName| {
+        c.items
+            .iter()
+            .any(|item| matches!(item, CrateItem::FeatureGate(fg) if fg.name == name))
+    };
+    let adt_const_params = gate_enabled(FeatureGateName::AdtConstParams);
+    let unsized_const_params = gate_enabled(FeatureGateName::UnsizedConstParams);
+
+    let arities: Vec<usize> = c.items.iter().flat_map(item_tuple_const_arities).collect();
+
+    if arities.iter().any(|&n| n > 0) && !(adt_const_params && unsized_const_params) {
+        bail!(
+            "non-empty tuple consts require #![feature(adt_const_params)] and #![feature(unsized_const_params)]"
+        );
+    }
+
+    if !arities.is_empty() && !adt_const_params {
+        bail!("tuple consts require #![feature(adt_const_params)]");
+    }
+
+    Ok(ProofTree::leaf("check_for_tuple_consts: ok"))
+}
+
+/// Arities of the tuple const values in `item`. Tuple const values print as
+/// `tuple(N) <> { ... }`; tuple types print as `(A, B)`.
+/// FIXME: this scans the printed form of the item; a typed traversal would be sturdier.
+fn item_tuple_const_arities(item: &CrateItem) -> Vec<usize> {
+    let text = format!("{item:?}");
+    text.match_indices("tuple(")
+        .filter_map(|(i, _)| {
+            let before_ok = !text[..i]
+                .chars()
+                .next_back()
+                .is_some_and(|ch| ch.is_alphanumeric() || ch == '_');
+            let rest = &text[i + "tuple(".len()..];
+            let digits: String = rest.chars().take_while(|ch| ch.is_ascii_digit()).collect();
+            if before_ok && !digits.is_empty() && rest[digits.len()..].starts_with(") <>") {
+                digits.parse().ok()
+            } else {
+                None
+            }
+        })
+        .collect()
 }
 
 fn item_has_non_lifetime_binder(item: &CrateItem) -> bool {

@@ -17,4 +17,10 @@ pub enum FeatureGateName {
     // #![feature(negative_impls)]
     #[grammar(negative_impls)]
     NegativeImpls,
+    // #![feature(adt_const_params)]
+    #[grammar(adt_const_params)]
+    AdtConstParams,
+    // #![feature(unsized_const_params)]
+    #[grammar(unsized_const_params)]
+    UnsizedConstParams,
 }
