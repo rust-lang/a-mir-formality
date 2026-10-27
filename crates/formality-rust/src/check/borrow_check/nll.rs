@@ -188,21 +188,26 @@ judgment_fn! {
         (
             (prove_ty_is_wf(env, assumptions, state, ty) => state)
             // The variable being declared is not yet live before this `let`,
-            // so remove it from places_live_on_exit before checking the initializer (if any).
-            (for_all(init in init.into_iter()) with (state) // FIXME: should make syntax for this
-                (let Init { expr } = init)
-                (borrow_check_expr_has_ty(env,
-                    assumptions,
-                    state,
-                    expr,
-                    ty,
-                    LiveBefore::live_before(&Assignment(id), env, &state, &places_live_on_exit),
-                ) => state))
-
+            // so remove it from places_live_on_exit before checking the initializer.
+            (borrow_check_expr_has_ty(env,
+                assumptions,
+                state,
+                expr,
+                ty,
+                LiveBefore::live_before(&Assignment(id), env, &state, &places_live_on_exit),
+            ) => state)
             (let state = state.with_local_in_scope(&env.env, label, id, ty)?)
-            (let state = if init.is_none() { state.with_uninit(&PlaceExpr::Var(id.clone())) } else { state.with_initialized(&PlaceExpr::Var(id.clone())) })
+            (let state = state.with_initialized(&PlaceExpr::Var(id.clone())))
             ------------------------------------------------------------ ("let")
-            (borrow_check_statement(env, assumptions, state, Stmt::Let { label, id, ty, init }, places_live_on_exit) => (env, state))
+            (borrow_check_statement(env, assumptions, state, Stmt::Let { label, id, ty, init: Some(Init { expr }) }, places_live_on_exit) => (env, state))
+        )
+
+        (
+            (prove_ty_is_wf(env, assumptions, state, ty) => state)
+            (let state = state.with_local_in_scope(&env.env, label, id, ty)?)
+            (let state = state.with_uninit(&PlaceExpr::Var(id.clone())))
+            ------------------------------------------------------------ ("let-no-init")
+            (borrow_check_statement(env, assumptions, state, Stmt::Let { label, id, ty, init: None }, places_live_on_exit) => (env, state))
         )
 
         (
