@@ -309,7 +309,7 @@ fn test_let_with_ill_formed_type() {
         note: required by a bound in `S2`
           --> lib.rs
            |
-         5 | pub struct S2<T00>
+         5 | pub struct S2<T00: ?Sized>
            |            -- required by a bound in this struct
          6 | where
          7 |     T00: Trait1,

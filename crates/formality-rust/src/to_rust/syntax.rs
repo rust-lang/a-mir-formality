@@ -105,11 +105,14 @@ impl Generics {
 
     /// Like `fmt_params`, but adds `?Sized` to every type parameter.
     ///
-    /// Formality doesn't model `Sized`, but rustc adds an implicit `Sized` bound to every
-    /// type parameter. That bound is unwanted on trait parameters, where it makes rustc
-    /// reject e.g. `trait Foo<T> where T: Bar<Self>` (`Self` is not `Sized`). It can't be
-    /// used everywhere: a by-value fn parameter or struct field of type `T` requires
-    /// `T: Sized`.
+    /// Formality makes `Sized` explicit, while rustc adds an implicit `Sized` bound to every
+    /// type parameter. We use this for traits and structs, where the implicit bound makes
+    /// rustc reject programs formality accepts (e.g. `trait Foo<T> where T: Bar<Self>`,
+    /// since `Self` is not `Sized`). A program with an explicit `T: Sized` bound
+    /// therefore prints as `T: ?Sized + Sized`, which is redundant but valid.
+    ///
+    /// It is not used for fns, enums or impls: a by-value fn parameter of type `T`
+    /// requires `T: Sized`.
     fn fmt_params_relaxed(&self, f: &mut Formatter<'_>) -> fmt::Result {
         self.fmt_params_with(f, true)
     }
@@ -495,7 +498,7 @@ impl Pretty for StructItem {
             write!(f, "{} ", self.visibility)?;
         }
         write!(f, "struct {}", self.name)?;
-        self.generics.fmt_params(f)?;
+        self.generics.fmt_params_relaxed(f)?;
         self.generics.fmt_where_clauses(f)?;
         f.write_str(" {")?;
 

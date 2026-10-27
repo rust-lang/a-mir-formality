@@ -133,7 +133,7 @@ pub struct Bar {
             expect_test::expect![[r#"
                 pub trait Baz { }
 
-                pub struct Bar<T00> where T00: Baz {
+                pub struct Bar<T00: ?Sized> where T00: Baz {
                     pub a: T00,
                 }"#]]
         );
