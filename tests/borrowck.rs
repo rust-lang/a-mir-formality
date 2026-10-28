@@ -4933,8 +4933,7 @@ fn struct_with_exists_lifetime_translates_for_rustc() {
     .borrowck_ok();
 }
 
-/// Regression from Jack Huey's PR #448: reading a Copy place must leave a
-/// successful proof path on which the place can be read again.
+// From #448: reading a Copy value must not prevent reading it again.
 #[test]
 fn read_copy_place_twice() {
     FormalityTest::new(crates![crate Foo {
@@ -4949,8 +4948,7 @@ fn read_copy_place_twice() {
     .borrowck_ok()
 }
 
-/// Regression from Jack Huey's PR #448: shared references are Copy, so the
-/// same reference can be used to initialize two other references and read again.
+// From #448: shared references can be copied and used again.
 #[test]
 fn read_copy_reference_twice() {
     FormalityTest::new(crates![crate Foo {

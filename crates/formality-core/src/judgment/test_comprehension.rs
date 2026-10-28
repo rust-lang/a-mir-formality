@@ -509,7 +509,12 @@ fn multiple_derivations_preserve_all_combinations() {
         .into_keys()
         .collect();
 
-    // Both constructs explore every combination of successful alternatives.
+    // For input 1, `alternatives` returns 1 or 11; for input 2, it returns
+    // 2 or 12. Each result picks one alternative per input, in input order.
+    // That gives four possible vectors. [1, 11] and [2, 12] are not results:
+    // each picks two alternatives for one input and none for the other.
+    // The outer list is sorted by the result map; order *within* each vector
+    // matters. The comprehension and explicit accumulator should agree.
     assert_eq!(
         collected,
         vec![vec![1, 2], vec![1, 12], vec![11, 2], vec![11, 12]]
