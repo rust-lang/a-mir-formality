@@ -93,10 +93,14 @@ impl Env {
         env
     }
 
-    /// Return a clone of the environment with `w` as a pending where-clause
+    /// Return a clone of the environment with `w` as a pending where-clause.
+    /// A where-clause already pending is not added again.
     pub fn with_pending(&self, w: impl Upcast<Predicate>) -> Self {
+        let w: Predicate = w.upcast();
         let mut env = self.clone();
-        env.pending.push(w.upcast());
+        if !env.pending.contains(&w) {
+            env.pending.push(w);
+        }
         env
     }
 }
