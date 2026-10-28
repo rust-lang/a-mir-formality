@@ -6,7 +6,7 @@ use crate::check::borrow_check::nll::{
 };
 use crate::check::borrow_check::typed_place_expression::TypedPlaceExpr;
 use crate::grammar::{
-    expr::{Block, Expr, Literal, PlaceExpr, Stmt},
+    expr::{BinOpKind, Block, Expr, Literal, PlaceExpr, Stmt},
     Crates, Fallible, RigidName, RigidTy, Ty,
 };
 use formality_core::judgment_fn;
@@ -232,6 +232,13 @@ judgment_fn! {
             (codegen_expr_into(global, cfn, scope, target, expr) => (code, global, cfn))
             ---- ("parenthesized")
             (codegen_expr_into(global, cfn, scope, target, Expr::Parens(expr)) => (code, global, cfn))
+        )
+
+        (
+            (let expr = Expr::BinOp { lhs: lhs.clone(), op: BinOpKind::Mul, rhs: rhs.clone() })
+            (codegen_expr_into(global, cfn, scope, target, expr) => (code, global, cfn))
+            ---- ("multiplication")
+            (codegen_expr_into(global, cfn, scope, target, Expr::Mul { lhs, rhs }) => (code, global, cfn))
         )
 
         (

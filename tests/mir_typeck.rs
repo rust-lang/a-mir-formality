@@ -1272,3 +1272,82 @@ fn test_sub_mismatched_int_types() {
 
         crates/formality-rust/src/prove/prove_normalize.rs:21:1: no applicable rules for prove_normalize { p: i32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }"#]])
 }
+
+/// Multiplying integers of different types should fail.
+#[test]
+fn test_mul_mismatched_int_types() {
+    FormalityTest::new(crates![crate Foo {
+        fn foo() -> () {
+            let x: i32 = 3_i32 * 4_u32;
+        }
+    }])
+    .rustc_err(expect_test::expect![[r#"
+        error[E0308]: mismatched types
+         --> lib.rs
+          |
+        2 |     let mut x: i32 = 3_i32 * 4_u32;
+          |                              ^^^^^ expected `i32`, found `u32`
+
+        error[E0277]: cannot multiply `i32` by `u32`
+           --> lib.rs
+            |
+          2 |     let mut x: i32 = 3_i32 * 4_u32;
+            |                            ^ no implementation for `i32 * u32`
+            |
+            = help: the trait `Mul<u32>` is not implemented for `i32`
+        help: the following other types implement trait `Mul<Rhs>`
+           --> arith.rs
+            |
+        346 |         impl const Mul for $t {
+            |         ^^^^^^^^^^^^^^^^^^^^^ `i32` implements `Mul`
+        ...
+        361 | mul_impl! { usize u8 u16 u32 u64 u128 isize i8 i16 i32 i64 i128 f16 f32 f64 f128 }
+            | ---------------------------------------------------------------------------------- in this macro invocation
+            |
+           ::: internal_macros.rs
+            |
+         22 |         impl const $imp<$u> for &$t {
+            |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^ `&i32` implements `Mul<i32>`
+        ...
+         33 |         impl const $imp<&$u> for $t {
+            |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^ `i32` implements `Mul<&i32>`
+        ...
+         44 |         impl const $imp<&$u> for &$t {
+            |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `&i32` implements `Mul`
+            = note: this error originates in the macro `mul_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+        Some errors have detailed explanations: E0277, E0308.
+        For more information about an error, try `rustc --explain E0277`.
+        error: could not compile `Foo` (lib) due to 2 previous errors
+    "#]])
+    .err(expect_test::expect![[r#"
+        crates/formality-rust/src/prove/prove_normalize.rs:21:1: no applicable rules for prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+
+        crates/formality-rust/src/prove/prove_normalize.rs:21:1: no applicable rules for prove_normalize { p: i32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }"#]])
+}
+
+/// Multiplication requires integers, even when both operands have the same type.
+#[test]
+fn test_mul_boolean_operands() {
+    FormalityTest::new(crates![crate Foo {
+        fn foo() -> () {
+            let x: bool = true * false;
+        }
+    }])
+    .rustc_err(expect_test::expect![[r#"
+        error[E0369]: cannot multiply `bool` by `bool`
+         --> lib.rs
+          |
+        2 |     let mut x: bool = true * false;
+          |                       ---- ^ ----- bool
+          |                       |
+          |                       bool
+
+        For more information about this error, try `rustc --explain E0369`.
+        error: could not compile `Foo` (lib) due to 1 previous error
+    "#]])
+    .err(expect_test::expect![[r#"
+        the rule "binop" at (nll.rs) failed because
+          condition evaluated to false: `scalar.is_int()`
+            scalar = bool"#]])
+}
