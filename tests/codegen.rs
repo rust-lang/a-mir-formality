@@ -780,6 +780,7 @@ fn integer_multiplication() {
             println!(3_i32 * 4_i32);
         }
     }])
+    .rustc_ok()
     .expect_output("12\n")
     .ok();
 }
@@ -793,6 +794,7 @@ fn multiplication_before_addition() {
             println!(2_i32 + 3_i32 * 4_i32 * 2_i32);
         }
     }])
+    .rustc_ok()
     .expect_output("14\n10\n26\n")
     .ok();
 }
@@ -804,6 +806,7 @@ fn integer_multiplication_negative_result() {
             println!(-3_i32 * 4_i32);
         }
     }])
+    .rustc_ok()
     .expect_output("-12\n")
     .ok();
 }
@@ -815,6 +818,7 @@ fn integer_multiplication_unsigned() {
             println!(3_u32 * 4_u32);
         }
     }])
+    .rustc_ok()
     .expect_output("12\n")
     .ok();
 }
@@ -828,5 +832,78 @@ fn multiplication_runs_calls_left_to_right() {
     }])
     .rustc_ok()
     .expect_output("1\n2\n12\n")
+    .ok();
+}
+
+#[test]
+fn multiplication_with_parentheses() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!((2_i32 + 3_i32) * 4_i32);
+            println!(2_i32 * (3_i32 + 4_i32));
+        }
+    }])
+    .rustc_ok()
+    .expect_output("20\n14\n")
+    .ok();
+}
+
+#[test]
+fn multiplication_with_subtraction() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(20_i32 - 2_i32 * 3_i32);
+            println!((20_i32 - 2_i32) * 3_i32);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("14\n54\n")
+    .ok();
+}
+
+// FIXME(#478): Normalize Derefable::Target before MiniRust type translation.
+#[test]
+#[ignore = "FIXME(#478): codegen cannot translate Derefable::Target yet"]
+fn multiplication_with_dereference() {
+    FormalityTest::new(crates![crate Foo {
+        fn multiply_left<'a>(r: &'a i32) -> i32 {
+            return *r * 3_i32;
+        }
+        fn multiply_right<'a>(r: &'a i32) -> i32 {
+            return 3_i32 * *r;
+        }
+        fn main() -> () {
+            let x: i32 = 4_i32;
+            exists<'a, 'b> {
+                let r: &'a i32 = &'a x;
+                println!(multiply_left::<'a>(r));
+                let s: &'b i32 = &'b x;
+                println!(multiply_right::<'b>(s));
+            }
+        }
+    }])
+    .rustc_ok()
+    .expect_output("12\n12\n")
+    .ok();
+}
+
+// FIXME: https://github.com/rust-lang/a-mir-formality/pull/448 tracks the
+// related Copy/move proof-search problem. The second read of *r is rejected;
+// this also reproduces with addition. Execution additionally needs #478.
+#[test]
+#[ignore = "FIXME: repeated Copy dereference rejected (see PR #448); codegen also needs #478"]
+fn multiplication_reuses_copy_referent() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            let x: i32 = 4_i32;
+            exists<'a> {
+                let r: &'a i32 = &'a x;
+                println!(*r * 3_i32);
+                println!(3_i32 * *r);
+            }
+        }
+    }])
+    .rustc_ok()
+    .expect_output("12\n12\n")
     .ok();
 }
