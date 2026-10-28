@@ -126,7 +126,6 @@ pub fn lower_assoc_ty(
         generics,
     ) = open_bounded!(ctx, assoc_ty.binder.clone());
     let mut bounds = Vec::new();
-    let mut forall_where_clauses = Vec::new();
     for ensure in &term.ensures {
         match ensure {
             WhereBound::IsImplemented(trait_id, parameters) => {
@@ -179,44 +178,15 @@ pub fn lower_assoc_ty(
                 let forall_generics =
                     to_rust::lower_generics_for_binder(ctx, binder.kinds(), &[], false)?;
 
-                // Create a where clause from the inner bound
-                let inner_where_clause = match inner_bound {
-                    syntax::TypeBound::Trait { trait_name, args } => syntax::WhereClause::Trait {
-                        ty: syntax::Type::Path {
-                            name: "Self".to_string(),
-                            args: Vec::new(),
-                        },
-                        trait_name,
-                        args,
-                    },
-                    syntax::TypeBound::Lifetime(lt) => syntax::WhereClause::Lifetime {
-                        parameter: syntax::Parameter::Lifetime(lt.clone()),
-                        lifetime: lt,
-                    },
-                };
-
-                // Add to where clauses instead of bounds
-                forall_where_clauses.push(syntax::WhereClause::ForAll(syntax::Generics {
-                    params: forall_generics.params,
-                    where_clauses: vec![inner_where_clause],
-                }));
+                // Add as a type bound instead of where clause
+                // The inner bound is what gets applied after the for quantifier
+                bounds.push(syntax::TypeBound::ForAll {
+                    generics: forall_generics,
+                    bound: Box::new(inner_bound),
+                });
             }
         }
     }
-
-    // Merge forall where clauses into the generics
-    let generics = if forall_where_clauses.is_empty() {
-        generics
-    } else {
-        syntax::Generics {
-            params: generics.params,
-            where_clauses: generics
-                .where_clauses
-                .into_iter()
-                .chain(forall_where_clauses)
-                .collect(),
-        }
-    };
 
     Ok(syntax::AssociatedTypeItem {
         name: assoc_ty.id.deref().clone(),
@@ -539,7 +509,7 @@ impl !Bar for Baz {}"#]]
                 pub trait A { }
 
                 pub trait B {
-                    type Item where for<'a20> Self: A;
+                    type Item: for<'a20> A;
                 }"#]]
         );
     }
