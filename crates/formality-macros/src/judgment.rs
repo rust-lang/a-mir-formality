@@ -905,24 +905,33 @@ fn emit_rule(judgment: &Judgment, rule: Rule) -> TokenStream {
 }
 
 fn emit_match(judgment: &Judgment, rule: Rule, mut rule_stream: TokenStream) -> TokenStream {
-    for (index, pattern) in rule.conclusion.patterns.iter().enumerate().rev() {
-        let input = &judgment
-            .signature
-            .arguments
-            .get(index)
-            .expect("conclusion has the same number of arguments as inputs")
-            .name;
+    for (pattern, Argument { name, ty }) in rule
+        .conclusion
+        .patterns
+        .iter()
+        .zip(&judgment.signature.arguments)
+        .rev()
+    {
         match pattern {
             Pat::Path(expr_path) => {
                 rule_stream = quote! {
-                    if let Some(#pattern) = &::formality_core::Downcast::downcast(#input) {
+                    if let Some(#pattern) = &::formality_core::Downcast::downcast(#name) {
+                        #rule_stream
+                    }
+                };
+            }
+            Pat::Struct(pat_struct) => todo!(),
+            Pat::Tuple(pat_tuple) => todo!(),
+            Pat::TupleStruct(pat_tuple_struct) => {
+                rule_stream = quote! {
+                    if let Some(#pattern) = &::formality_core::Downcast::downcast(#name) {
                         #rule_stream
                     }
                 };
             }
 
             Pat::Ident(pat_ident) => {
-                rule_stream = quote! { { let #pat_ident = #input; #rule_stream }}
+                rule_stream = quote! { { let #pat_ident = #name; #rule_stream }}
             }
             Pat::Const(expr_const) => todo!(),
             Pat::Lit(expr_lit) => todo!(),
@@ -933,9 +942,6 @@ fn emit_match(judgment: &Judgment, rule: Rule, mut rule_stream: TokenStream) -> 
             Pat::Reference(pat_reference) => todo!(),
             Pat::Rest(pat_rest) => todo!(),
             Pat::Slice(pat_slice) => todo!(),
-            Pat::Struct(pat_struct) => todo!(),
-            Pat::Tuple(pat_tuple) => todo!(),
-            Pat::TupleStruct(pat_tuple_struct) => todo!(),
             Pat::Type(pat_type) => todo!(),
             Pat::Verbatim(token_stream) => todo!(),
             Pat::Wild(pat_wild) => todo!(),
@@ -952,15 +958,108 @@ fn emit_premises(judgment: &Judgment, mut rule: Rule) -> TokenStream {
     };
 
     match premise.kind {
-        PremiseKind::IfLet(_) => todo!(),
-        PremiseKind::If(_) => todo!(),
-        PremiseKind::ForAll(for_all) => todo!(),
-        PremiseKind::ForAllWith(for_all_with) => todo!(),
-        PremiseKind::Fail(fail) => todo!(),
-        PremiseKind::Implication(implication) => todo!(),
-        PremiseKind::Let(_) => todo!(),
-        PremiseKind::LetForAll(let_for_all) => todo!(),
-        PremiseKind::Scope(scope) => todo!(),
+        PremiseKind::IfLet(_) => todo!("if let"),
+        PremiseKind::If(_) => todo!("if"),
+        PremiseKind::ForAll(for_all) => todo!("for all"),
+        PremiseKind::ForAllWith(for_all_with) => todo!("for all with"),
+        PremiseKind::Fail(fail) => todo!("fail"),
+        PremiseKind::Implication(implication) => emit_implication(judgment, rule, implication),
+        PremiseKind::Let(let_) => emit_let(judgment, rule, let_),
+        PremiseKind::LetForAll(let_for_all) => todo!("let for all"),
+        PremiseKind::Scope(scope) => todo!("scope"),
+    }
+}
+
+fn emit_let(judgment: &Judgment, rule: Rule, let_: Let) -> TokenStream {
+    let record_failure = emit_record_failure(&rule.name);
+    let premises = emit_premises(judgment, rule);
+
+    let expression = let_.expression;
+    let p = match let_.binding {
+        Binding::Pattern { pattern } => quote! { #pattern },
+        Binding::Identifier { identifier, ty } => quote! { #identifier},
+    };
+
+    quote! {
+        match ::formality_core::judgment::try_catch::<_>(|| Ok(#expression)) {
+            Ok(p) => {
+                let proof_tree = ::formality_core::judgment::ProofTree::leaf(format!("{} = {p:?}", stringify!(#p)));
+                let #p = &p;
+                child_proof_trees.push(proof_tree);
+                #premises
+            }
+
+            Err(e) => {
+                let cause = e;
+                #record_failure
+            }
+        }
+    }
+}
+
+fn emit_implication(judgment: &Judgment, rule: Rule, implication: Implication) -> TokenStream {
+    let record_failure = emit_record_failure(&rule.name);
+    let premises = emit_premises(judgment, rule);
+
+    let i = implication.hypothesis;
+
+    quote! {
+        match ::formality_core::judgment::CheckProven::check_proven(
+            #i,
+        ) {
+            Ok(proof_tree) => {
+                child_proof_trees.push(proof_tree);
+                #premises
+            }
+            Err(e) => {
+                let cause = e;
+                #record_failure
+            }
+        }
+    }
+}
+
+fn emit_record_failure(rule_name: &str) -> TokenStream {
+    // failed_rules, __matched, cause are in scope
+    // TODO: Update parser, such that the Premise span start with the opening paren and ends at the closing paren.
+    let step_expr = quote! {};
+
+    quote! {
+        // let file = ::formality_core::respan!(#step_expr (file!()));
+        // let line = ::formality_core::respan!(#step_expr (line!()));
+        // let column = ::formality_core::respan!(#step_expr (column!()));
+        let file = file!();
+        let line = line!();
+        let column = column!();
+
+        if __matched {
+            tracing::debug!(
+                "rule {rn} failed because {cause} ({file}:{line}:{column})",
+                rn = #rule_name,
+                cause = cause,
+                file = file,
+                line = line,
+                column = column,
+            );
+            failed_rules.insert(
+                ::formality_core::judgment::FailedRule {
+                    rule_name: Some(#rule_name.to_string()),
+                    file: file.to_string(),
+                    line: line,
+                    column: column,
+                    cause,
+                }
+            );
+        } else {
+            tracing::trace!(
+                "rule {rn} failed because {cause} ({file}:{line}:{column})",
+                rn = #rule_name,
+                cause = cause,
+                file = file,
+                line = line,
+                column = column,
+            );
+        }
     }
 }
 
