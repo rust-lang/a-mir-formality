@@ -6,11 +6,11 @@ use crate::check::borrow_check::typed_place_expression::{
 };
 use crate::check::feature_gate_enabled_in_program;
 
-use crate::grammar::expr::{Block, Expr, Init, Literal, PlaceExpr, Stmt};
+use crate::grammar::expr::{BinOpKind, Block, Expr, Init, Literal, PlaceExpr, Stmt};
 use crate::grammar::{
     AliasName, AliasTy, AssociatedItemId, AtomicPredicate, ExistentialVar, FeatureGateName,
     FieldName, Fn, Lt, Parameter, Predicates, RefKind, RigidName, RigidTy, ScalarId, Struct,
-    StructBoundData, TraitId, TraitRef, Ty, Variable, VariantId, WhereClause,
+    StructBoundData, TraitId, TraitRef, Ty, ValueId, Variable, VariantId, WhereClause,
 };
 use crate::grammar::{FnBoundData, PredicateTy};
 use crate::prove::Safety;
@@ -527,22 +527,16 @@ judgment_fn! {
             // Only applies when `id` is NOT a local variable.
             (if let PlaceExpr::Var(id) = place)
             (if !state.has_local(id))!
-            (let fn_decl = env.crates().fn_named(id)?)
-            (if fn_decl.binder.len() == 0)
-            (let ty = Ty::rigid(RigidName::fn_def(id), ()))
-            // FIXME: check where clauses from fn
+            (borrow_check_fn_ref(env, assumptions, state, id, Vec::<Parameter>::new()) => (ty, state))
             ------------------------------------------------------------ ("fn-name")
-            (borrow_check_expr(env, _assumptions, state, Expr::Place(place), _places_live_on_exit) => (ty, state))
+            (borrow_check_expr(env, assumptions, state, Expr::Place(place), _places_live_on_exit) => (ty, state))
         )
 
         (
             // A function name with explicit type arguments (e.g., `foo::<'a, T>(args)`).
-            (let fn_decl = env.crates().fn_named(id)?)
-            (if fn_decl.binder.len() == args.len())
-            (let ty = Ty::rigid(RigidName::fn_def(id), args))
-            // FIXME: check where clauses from fn
+            (borrow_check_fn_ref(env, assumptions, state, id, args) => (ty, state))
             ------------------------------------------------------------ ("turbofish")
-            (borrow_check_expr(env, _assumptions, state, Expr::Turbofish { id, args }, _places_live_on_exit) => (ty, state))
+            (borrow_check_expr(env, assumptions, state, Expr::Turbofish { id, args }, _places_live_on_exit) => (ty, state))
         )
 
         // fn foo<'a, T>() where T: 'a { }
@@ -586,6 +580,30 @@ judgment_fn! {
             (let ty = RigidTy::new(adt_id, &turbofish.parameters))
             ------------------------------------------------------------ ("struct")
             (borrow_check_expr(env, assumptions, state, Expr::Struct { adt_id, turbofish, field_exprs }, places_live_on_exit) => (ty, state))
+        )
+    }
+}
+
+judgment_fn! {
+    /// Check a function reference and accumulate its instantiated where-clauses.
+    /// Bare function names supply an empty list of generic arguments.
+    fn borrow_check_fn_ref(
+        env: TypeckEnv,
+        assumptions: Predicates,
+        state: FlowState,
+        id: ValueId,
+        args: Vec<Parameter>,
+    ) => (Ty, FlowState) {
+        debug(env, assumptions, state, id, args)
+
+        (
+            (let Fn { binder, .. } = env.crates().fn_named(id)?)
+            (if binder.len() == args.len())
+            (let FnBoundData { where_clauses, .. } = binder.instantiate_with(args)?)
+            (prove_where_clauses(env, assumptions, state, where_clauses) => state)
+            (let ty = Ty::rigid(RigidName::fn_def(id), args))
+            ---- ("fn-ref")
+            (borrow_check_fn_ref(env, assumptions, state, id, args) => (ty, state))
         )
     }
 }
