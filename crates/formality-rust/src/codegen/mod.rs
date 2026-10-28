@@ -6,7 +6,7 @@ use crate::check::borrow_check::nll::{
 };
 use crate::check::borrow_check::typed_place_expression::TypedPlaceExpr;
 use crate::grammar::{
-    expr::{BinOpKind, Block, Expr, Literal, PlaceExpr, Stmt},
+    expr::{Block, Expr, Literal, PlaceExpr, Stmt},
     Crates, Fallible, RigidName, RigidTy, Ty,
 };
 use formality_core::judgment_fn;

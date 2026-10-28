@@ -6,7 +6,7 @@ use crate::check::borrow_check::typed_place_expression::{
 };
 use crate::check::feature_gate_enabled_in_program;
 
-use crate::grammar::expr::{BinOpKind, Block, Expr, Init, Literal, PlaceExpr, Stmt};
+use crate::grammar::expr::{Block, Expr, Init, Literal, PlaceExpr, Stmt};
 use crate::grammar::{
     AliasName, AliasTy, AssociatedItemId, AtomicPredicate, ExistentialVar, FeatureGateName,
     FieldName, Fn, Lt, Parameter, Predicates, RefKind, RigidName, RigidTy, ScalarId, Struct,
