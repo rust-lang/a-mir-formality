@@ -3772,7 +3772,10 @@ fn loan_cannot_outlive_lifetime_fail() {
                 return 0_u32;
             }
         }
-    }]).borrowck_err(BorrowCheckFailure::All, expect_test::expect![[r#"
+    }])
+    .borrowck_err(
+        BorrowCheckFailure::All,
+        expect_test::expect![[r#"
         the rule "borrow of disjoint places" at (nll.rs) failed because
           condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
             &loan.place = x : u32
@@ -3797,7 +3800,8 @@ fn loan_cannot_outlive_lifetime_fail() {
             &lifetime.upcast() = ?lt_3
 
         the rule "write-indirect" at (nll.rs) failed because
-          pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `x`"#]])
+          pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `x`"#]],
+    )
 }
 
 /// Pass test for loan_cannot_outlive's "lifetime" rule.

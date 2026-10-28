@@ -147,7 +147,12 @@ fn test_for_all_with_accumulator_returns_all_alternatives() {
 }
 
 thread_local! {
+    static BODY_SUCCESSES: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
     static CONTINUATIONS: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
+}
+
+fn count_body_success() {
+    BODY_SUCCESSES.with(|n| n.set(n.get() + 1));
 }
 
 fn count_continuation() {
@@ -159,7 +164,8 @@ judgment_fn! {
         debug(steps)
         (
             (for_all(step in steps)
-                (advance(step, Num(0)) => _choice))
+                (advance(step, Num(0)) => _choice)
+                (let () = count_body_success()))
             (let () = count_continuation())
             --- ("check choices")
             (check_choices(steps) => ())
@@ -169,10 +175,13 @@ judgment_fn! {
 
 #[test]
 fn test_for_all_merges_equivalent_states() {
+    BODY_SUCCESSES.with(|n| n.set(0));
     CONTINUATIONS.with(|n| n.set(0));
     // Two choices at each of eight iterations must not run the identical
     // continuation 256 times: no values are carried out of the loop body.
     check_choices(vec![Num(0); 8]).assert_ok(expect_test::expect!["{()}"]);
+    // Evaluate both choices once per iteration, not once per proof history.
+    assert_eq!(BODY_SUCCESSES.with(|n| n.get()), 16);
     assert_eq!(CONTINUATIONS.with(|n| n.get()), 1);
 }
 
