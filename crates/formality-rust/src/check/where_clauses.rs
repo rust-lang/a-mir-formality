@@ -1,5 +1,5 @@
 use crate::grammar::{Const, Fallible, Predicates, Variable};
-use crate::prove::{Env, Program};
+use crate::prove::{enter_universally, Env, Program};
 use crate::{grammar::WhereClause, prove::ToPredicates};
 use fn_error_context::context;
 use formality_core::judgment::ProofTree;
@@ -32,7 +32,7 @@ fn check_const_bound_parameter(env: &Env, where_clause: &WhereClause) -> Fallibl
             }
         }
         WhereClause::ForAll(binder) => {
-            let (env, inner) = env.instantiate_universally(binder);
+            let (_, (env, inner)) = enter_universally(env, binder);
             check_const_bound_parameter(&env, &inner)?;
         }
         _ => {}
