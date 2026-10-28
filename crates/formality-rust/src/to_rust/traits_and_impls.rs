@@ -162,15 +162,13 @@ pub fn lower_assoc_ty(
 
                 // Lower the inner bound recursively
                 let inner_bound = match term {
-                    WhereBound::IsImplemented(trait_id, parameters) => {
-                        syntax::TypeBound::Trait {
-                            trait_name: trait_id.deref().clone(),
-                            args: parameters
-                                .iter()
-                                .map(|arg| tys::lower_generic_arg(ctx, arg))
-                                .collect::<Result<Vec<_>, _>>()?,
-                        }
-                    }
+                    WhereBound::IsImplemented(trait_id, parameters) => syntax::TypeBound::Trait {
+                        trait_name: trait_id.deref().clone(),
+                        args: parameters
+                            .iter()
+                            .map(|arg| tys::lower_generic_arg(ctx, arg))
+                            .collect::<Result<Vec<_>, _>>()?,
+                    },
                     WhereBound::Outlives(lt) => {
                         syntax::TypeBound::Lifetime(tys::lower_lt(ctx, lt)?)
                     }
@@ -180,12 +178,7 @@ pub fn lower_assoc_ty(
                 };
 
                 // Create the generics for the binder
-                let generics = to_rust::lower_generics_for_binder(
-                    ctx,
-                    binder.kinds(),
-                    &[],
-                    false,
-                )?;
+                let generics = to_rust::lower_generics_for_binder(ctx, binder.kinds(), &[], false)?;
 
                 bounds.push(syntax::TypeBound::ForAll {
                     generics,
@@ -550,7 +543,9 @@ impl !Bar for Baz {}"#]]
         let has_non_lifetime = binder_kinds
             .iter()
             .any(|kind| !matches!(kind, ParameterKind::Lt));
-        assert!(has_non_lifetime, "type parameters should be detected as non-lifetime");
+        assert!(
+            has_non_lifetime,
+            "type parameters should be detected as non-lifetime"
+        );
     }
-
 }
