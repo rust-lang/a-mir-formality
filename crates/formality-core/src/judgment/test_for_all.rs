@@ -140,3 +140,61 @@ fn test_ordinary_premises_preserve_alternatives() {
 fn test_for_all_with_accumulator_preserves_alternatives() {
     advance_with_for_all(vec![Num(0), Num(1)]).assert_ok(expect_test::expect!["{Num(3)}"]);
 }
+
+#[test]
+fn test_for_all_with_accumulator_returns_all_alternatives() {
+    advance_with_for_all(vec![Num(0)]).assert_ok(expect_test::expect!["{Num(1), Num(2)}"]);
+}
+
+thread_local! {
+    static CONTINUATIONS: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
+}
+
+fn count_continuation() {
+    CONTINUATIONS.with(|n| n.set(n.get() + 1));
+}
+
+judgment_fn! {
+    fn check_choices(steps: Vec<Num>) => () {
+        debug(steps)
+        (
+            (for_all(step in steps)
+                (advance(step, Num(0)) => _choice))
+            (let () = count_continuation())
+            --- ("check choices")
+            (check_choices(steps) => ())
+        )
+    }
+}
+
+#[test]
+fn test_for_all_merges_equivalent_states() {
+    CONTINUATIONS.with(|n| n.set(0));
+    // Two choices at each of eight iterations must not run the identical
+    // continuation 256 times: no values are carried out of the loop body.
+    check_choices(vec![Num(0); 8]).assert_ok(expect_test::expect!["{()}"]);
+    assert_eq!(CONTINUATIONS.with(|n| n.get()), 1);
+}
+
+judgment_fn! {
+    fn filter_after_loop() => Num {
+        debug()
+        (
+            (let state = Num(0))
+            (for_all(step in vec![Num(0)]) with(state)
+                (advance(step, state) => state))
+            (if state == &Num(1))
+            --- ("filter after loop")
+            (filter_after_loop() => state)
+        )
+    }
+}
+
+#[test]
+fn test_for_all_continuation_filters_alternatives_and_preserves_proof() {
+    filter_after_loop().assert_ok(expect_test::expect!["{Num(1)}"]);
+    let proofs = filter_after_loop().into_map().unwrap();
+    let proof = format!("{:?}", proofs.get(&Num(1)).unwrap());
+    assert!(proof.contains("first alternative"));
+    assert!(!proof.contains("second alternative"));
+}

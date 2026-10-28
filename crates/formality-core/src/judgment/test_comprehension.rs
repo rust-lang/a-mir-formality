@@ -496,7 +496,7 @@ judgment_fn! {
 }
 
 #[test]
-fn multiple_derivations_use_existing_for_all_selection() {
+fn multiple_derivations_preserve_all_combinations() {
     let values = vec![1u32, 2];
     let collected: Vec<_> = collect_alternatives(&values)
         .into_map()
@@ -509,9 +509,11 @@ fn multiple_derivations_use_existing_for_all_selection() {
         .into_keys()
         .collect();
 
-    // Both constructs retain one complete collection, rather than exploring
-    // every combination of the two alternatives for each element.
-    assert_eq!(collected.len(), 1);
+    // Both constructs explore every combination of successful alternatives.
+    assert_eq!(
+        collected,
+        vec![vec![1, 2], vec![1, 12], vec![11, 2], vec![11, 12]]
+    );
     assert_eq!(collected, accumulated);
 }
 
