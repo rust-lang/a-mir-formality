@@ -11,6 +11,8 @@ use syn::{
     Visibility,
 };
 
+use std::collections::VecDeque;
+
 /// Judgment ::= Signature Body
 #[derive(Debug, Clone)]
 struct Judgment {
@@ -92,7 +94,7 @@ struct Rule {
 /// Premises ::= {Premise}
 #[derive(Debug, Clone)]
 struct Premises {
-    premises: Vec<Premise>,
+    premises: VecDeque<Premise>,
 }
 
 /// Premise ::= (xxxx)!
@@ -440,9 +442,9 @@ impl Parse for Rule {
 
 impl Parse for Premises {
     fn parse(input: ParseStream) -> Result<Self> {
-        let mut premises = Vec::new();
+        let mut premises = VecDeque::new();
         while input.peek(Paren) {
-            premises.push(input.parse()?);
+            premises.push_back(input.parse()?);
         }
 
         Ok(Premises { premises })
@@ -450,24 +452,24 @@ impl Parse for Premises {
 }
 
 impl Parse for Premise {
-    fn parse(mut input: ParseStream) -> Result<Self> {
+    fn parse(input: ParseStream) -> Result<Self> {
         let inner;
         let paren = parenthesized!(inner in input);
 
-        let kind = if input.peek(Token![if]) && input.peek2(Token![let]) {
-            PremiseKind::IfLet(input.parse()?)
-        } else if input.peek(Token![if]) {
-            PremiseKind::If(input.parse()?)
-        } else if input.peek(Token![let]) {
-            parse_let(&mut input)?
-        } else if input.peek(keyword::for_all) {
-            parse_for_all(&mut input)?
-        } else if input.peek(keyword::fail) {
+        let kind = if inner.peek(Token![if]) && inner.peek2(Token![let]) {
+            PremiseKind::IfLet(inner.parse()?)
+        } else if inner.peek(Token![if]) {
+            PremiseKind::If(inner.parse()?)
+        } else if inner.peek(Token![let]) {
+            parse_let(&mut &inner)?
+        } else if inner.peek(keyword::for_all) {
+            parse_for_all(&mut &inner)?
+        } else if inner.peek(keyword::fail) {
             todo!()
-        } else if input.peek(keyword::scope) {
-            PremiseKind::Scope(input.parse()?)
+        } else if inner.peek(keyword::scope) {
+            PremiseKind::Scope(inner.parse()?)
         } else {
-            PremiseKind::Implication(input.parse()?)
+            PremiseKind::Implication(inner.parse()?)
         };
 
         let commit_point = if input.peek(Token![!]) {
@@ -945,7 +947,7 @@ fn emit_match(judgment: &Judgment, rule: Rule, mut rule_stream: TokenStream) -> 
 }
 
 fn emit_premises(judgment: &Judgment, mut rule: Rule) -> TokenStream {
-    let Some(premise) = rule.premises.premises.pop() else {
+    let Some(premise) = rule.premises.premises.pop_front() else {
         return emit_collect(judgment, rule);
     };
 
