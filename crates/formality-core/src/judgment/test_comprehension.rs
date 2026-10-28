@@ -498,26 +498,18 @@ judgment_fn! {
 #[test]
 fn multiple_derivations_preserve_all_combinations() {
     let values = vec![1u32, 2];
-    let collected: Vec<_> = collect_alternatives(&values)
-        .into_map()
-        .unwrap()
-        .into_keys()
-        .collect();
-    let accumulated: Vec<_> = accumulate_alternatives(&values)
-        .into_map()
-        .unwrap()
-        .into_keys()
-        .collect();
+    let collected = collect_alternatives(&values).proven_results().unwrap();
+    let accumulated = accumulate_alternatives(&values).proven_results().unwrap();
 
     // For input 1, `alternatives` returns 1 or 11; for input 2, it returns
     // 2 or 12. Each result picks one alternative per input, in input order.
     // That gives four possible vectors. [1, 11] and [2, 12] are not results:
     // each picks two alternatives for one input and none for the other.
-    // The outer list is sorted by the result map; order *within* each vector
-    // matters. The comprehension and explicit accumulator should agree.
+    // The order of the results does not matter, but order within each vector
+    // does. The comprehension and explicit accumulator should agree.
     assert_eq!(
         collected,
-        vec![vec![1, 2], vec![1, 12], vec![11, 2], vec![11, 12]]
+        crate::set![vec![1, 2], vec![1, 12], vec![11, 2], vec![11, 12]]
     );
     assert_eq!(collected, accumulated);
 }

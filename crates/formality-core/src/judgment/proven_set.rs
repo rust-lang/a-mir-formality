@@ -96,6 +96,12 @@ impl<J: Ord + Debug + Clone> ProvenSet<J> {
         }
     }
 
+    /// Consume this set and return its distinct proven values,
+    /// discarding the proof trees. Returns an error if the judgment failed.
+    pub fn proven_results(self) -> Result<Set<J>, Box<FailedJudgment>> {
+        Ok(self.into_map()?.into_keys().collect())
+    }
+
     /// Extract the single proven result from this set.
     /// Panics if the set contains more than one result.
     /// Returns an error if the judgment failed.

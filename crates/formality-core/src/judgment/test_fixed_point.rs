@@ -78,7 +78,7 @@ judgment_fn! {
 #[test]
 fn book_count_example_reaches_its_least_fixed_point() {
     COUNT_SNAPSHOTS.with(|snapshots| snapshots.borrow_mut().clear());
-    let values: crate::Set<_> = count().iter().map(|(value, _)| value).collect();
+    let values = count().proven_results().unwrap();
     assert_eq!(values, crate::set![0, 1, 2]);
     COUNT_SNAPSHOTS.with(|snapshots| {
         assert_eq!(
