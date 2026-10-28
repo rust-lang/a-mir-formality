@@ -343,11 +343,11 @@ fn test_call_invalid_fn() {
         error: could not compile `Foo` (lib) due to 1 previous error
     "#]])
     .err(expect_test::expect![[r#"
-            the rule "fn-name" at (nll.rs) failed because
-              no fn named `foo`
+        the rule "fn-ref" at (nll.rs) failed because
+          no fn named `foo`
 
-            the rule "local" at (nll.rs) failed because
-              unknown local variable `foo`"#]])
+        the rule "local" at (nll.rs) failed because
+          unknown local variable `foo`"#]])
 }
 
 #[test]
@@ -414,11 +414,11 @@ fn test_call_generic_fn_without_turbofish() {
     }])
     .rustc_ok() // rustc can deduce the generic type
     .err(expect_test::expect![[r#"
-            the rule "fn-name" at (nll.rs) failed because
-              condition evaluated to false: `fn_decl.binder.len() == 0`
+        the rule "fn-ref" at (nll.rs) failed because
+          condition evaluated to false: `binder.len() == args.len()`
 
-            the rule "local" at (nll.rs) failed because
-              unknown local variable `identity`"#]])
+        the rule "local" at (nll.rs) failed because
+          unknown local variable `identity`"#]])
 }
 
 /// Test calling a generic function with correct turbofish.
@@ -566,8 +566,8 @@ fn test_call_generic_fn_wrong_arity() {
         error: could not compile `Foo` (lib) due to 1 previous error
     "#]])
     .err(expect_test::expect![[r#"
-            the rule "turbofish" at (nll.rs) failed because
-              condition evaluated to false: `fn_decl.binder.len() == args.len()`"#]])
+        the rule "fn-ref" at (nll.rs) failed because
+          condition evaluated to false: `binder.len() == args.len()`"#]])
 }
 
 /// Test what will happen if the declared and actual return type are not compatible.
