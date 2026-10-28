@@ -467,3 +467,27 @@ fn nonexistant_trait() {
         the rule "check_neg_trait_impl" at (impls.rs) failed because
           no trait named `Nonexistent`"#]]);
 }
+
+#[test]
+fn assoc_ty_lifetime_forall_bound() {
+    FormalityTest::new(crates![crate core {
+        trait Bar { }
+        trait A {
+            type Item: [for<'a> Bar<'a>];
+        }
+    }])
+    .skip_execute()
+    .ok()
+}
+
+#[test]
+fn assoc_ty_lifetime_forall_bound_with_outer_lifetime() {
+    FormalityTest::new(crates![crate core {
+        trait Bar { }
+        trait A<'a> {
+            type Item: [for<'b> Bar<'b>, 'a];
+        }
+    }])
+    .skip_execute()
+    .ok()
+}
