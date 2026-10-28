@@ -42,7 +42,8 @@ fn values<T>(proven: ProvenSet<T>) -> Set<T>
 where
     T: Clone + std::fmt::Debug + Ord,
 {
-    proven.iter().map(|(value, _)| value).collect()
+    // These tests compare solution sets, including judgments with no solutions.
+    proven.proven_results().unwrap_or_default()
 }
 
 // This mutually recursive pair has different output types. It checks that one

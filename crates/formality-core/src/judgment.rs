@@ -62,7 +62,7 @@ mod test_scope;
 /// * `(for_all(<item> in <collection>) with(<variables>...) <conditions>...)` --
 ///   additionally carries the named variables between iterations. Shadow them
 ///   inside the loop to update them; later conditions see their final values.
-///   The loop retains one successful result per element, not all combinations.
+///   The loop preserves successful alternatives across iterations.
 /// * `(scope(<expr> => <pat>) with(<vars>) <conditions>)` -- proves the nested conditions inside a [`Scope`][], see below.
 ///
 /// ## Scopes
@@ -766,7 +766,7 @@ macro_rules! push_rules {
     // The accumulator is hygienic, so nested comprehensions remain independent.
     // The destination's FromIterator implementation selects the final collection
     // type and constrains the element upcast. All premise evaluation, failures,
-    // proof construction, and selection of one successful outcome per iteration
+    // proof construction, and propagation of successful alternatives
     // come from the existing `for_all` implementation; we do not reimplement them.
     //
     // Capture this DSL syntax before ordinary Rust expressions. The arrow lets
@@ -988,58 +988,59 @@ macro_rules! push_rules {
     ) => {
         {
             let collection = $collection;
-            let mut errored = false;
-
             let (file, line, column) = $crate::respan!($collection ((file!(), line!(), column!())));
 
-            let mut loop_carried = ($($with_var.clone(),)*);
-
-            let mut for_all_proof_trees = vec![];
+            // Use the same value equivalence and proof selection as judgment outputs.
+            let mut alternatives = $crate::Map::new();
+            $crate::judgment::insert_smallest_proof(
+                &mut alternatives,
+                ($($with_var.clone(),)*),
+                $crate::judgment::ProofTree::new("for_all", None, vec![]),
+            );
             for $loop_var in collection {
-                if errored {
-                    break;
+                let mut next_alternatives = $crate::Map::new();
+                for (loop_carried, for_all_proof_trees) in alternatives {
+                    let $loop_var = Clone::clone(&$loop_var);
+                    #[allow(unused)]
+                    let ($($with_var,)*) = &loop_carried;
+
+                    let attributes = vec![("item".to_string(), format!("{:?}", $loop_var))];
+                    let mut item_proof_trees = vec![];
+                    let mut next_carried_and_proof = vec![];
+                    $crate::push_rules!(@body (loop(next_carried_and_proof, ($($with_var,)*))); $inputs; item_proof_trees; $($inner_step)*);
+
+                    for (next_carried, next_proof) in next_carried_and_proof {
+                        let mut proofs = for_all_proof_trees.children.clone();
+                        proofs.push($crate::judgment::ProofTree::with_all(
+                            "for_all",
+                            attributes.clone(),
+                            None,
+                            &file[..],
+                            line,
+                            column,
+                            next_proof,
+                        ));
+                         $crate::judgment::insert_smallest_proof(
+                            &mut next_alternatives,
+                            next_carried,
+                            $crate::judgment::ProofTree::new("for_all", None, proofs),
+                        );
+                    }
                 }
-
-                #[allow(unused)]
-                let ($($with_var,)*) = &loop_carried.clone();
-
-                let attributes = vec![("item".to_string(), format!("{:?}", $loop_var))];
-                let mut item_proof_trees = vec![];
-                // Collect the proof tree from each iteration together with the
-                // next values of any loop-carried variables, so the `for_all`
-                // proof tree reflects all iterations (not just the last one).
-                let mut next_carried_and_proof = None;
-                $crate::push_rules!(@body (loop(next_carried_and_proof, ($($with_var,)*))); $inputs; item_proof_trees; $($inner_step)*);
-
-                if let Some((next_carried, next_proof)) = next_carried_and_proof {
-                    for_all_proof_trees.push($crate::judgment::ProofTree::with_all(
-                        "for_all",
-                        attributes,
-                        None,
-                        &file[..],
-                        line,
-                        column,
-                        next_proof,
-                    ));
-
-                    loop_carried = next_carried;
-                } else {
-                    errored = true;
+                alternatives = next_alternatives;
+                if alternatives.is_empty() {
+                    break;
                 }
             }
 
-            if !errored {
+            for (loop_carried, for_all_proof_trees) in alternatives {
                 #[allow(unused)]
-                let ($($with_var,)*) = &loop_carried.clone();
+                let ($($with_var,)*) = &loop_carried;
 
-                // All iterations succeeded
-                let for_all_tree = $crate::judgment::ProofTree::new(
-                    "for_all",
-                    None,
-                    for_all_proof_trees,
-                );
-                $child_proof_trees.push(for_all_tree);
+                let len = $child_proof_trees.len();
+                $child_proof_trees.push(for_all_proof_trees);
                 $crate::push_rules!(@body $args; $inputs; $child_proof_trees; $($m)*);
+                $child_proof_trees.truncate(len);
             }
         }
     };
@@ -1228,7 +1229,7 @@ macro_rules! push_rules {
         @body (loop($next_carried_and_proof:ident, ($($with_var:ident,)*))); $_inputs:tt; $child_proof_trees:ident;
     ) => {
         // when we complete processing a loop with accumulators, capture the final values.
-        $next_carried_and_proof = Some((($($with_var.clone(),)*), $child_proof_trees.clone()));
+        $next_carried_and_proof.push((($($with_var.clone(),)*), $child_proof_trees.clone()));
     };
 
     (@record_failure ($failed_rules:expr, $match_var:expr, $_input_info:tt, $rule_name:literal); $step_expr:expr; $cause:expr) => {
