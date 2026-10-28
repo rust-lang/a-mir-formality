@@ -1391,7 +1391,6 @@ fn test_generic_fn_value_with_unsatisfied_where_clause() {
         For more information about this error, try `rustc --explain E0277`.
         error: could not compile `test` (lib) due to 1 previous error
     "#]])
-    .skip_execute()
     .err(expect_test::expect![[r#"
         the rule "trait implied bound" at (prove_predicate.rs) failed because
           expression evaluated to an empty collection: `decls.trait_invariants()`"#]]);
@@ -1436,7 +1435,6 @@ fn test_generic_fn_call_with_unsatisfied_where_clause() {
         For more information about this error, try `rustc --explain E0277`.
         error: could not compile `test` (lib) due to 1 previous error
     "#]])
-    .skip_execute()
     .err(expect_test::expect![[r#"
         the rule "trait implied bound" at (prove_predicate.rs) failed because
           expression evaluated to an empty collection: `decls.trait_invariants()`"#]]);
@@ -1448,10 +1446,70 @@ fn test_generic_fn_value_with_satisfied_where_clause() {
     FormalityTest::new(crates![crate test {
         trait Marker {}
         impl Marker for u32 {}
-        fn require_marker<T>() -> () where T: Marker { trusted }
+        fn require_marker<T>() -> () where T: Marker {}
         fn main() -> () { require_marker::<u32>; }
     }])
     .rustc_ok()
-    .skip_execute()
     .ok();
+}
+
+#[test]
+fn test_fn_value_with_forwarded_trait_bound() {
+    FormalityTest::new(crates![crate Foo {
+        trait Marker {}
+        impl Marker for u32 {}
+        fn require<T>() -> () where T: Marker {}
+        fn outer<T>() -> () where T: Marker { require::<T>; }
+        fn main() -> () { outer::<u32>(); }
+    }])
+    .rustc_ok()
+    .ok();
+}
+
+#[test]
+fn test_bare_fn_value_with_satisfied_where_clause() {
+    FormalityTest::new(crates![crate Foo {
+        trait Marker {}
+        impl Marker for u32 {}
+        fn require() -> () where u32: Marker {}
+        fn main() -> () { require; }
+    }])
+    .rustc_ok()
+    .ok();
+}
+
+#[test]
+fn test_fn_value_with_forwarded_lifetime_bound() {
+    FormalityTest::new(crates![crate Foo {
+        fn require<'a, 'b>() -> () where 'a: 'b {}
+        fn outer<'a, 'b>() -> () where 'a: 'b { require::<'a, 'b>; }
+        fn main() -> () { outer::<'static, 'static>(); }
+    }])
+    .rustc_ok()
+    .ok();
+}
+
+#[test]
+fn test_fn_value_with_unsatisfied_lifetime_bound() {
+    FormalityTest::new(crates![crate Foo {
+        fn require<'a, 'b>() -> () where 'a: 'b {}
+        fn outer<'a, 'b>() -> () { require::<'a, 'b>; }
+        fn main() -> () {}
+    }])
+    .rustc_err(expect_test::expect![[r#"
+        error: lifetime may not live long enough
+         --> lib.rs
+          |
+        7 | pub fn outer<'a00, 'a01>() -> () {
+          |              ----  ---- lifetime `'a01` defined here
+          |              |
+          |              lifetime `'a00` defined here
+        8 |     require::<'a00, 'a01>;
+          |     ^^^^^^^^^^^^^^^^^^^^^ requires that `'a00` must outlive `'a01`
+          |
+          = help: consider adding the following bound: `'a00: 'a01`
+
+        error: could not compile `Foo` (lib) due to 1 previous error
+    "#]])
+    .err(expect_test::expect!["crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: !lt_1, assumptions: {}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }"]);
 }
