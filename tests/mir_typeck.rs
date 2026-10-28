@@ -343,11 +343,11 @@ fn test_call_invalid_fn() {
         error: could not compile `Foo` (lib) due to 1 previous error
     "#]])
     .err(expect_test::expect![[r#"
-            the rule "fn-name" at (nll.rs) failed because
-              no fn named `foo`
+        the rule "fn-ref" at (nll.rs) failed because
+          no fn named `foo`
 
-            the rule "local" at (nll.rs) failed because
-              unknown local variable `foo`"#]])
+        the rule "local" at (nll.rs) failed because
+          unknown local variable `foo`"#]])
 }
 
 #[test]
@@ -414,11 +414,11 @@ fn test_call_generic_fn_without_turbofish() {
     }])
     .rustc_ok() // rustc can deduce the generic type
     .err(expect_test::expect![[r#"
-            the rule "fn-name" at (nll.rs) failed because
-              condition evaluated to false: `fn_decl.binder.len() == 0`
+        the rule "fn-ref" at (nll.rs) failed because
+          condition evaluated to false: `binder.len() == args.len()`
 
-            the rule "local" at (nll.rs) failed because
-              unknown local variable `identity`"#]])
+        the rule "local" at (nll.rs) failed because
+          unknown local variable `identity`"#]])
 }
 
 /// Test calling a generic function with correct turbofish.
@@ -566,8 +566,8 @@ fn test_call_generic_fn_wrong_arity() {
         error: could not compile `Foo` (lib) due to 1 previous error
     "#]])
     .err(expect_test::expect![[r#"
-            the rule "turbofish" at (nll.rs) failed because
-              condition evaluated to false: `fn_decl.binder.len() == args.len()`"#]])
+        the rule "fn-ref" at (nll.rs) failed because
+          condition evaluated to false: `binder.len() == args.len()`"#]])
 }
 
 /// Test what will happen if the declared and actual return type are not compatible.
@@ -1350,4 +1350,166 @@ fn test_mul_boolean_operands() {
         the rule "binop" at (nll.rs) failed because
           condition evaluated to false: `scalar.is_int()`
             scalar = bool"#]])
+}
+
+/// A generic function named without being called still
+/// needs its where-clauses to hold. `S` does not implement `Marker`.
+#[test]
+fn test_generic_fn_value_with_unsatisfied_where_clause() {
+    FormalityTest::new(crates![crate test {
+        trait Marker {}
+        struct S {}
+        fn require_marker<T>() -> () where T: Marker { trusted }
+        fn main() -> () { require_marker::<S>; }
+    }])
+    .rustc_err(expect_test::expect![[r#"
+        error[E0277]: the trait bound `S: Marker` is not satisfied
+          --> lib.rs
+           |
+        13 |     require_marker::<S>;
+           |                      ^ unsatisfied trait bound
+           |
+        help: the trait `Marker` is not implemented for `S`
+          --> lib.rs
+           |
+         3 | pub struct S {}
+           | ^^^^^^^^^^^^
+        help: this trait has no implementations, consider adding one
+          --> lib.rs
+           |
+         1 | pub trait Marker {}
+           | ^^^^^^^^^^^^^^^^
+        note: required by a bound in `require_marker`
+          --> lib.rs
+           |
+         5 | pub fn require_marker<T00>() -> ()
+           |        -------------- required by a bound in this function
+         6 | where
+         7 |     T00: Marker,
+           |          ^^^^^^ required by this bound in `require_marker`
+
+        For more information about this error, try `rustc --explain E0277`.
+        error: could not compile `test` (lib) due to 1 previous error
+    "#]])
+    .err(expect_test::expect![[r#"
+        the rule "trait implied bound" at (prove_predicate.rs) failed because
+          expression evaluated to an empty collection: `decls.trait_invariants()`"#]]);
+}
+
+/// Calling the same function is still rejected. The where-clauses are now
+/// checked both for the function name and by the call.
+#[test]
+fn test_generic_fn_call_with_unsatisfied_where_clause() {
+    FormalityTest::new(crates![crate test {
+        trait Marker {}
+        struct S {}
+        fn require_marker<T>() -> () where T: Marker { trusted }
+        fn main() -> () { require_marker::<S>(); }
+    }])
+    .rustc_err(expect_test::expect![[r#"
+        error[E0277]: the trait bound `S: Marker` is not satisfied
+          --> lib.rs
+           |
+        13 |     require_marker::<S>();
+           |                      ^ unsatisfied trait bound
+           |
+        help: the trait `Marker` is not implemented for `S`
+          --> lib.rs
+           |
+         3 | pub struct S {}
+           | ^^^^^^^^^^^^
+        help: this trait has no implementations, consider adding one
+          --> lib.rs
+           |
+         1 | pub trait Marker {}
+           | ^^^^^^^^^^^^^^^^
+        note: required by a bound in `require_marker`
+          --> lib.rs
+           |
+         5 | pub fn require_marker<T00>() -> ()
+           |        -------------- required by a bound in this function
+         6 | where
+         7 |     T00: Marker,
+           |          ^^^^^^ required by this bound in `require_marker`
+
+        For more information about this error, try `rustc --explain E0277`.
+        error: could not compile `test` (lib) due to 1 previous error
+    "#]])
+    .err(expect_test::expect![[r#"
+        the rule "trait implied bound" at (prove_predicate.rs) failed because
+          expression evaluated to an empty collection: `decls.trait_invariants()`"#]]);
+}
+
+/// Naming the function with a type that implements `Marker` is accepted.
+#[test]
+fn test_generic_fn_value_with_satisfied_where_clause() {
+    FormalityTest::new(crates![crate test {
+        trait Marker {}
+        impl Marker for u32 {}
+        fn require_marker<T>() -> () where T: Marker {}
+        fn main() -> () { require_marker::<u32>; }
+    }])
+    .rustc_ok()
+    .ok();
+}
+
+#[test]
+fn test_fn_value_with_forwarded_trait_bound() {
+    FormalityTest::new(crates![crate Foo {
+        trait Marker {}
+        impl Marker for u32 {}
+        fn require<T>() -> () where T: Marker {}
+        fn outer<T>() -> () where T: Marker { require::<T>; }
+        fn main() -> () { outer::<u32>(); }
+    }])
+    .rustc_ok()
+    .ok();
+}
+
+#[test]
+fn test_bare_fn_value_with_satisfied_where_clause() {
+    FormalityTest::new(crates![crate Foo {
+        trait Marker {}
+        impl Marker for u32 {}
+        fn require() -> () where u32: Marker {}
+        fn main() -> () { require; }
+    }])
+    .rustc_ok()
+    .ok();
+}
+
+#[test]
+fn test_fn_value_with_forwarded_lifetime_bound() {
+    FormalityTest::new(crates![crate Foo {
+        fn require<'a, 'b>() -> () where 'a: 'b {}
+        fn outer<'a, 'b>() -> () where 'a: 'b { require::<'a, 'b>; }
+        fn main() -> () { outer::<'static, 'static>(); }
+    }])
+    .rustc_ok()
+    .ok();
+}
+
+#[test]
+fn test_fn_value_with_unsatisfied_lifetime_bound() {
+    FormalityTest::new(crates![crate Foo {
+        fn require<'a, 'b>() -> () where 'a: 'b {}
+        fn outer<'a, 'b>() -> () { require::<'a, 'b>; }
+        fn main() -> () {}
+    }])
+    .rustc_err(expect_test::expect![[r#"
+        error: lifetime may not live long enough
+         --> lib.rs
+          |
+        7 | pub fn outer<'a00, 'a01>() -> () {
+          |              ----  ---- lifetime `'a01` defined here
+          |              |
+          |              lifetime `'a00` defined here
+        8 |     require::<'a00, 'a01>;
+          |     ^^^^^^^^^^^^^^^^^^^^^ requires that `'a00` must outlive `'a01`
+          |
+          = help: consider adding the following bound: `'a00: 'a01`
+
+        error: could not compile `Foo` (lib) due to 1 previous error
+    "#]])
+    .err(expect_test::expect!["crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: !lt_1, assumptions: {}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }"]);
 }
