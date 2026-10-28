@@ -887,11 +887,10 @@ fn multiplication_with_dereference() {
     .ok();
 }
 
-// FIXME: https://github.com/rust-lang/a-mir-formality/pull/448 tracks the
-// related Copy/move proof-search problem. The second read of *r is rejected;
-// this also reproduces with addition. Execution additionally needs #478.
+// FIXME(#511): Copy/move proof search rejects the second read of *r.
+// This also reproduces with addition. Execution additionally needs #478.
 #[test]
-#[ignore = "FIXME: repeated Copy dereference rejected (see PR #448); codegen also needs #478"]
+#[ignore = "FIXME(#511): repeated Copy dereference rejected; codegen also needs #478"]
 fn multiplication_reuses_copy_referent() {
     FormalityTest::new(crates![crate Foo {
         fn main() -> () {
