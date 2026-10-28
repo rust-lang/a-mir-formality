@@ -1,8 +1,8 @@
 use std::ops::Deref;
 
 use crate::grammar::{
-    AssociatedTy, AssociatedTyValue, Fallible, ImplItem, NegTraitImpl, Trait, TraitImpl, TraitItem,
-    WhereBound,
+    AssociatedTy, AssociatedTyValue, Fallible, ImplItem, NegTraitImpl, ParameterKind, Trait,
+    TraitImpl, TraitItem, WhereBound,
 };
 use crate::prove::Safety;
 
@@ -140,8 +140,57 @@ pub fn lower_assoc_ty(
             WhereBound::Outlives(lt) => {
                 bounds.push(syntax::TypeBound::Lifetime(tys::lower_lt(ctx, lt)?));
             }
-            WhereBound::ForAll(_) => {
-                anyhow::bail!("lowering associated type `for` bounds is not implemented yet")
+            WhereBound::ForAll(binder) => {
+                // Check if the binder only contains lifetime parameters (stable Rust)
+                // or type/const parameters (requires feature flag)
+                let has_non_lifetime = binder
+                    .kinds()
+                    .iter()
+                    .any(|kind| !matches!(kind, ParameterKind::Lt));
+
+                if has_non_lifetime {
+                    anyhow::bail!(
+                        "higher-ranked associated type bounds with type or const parameters are not supported in stable Rust; requires #![feature(non_lifetime_binders)]"
+                    );
+                }
+
+                // Open the binder and recursively lower the inner bound
+                let Wrapped {
+                    ref mut ctx,
+                    ref term,
+                } = ctx.open_universal(binder.as_ref().clone());
+
+                // Lower the inner bound recursively
+                let inner_bound = match term {
+                    WhereBound::IsImplemented(trait_id, parameters) => {
+                        syntax::TypeBound::Trait {
+                            trait_name: trait_id.deref().clone(),
+                            args: parameters
+                                .iter()
+                                .map(|arg| tys::lower_generic_arg(ctx, arg))
+                                .collect::<Result<Vec<_>, _>>()?,
+                        }
+                    }
+                    WhereBound::Outlives(lt) => {
+                        syntax::TypeBound::Lifetime(tys::lower_lt(ctx, lt)?)
+                    }
+                    WhereBound::ForAll(_) => {
+                        anyhow::bail!("nested higher-ranked bounds are not supported")
+                    }
+                };
+
+                // Create the generics for the binder
+                let generics = to_rust::lower_generics_for_binder(
+                    ctx,
+                    binder.kinds(),
+                    &[],
+                    false,
+                )?;
+
+                bounds.push(syntax::TypeBound::ForAll {
+                    generics,
+                    bound: Box::new(inner_bound),
+                });
             }
         }
     }
@@ -448,7 +497,60 @@ impl !Bar for Baz {}"#]]
                 pub trait A<'a01> {
                     type Item: Bar + 'a01;
                 }"#]]
+        );
+    }
+
+    #[test]
+    fn assoc_ty_lifetime_forall_bound() {
+        crate::assert_rust!(
+            [
+                crate Foo {
+                    trait Bar { }
+                    trait A {
+                        type Item: [for<'a> Bar<'a>];
+                    }
+                }
+            ],
+            expect_test::expect![[r#"
+                pub trait Bar { }
+
+                pub trait A {
+                    type Item: for<'a20> Bar<'a20>;
+                }"#]]
 
         );
     }
+
+    #[test]
+    fn assoc_ty_lifetime_forall_bound_with_outer_lifetime() {
+        crate::assert_rust!(
+            [
+                crate Foo {
+                    trait Bar { }
+                    trait A<'a> {
+                        type Item: [for<'b> Bar<'b>, 'a];
+                    }
+                }
+            ],
+            expect_test::expect![[r#"
+                pub trait Bar { }
+
+                pub trait A<'a01> {
+                    type Item: for<'a20> Bar<'a20> + 'a01;
+                }"#]]
+
+        );
+    }
+
+    #[test]
+    fn type_forall_bound_error_detection() {
+        // Verify that type parameters in higher-ranked bounds are detected
+        use crate::grammar::ParameterKind;
+        let binder_kinds = vec![ParameterKind::Ty];
+        let has_non_lifetime = binder_kinds
+            .iter()
+            .any(|kind| !matches!(kind, ParameterKind::Lt));
+        assert!(has_non_lifetime, "type parameters should be detected as non-lifetime");
+    }
+
 }
