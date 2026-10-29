@@ -580,6 +580,13 @@ fn reference_mutation_then_read() {
                 let amount: u32 = update::<'a>(r);
                 println!(amount);
             }
+        }
+    }])
+    .expect_output("2\n")
+    .ok()
+}
+
+#[test]
 fn integer_addition() {
     FormalityTest::new(crates![crate test {
         fn main() -> () {
@@ -600,9 +607,8 @@ fn addition_in_assignment() {
             println!(x);
         }
     }])
-    .rustc_ok()
-    .expect_output("2\n10\n")
-    .ok();
+    .expect_output("6\n")
+    .ok()
 }
 
 #[test]
@@ -616,7 +622,9 @@ fn associated_type_in_generic_signature() {
         }
         fn main() -> () {
             println!(identity::<S>(7_u32));
-    .expect_output("6\n")
+        }
+    }])
+    .expect_output("7\n")
     .ok()
 }
 
@@ -707,6 +715,13 @@ fn associated_type_in_struct_field() {
         fn main() -> () {
             let w: Wrap<<S as Value>::Item> = Wrap::<<S as Value>::Item> { value: 7_u32 };
             println!(w.value);
+        }
+    }])
+    .expect_output("7\n")
+    .ok()
+}
+
+#[test]
 fn integer_subtraction_negative_result() {
     FormalityTest::new(crates![crate Foo {
         fn main() -> () {
@@ -776,6 +791,14 @@ fn chained_associated_types() {
         impl Outer for S { type Item = <S as Inner>::Item; }
         fn main() -> () {
             let x: <S as Outer>::Item = 7_u32;
+            println!(x);
+        }
+    }])
+    .expect_output("7\n")
+    .ok()
+}
+
+#[test]
 fn integer_subtraction_with_parentheses() {
     FormalityTest::new(crates![crate Foo {
         fn main() -> () {
@@ -853,6 +876,9 @@ fn associated_type_field_through_reference() {
     }])
     .rustc_ok()
     .expect_output("7\n")
+    .ok()
+}
+
 #[test]
 fn integer_multiplication() {
     FormalityTest::new(crates![crate Foo {
@@ -937,6 +963,10 @@ fn compound_assignment_reads_destination_after_rhs_call() {
     }])
     .rustc_ok()
     .expect_output("12\n")
+    .ok()
+}
+
+#[test]
 fn integer_multiplication_negative_result() {
     FormalityTest::new(crates![crate Foo {
         fn main() -> () {
