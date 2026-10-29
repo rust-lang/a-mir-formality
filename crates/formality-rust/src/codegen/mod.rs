@@ -242,6 +242,13 @@ judgment_fn! {
         )
 
         (
+            (let expr = Expr::BinOp { lhs: lhs.clone(), op: BinOpKind::Rem, rhs: rhs.clone() })
+            (codegen_expr_into(global, cfn, scope, target, expr) => (code, global, cfn))
+            ---- ("remainder")
+            (codegen_expr_into(global, cfn, scope, target, Expr::Rem { lhs, rhs }) => (code, global, cfn))
+        )
+
+        (
             (let code = cfn.fresh_code_block())
             ---- ("literal")
             (codegen_expr_into(global, cfn, scope, target, literal@Literal { value: _ , ty: _ }) => (

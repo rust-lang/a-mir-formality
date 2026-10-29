@@ -1352,6 +1352,88 @@ fn test_mul_boolean_operands() {
             scalar = bool"#]])
 }
 
+/// Taking the remainder of integers of different types should fail.
+#[test]
+fn test_rem_mismatched_int_types() {
+    FormalityTest::new(crates![crate Foo {
+        fn foo() -> () {
+            let x: i32 = 7_i32 % 3_u32;
+        }
+    }])
+    .rustc_err(expect_test::expect![[r#"
+        error[E0308]: mismatched types
+         --> lib.rs
+          |
+        2 |     let mut x: i32 = 7_i32 % 3_u32;
+          |                              ^^^^^ expected `i32`, found `u32`
+
+        error[E0277]: cannot calculate the remainder of `i32` divided by `u32`
+           --> lib.rs
+            |
+          2 |     let mut x: i32 = 7_i32 % 3_u32;
+            |                            ^ no implementation for `i32 % u32`
+            |
+            = help: the trait `Rem<u32>` is not implemented for `i32`
+        help: the following other types implement trait `Rem<Rhs>`
+           --> arith.rs
+            |
+        599 |           impl const Rem for $t {
+            |           ^^^^^^^^^^^^^^^^^^^^^ `i32` implements `Rem`
+        ...
+        613 | / rem_impl_integer! {
+        614 | |     (usize u8 u16 u32 u64 u128) => "This operation will panic if `other == 0`.",
+        615 | |     (isize i8 i16 i32 i64 i128) => "This operation will panic if `other == 0` or if `self / other` results in overflow."
+        616 | | }
+            | |_- in this macro invocation
+            |
+           ::: internal_macros.rs
+            |
+         22 |           impl const $imp<$u> for &$t {
+            |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^ `&i32` implements `Rem<i32>`
+        ...
+         33 |           impl const $imp<&$u> for $t {
+            |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^ `i32` implements `Rem<&i32>`
+        ...
+         44 |           impl const $imp<&$u> for &$t {
+            |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `&i32` implements `Rem`
+            = note: this error originates in the macro `rem_impl_integer` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+        Some errors have detailed explanations: E0277, E0308.
+        For more information about an error, try `rustc --explain E0277`.
+        error: could not compile `Foo` (lib) due to 2 previous errors
+    "#]])
+    .err(expect_test::expect![[r#"
+        crates/formality-rust/src/prove/prove_normalize.rs:22:1: no applicable rules for prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+
+        crates/formality-rust/src/prove/prove_normalize.rs:22:1: no applicable rules for prove_normalize { p: i32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }"#]])
+}
+
+/// Remainder requires integers, even when both operands have the same type.
+#[test]
+fn test_rem_boolean_operands() {
+    FormalityTest::new(crates![crate Foo {
+        fn foo() -> () {
+            let x: bool = true % false;
+        }
+    }])
+    .rustc_err(expect_test::expect![[r#"
+        error[E0369]: cannot calculate the remainder of `bool` divided by `bool`
+         --> lib.rs
+          |
+        2 |     let mut x: bool = true % false;
+          |                       ---- ^ ----- bool
+          |                       |
+          |                       bool
+
+        For more information about this error, try `rustc --explain E0369`.
+        error: could not compile `Foo` (lib) due to 1 previous error
+    "#]])
+    .err(expect_test::expect![[r#"
+        the rule "binop" at (nll.rs) failed because
+          condition evaluated to false: `scalar.is_int()`
+            scalar = bool"#]])
+}
+
 /// A generic function named without being called still
 /// needs its where-clauses to hold. `S` does not implement `Marker`.
 #[test]
