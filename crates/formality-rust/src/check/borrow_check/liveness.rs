@@ -368,6 +368,8 @@ impl LiveBefore for Expr {
                 Seq(&**callee, args).live_before(env, scopes, places_live)
             }
 
+            Expr::Parens(expr) => expr.live_before(env, scopes, places_live),
+
             // Literals don't access any places.
             Expr::Literal { .. } | Expr::True | Expr::False => places_live,
 
@@ -393,6 +395,9 @@ impl LiveBefore for Expr {
             Expr::Turbofish { id, args: _ } => {
                 let place_expr: PlaceExpr = id.upcast();
                 place_expr.live_before(env, scopes, places_live)
+            }
+            Expr::BinOp { lhs, op: _, rhs } | Expr::Mul { lhs, rhs } => {
+                Seq(&**lhs, &**rhs).live_before(env, scopes, places_live)
             }
         }
     }

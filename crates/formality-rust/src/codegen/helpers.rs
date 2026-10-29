@@ -303,17 +303,6 @@ pub(super) fn resolve_struct_fields(
     Ok(bd.fields)
 }
 
-pub(super) fn find_field_expr<'a>(
-    field_exprs: &'a [grammar::expr::FieldExpr],
-    field: &grammar::Field,
-) -> Fallible<&'a Expr> {
-    field_exprs
-        .iter()
-        .find(|fe| fe.name == field.name)
-        .map(|fe| &fe.value)
-        .ok_or_else(|| anyhow::anyhow!("missing field {:?}", field.name))
-}
-
 pub(super) fn instantiate_erased(binder: &grammar::Binder<Block>) -> Fallible<Block> {
     let params: Vec<Parameter> = binder
         .kinds()

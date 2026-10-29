@@ -5,7 +5,8 @@ use super::LangItems;
 pub fn lang_items() -> LangItems {
     parse_term! {
         trait Drop {
-            // FIXME: model the drop method
+            // FIXME(#202): Implied bounds should not have to be explicit
+            fn drop<'a>(self: &'a mut Self) -> () where Self: 'a;
         }
 
         // Marks a type as dereferencable.

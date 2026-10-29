@@ -18,6 +18,8 @@ At the top level, borrow checking works over a `TypeckEnv`, a set of assumptions
 
 {judgment-rule}`borrow_check_statement, let`
 
+{judgment-rule}`borrow_check_statement, let-no-init`
+
 ### `if` expressions
 
 {judgment-rule}`borrow_check_statement, if`

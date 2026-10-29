@@ -580,6 +580,23 @@ fn reference_mutation_then_read() {
                 let amount: u32 = update::<'a>(r);
                 println!(amount);
             }
+fn integer_addition() {
+    FormalityTest::new(crates![crate test {
+        fn main() -> () {
+            let x: i32 = 1_i32 + 2_i32;
+            println!(x);
+        }
+    }])
+    .expect_output("3\n")
+    .ok()
+}
+
+#[test]
+fn addition_in_assignment() {
+    FormalityTest::new(crates![crate test {
+        fn main() -> () {
+            let x: u32 = 0_u32;
+            x = 1_u32 + 2_u32 + 3_u32;
             println!(x);
         }
     }])
@@ -599,6 +616,80 @@ fn associated_type_in_generic_signature() {
         }
         fn main() -> () {
             println!(identity::<S>(7_u32));
+    .expect_output("6\n")
+    .ok()
+}
+
+#[test]
+fn addition_evaluates_calls_left_to_right() {
+    FormalityTest::new(crates![crate test {
+        fn left() -> i32 { println!(1_i32); return 10_i32; }
+        fn right() -> i32 { println!(2_i32); return 20_i32; }
+        fn main() -> () { println!(left() + right()); }
+    }])
+    .rustc_ok()
+    .expect_output("1\n2\n30\n")
+    .ok()
+}
+
+#[test]
+fn addition_in_call_arguments() {
+    FormalityTest::new(crates![crate test {
+        fn sum(x: i32, y: i32) -> i32 { return x + y; }
+        fn main() -> () {
+            println!(sum(1_i32 + 2_i32, sum(3_i32, 4_i32)));
+        }
+    }])
+    .rustc_ok()
+    .expect_output("10\n")
+    .ok()
+}
+
+#[test]
+fn parse_and_run_with_128_bit_integers() {
+    FormalityTest::new(crates![crate test {
+        fn main() -> () {
+            let i_min: i128 = -170141183460469231731687303715884105728 _ i128;
+            let i_max: i128 = 170141183460469231731687303715884105727 _ i128;
+            let u_min: u128 = 0 _ u128;
+            let u_max: u128 = 340282366920938463463374607431768211455 _ u128;
+            println!(i_min);
+            println!(i_max);
+            println!(u_min);
+            println!(u_max);
+        }
+    }])
+    .expect_output(format!(
+        "{}\n{}\n{}\n{}\n",
+        i128::MIN,
+        i128::MAX,
+        u128::MIN,
+        u128::MAX
+    ))
+    .ok()
+}
+
+#[test]
+fn field_evaluation_order() {
+    FormalityTest::new(crates![crate Foo {
+        struct S { a: u32, b: u32 }
+        fn first() -> u32 { println!(1_u32); return 10_u32; }
+        fn second() -> u32 { println!(2_u32); return 20_u32; }
+        fn main() -> () {
+            let s: S = S { b: second(), a: first() };
+            println!(s.a);
+            println!(s.b);
+        }
+    }])
+    .expect_output("2\n1\n10\n20\n")
+    .ok();
+}
+
+#[test]
+fn integer_subtraction() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(10_i32 - 3_i32);
         }
     }])
     .rustc_ok()
@@ -616,6 +707,58 @@ fn associated_type_in_struct_field() {
         fn main() -> () {
             let w: Wrap<<S as Value>::Item> = Wrap::<<S as Value>::Item> { value: 7_u32 };
             println!(w.value);
+fn integer_subtraction_negative_result() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(3_i32 - 10_i32);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("-7\n")
+    .ok();
+}
+
+#[test]
+fn integer_subtraction_is_left_associative() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(10_i32 - 3_i32 - 2_i32);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("5\n")
+    .ok();
+}
+
+#[test]
+fn integer_subtraction_with_addition() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(10_i32 - 3_i32 + 2_i32);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("9\n")
+    .ok();
+}
+
+#[test]
+fn subtraction_evaluates_calls_left_to_right() {
+    FormalityTest::new(crates![crate Foo {
+        fn left() -> i32 { println!(1_i32); return 10_i32; }
+        fn right() -> i32 { println!(2_i32); return 3_i32; }
+        fn main() -> () { println!(left() - right()); }
+    }])
+    .rustc_ok()
+    .expect_output("1\n2\n7\n")
+    .ok();
+}
+
+#[test]
+fn integer_subtraction_unsigned() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(10_u32 - 3_u32);
         }
     }])
     .rustc_ok()
@@ -633,6 +776,35 @@ fn chained_associated_types() {
         impl Outer for S { type Item = <S as Inner>::Item; }
         fn main() -> () {
             let x: <S as Outer>::Item = 7_u32;
+fn integer_subtraction_with_parentheses() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(10_i32 - (3_i32 - 2_i32));
+        }
+    }])
+    .rustc_ok()
+    .expect_output("9\n")
+    .ok();
+}
+
+#[test]
+fn nested_parentheses_preserve_grouping() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(20_i32 - (10_i32 - (3_i32 - 1_i32)));
+        }
+    }])
+    .rustc_ok()
+    .expect_output("12\n")
+    .ok();
+}
+
+#[test]
+fn parenthesized_assignment_updates_local() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            let x: i32 = 10_i32;
+            (x = (x - 3_i32));
             println!(x);
         }
     }])
@@ -681,6 +853,29 @@ fn associated_type_field_through_reference() {
     }])
     .rustc_ok()
     .expect_output("7\n")
+#[test]
+fn integer_multiplication() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(3_i32 * 4_i32);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("12\n")
+    .ok();
+}
+
+#[test]
+fn multiplication_before_addition() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(2_i32 + 3_i32 * 4_i32);
+            println!(2_i32 * 3_i32 + 4_i32);
+            println!(2_i32 + 3_i32 * 4_i32 * 2_i32);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("14\n10\n26\n")
     .ok();
 }
 
@@ -742,5 +937,109 @@ fn compound_assignment_reads_destination_after_rhs_call() {
     }])
     .rustc_ok()
     .expect_output("12\n")
+fn integer_multiplication_negative_result() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(-3_i32 * 4_i32);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("-12\n")
+    .ok();
+}
+
+#[test]
+fn integer_multiplication_unsigned() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(3_u32 * 4_u32);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("12\n")
+    .ok();
+}
+
+#[test]
+fn multiplication_runs_calls_left_to_right() {
+    FormalityTest::new(crates![crate Foo {
+        fn left() -> i32 { println!(1_i32); return 3_i32; }
+        fn right() -> i32 { println!(2_i32); return 4_i32; }
+        fn main() -> () { println!(left() * right()); }
+    }])
+    .rustc_ok()
+    .expect_output("1\n2\n12\n")
+    .ok();
+}
+
+#[test]
+fn multiplication_with_parentheses() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!((2_i32 + 3_i32) * 4_i32);
+            println!(2_i32 * (3_i32 + 4_i32));
+        }
+    }])
+    .rustc_ok()
+    .expect_output("20\n14\n")
+    .ok();
+}
+
+#[test]
+fn multiplication_with_subtraction() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(20_i32 - 2_i32 * 3_i32);
+            println!((20_i32 - 2_i32) * 3_i32);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("14\n54\n")
+    .ok();
+}
+
+// FIXME(#478): Normalize Derefable::Target before MiniRust type translation.
+#[test]
+#[ignore = "FIXME(#478): codegen cannot translate Derefable::Target yet"]
+fn multiplication_with_dereference() {
+    FormalityTest::new(crates![crate Foo {
+        fn multiply_left<'a>(r: &'a i32) -> i32 {
+            return *r * 3_i32;
+        }
+        fn multiply_right<'a>(r: &'a i32) -> i32 {
+            return 3_i32 * *r;
+        }
+        fn main() -> () {
+            let x: i32 = 4_i32;
+            exists<'a, 'b> {
+                let r: &'a i32 = &'a x;
+                println!(multiply_left::<'a>(r));
+                let s: &'b i32 = &'b x;
+                println!(multiply_right::<'b>(s));
+            }
+        }
+    }])
+    .rustc_ok()
+    .expect_output("12\n12\n")
+    .ok();
+}
+
+// FIXME(#511): Copy/move proof search rejects the second read of *r.
+// This also reproduces with addition. Execution additionally needs #478.
+#[test]
+#[ignore = "FIXME(#511): repeated Copy dereference rejected; codegen also needs #478"]
+fn multiplication_reuses_copy_referent() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            let x: i32 = 4_i32;
+            exists<'a> {
+                let r: &'a i32 = &'a x;
+                println!(*r * 3_i32);
+                println!(3_i32 * *r);
+            }
+        }
+    }])
+    .rustc_ok()
+    .expect_output("12\n12\n")
     .ok();
 }

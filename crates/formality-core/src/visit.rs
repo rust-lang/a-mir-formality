@@ -219,6 +219,18 @@ impl<L: Language> CoreVisit<L> for i64 {
     fn assert_valid(&self) {}
 }
 
+impl<L: Language> CoreVisit<L> for i128 {
+    fn free_variables(&self) -> Vec<CoreVariable<L>> {
+        vec![]
+    }
+
+    fn size(&self) -> usize {
+        1
+    }
+
+    fn assert_valid(&self) {}
+}
+
 impl<L: Language> CoreVisit<L> for isize {
     fn free_variables(&self) -> Vec<CoreVariable<L>> {
         vec![]
