@@ -21,16 +21,6 @@ pub struct Block {
     pub stmts: Vec<Stmt>,
 }
 
-/// `42_u32`
-///
-/// A scalar literal.
-#[term($value _ $ty)]
-#[customize(parse, debug)]
-pub struct Literal {
-    pub value: usize,
-    pub ty: ScalarId,
-}
-
 impl Block {
     // Used as the default else branch.
     pub fn empty() -> Self {
@@ -39,6 +29,24 @@ impl Block {
             stmts: vec![],
         }
     }
+}
+
+/// `42_u32`
+///
+/// A scalar literal.
+#[term($value _ $ty)]
+#[customize(parse, debug)]
+pub struct Literal {
+    pub value: IntegerValue,
+    pub ty: ScalarId,
+}
+
+#[term]
+pub enum IntegerValue {
+    #[grammar($v0)]
+    Signed(i128),
+    #[grammar($v0)]
+    Unsigned(u128),
 }
 
 /// An optional initializer expression, parsed as `= $expr`.
@@ -144,11 +152,18 @@ pub enum Stmt {
 
 #[term]
 pub enum Expr {
+    /// Group a value expression without changing its meaning.
+    /// Parenthesized places are handled by `PlaceExpr::Parens`.
+    #[grammar(($v0))]
+    #[reject(Expr::Place(_))]
+    Parens(Arc<Expr>),
+
     /// `place = expr`
     ///
     /// Assign a value to a place expression. Evaluates to `()`.
     /// The left-hand side must be a place expression (variable, deref, field).
     #[grammar($place = $expr)]
+    #[precedence(0, right)]
     Assign { place: PlaceExpr, expr: Arc<Expr> },
 
     /// `call callee<tys>(args)`
@@ -156,6 +171,10 @@ pub enum Expr {
     /// Call a function. The callee is a named function reference.
     /// Returns the call's result as a value.
     #[grammar($callee ($,args))]
+    // Restrict the callee without restricting precedence inside the arguments.
+    #[reject(Expr::Assign { .. }, _)]
+    #[reject(Expr::BinOp { .. }, _)]
+    #[reject(Expr::Mul { .. }, _)]
     Call { callee: Arc<Expr>, args: Vec<Expr> },
 
     #[cast]
@@ -195,6 +214,20 @@ pub enum Expr {
         adt_id: AdtId,
         turbofish: Turbofish,
     },
+
+    #[grammar($lhs $op $rhs)]
+    #[precedence(1)]
+    #[reject(_, BinOpKind::Mul, _)]
+    BinOp {
+        lhs: Arc<Expr>,
+        op: BinOpKind,
+        rhs: Arc<Expr>,
+    },
+
+    // Multiplication comes before addition.
+    #[grammar($lhs * $rhs)]
+    #[precedence(2)]
+    Mul { lhs: Arc<Expr>, rhs: Arc<Expr> },
 }
 
 // ANCHOR: PlaceExpr
@@ -285,4 +318,24 @@ pub enum FnName {
         trait_id: TraitId,
         id: ValueId,
     },
+}
+
+#[term]
+pub enum BinOpKind {
+    #[grammar(+)]
+    Add,
+    #[grammar(-)]
+    Sub,
+    #[grammar(*)]
+    Mul,
+}
+
+impl BinOpKind {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            BinOpKind::Add => "+",
+            BinOpKind::Sub => "-",
+            BinOpKind::Mul => "*",
+        }
+    }
 }

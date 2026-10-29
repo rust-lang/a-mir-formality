@@ -33,6 +33,8 @@ pub enum ScalarValue {
     U32(u32),
     #[grammar(u64($v0))]
     U64(u64),
+    #[grammar(u128($v0))]
+    U128(u128),
     #[grammar(i8($v0))]
     I8(i8),
     #[grammar(i16($v0))]
@@ -41,6 +43,8 @@ pub enum ScalarValue {
     I32(i32),
     #[grammar(i64($v0))]
     I64(i64),
+    #[grammar(i128($v0))]
+    I128(i128),
     #[grammar($v0)]
     Bool(bool),
     #[grammar(usize($v0))]
@@ -56,10 +60,12 @@ impl ScalarValue {
             ScalarValue::U16(_) => ScalarId::U16,
             ScalarValue::U32(_) => ScalarId::U32,
             ScalarValue::U64(_) => ScalarId::U64,
+            ScalarValue::U128(_) => ScalarId::U128,
             ScalarValue::I8(_) => ScalarId::I8,
             ScalarValue::I16(_) => ScalarId::I16,
             ScalarValue::I32(_) => ScalarId::I32,
             ScalarValue::I64(_) => ScalarId::I64,
+            ScalarValue::I128(_) => ScalarId::I128,
             ScalarValue::Bool(_) => ScalarId::Bool,
             ScalarValue::Usize(_) => ScalarId::Usize,
             ScalarValue::Isize(_) => ScalarId::Isize,

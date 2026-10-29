@@ -6,25 +6,22 @@ use crate::check::borrow_check::typed_place_expression::{
 };
 use crate::check::feature_gate_enabled_in_program;
 
-use crate::grammar::expr::{Block, Expr, Init, Literal, PlaceExpr, Stmt};
+use crate::grammar::expr::{BinOpKind, Block, Expr, Init, Literal, PlaceExpr, Stmt};
 use crate::grammar::{
-    AliasName, AliasTy, AssociatedItemId, AtomicPredicate, ExistentialVar, FeatureGateName,
-    FieldName, Fn, Lt, Parameter, Predicates, RefKind, RigidName, RigidTy, ScalarId, Struct,
-    StructBoundData, TraitId, TraitRef, Ty, Variable, VariantId, WhereClause,
+    AliasName, AliasTy, AssociatedItemId, AtomicPredicate, FeatureGateName, FieldName, Fn, Lt,
+    Parameter, Predicates, RefKind, RigidName, RigidTy, ScalarId, Struct, StructBoundData, TraitId,
+    TraitRef, Ty, ValueId, Variable, VariantId, WhereClause,
 };
 use crate::grammar::{FnBoundData, PredicateTy};
-use crate::prove::Safety;
+use crate::prove::{with_variables, Safety};
 use formality_core::judgment::ProofTree;
 use formality_core::{judgment_fn, term, ProvenSet, Set, Union, Upcast};
 
 use crate::check::borrow_check::liveness::{Assignment, Either, LiveBefore, LivePlaces};
 
 // Treats each name brought in by exists as OK to use when checking the code inside.
-fn wf_assumptions_for_existential_subst(subst: &[ExistentialVar]) -> Predicates {
-    subst
-        .iter()
-        .map(|v| AtomicPredicate::well_formed(v.clone()))
-        .collect()
+fn wf_assumptions_for_existential_vars(vars: &[Parameter]) -> Predicates {
+    vars.iter().map(AtomicPredicate::well_formed).collect()
 }
 
 // Given this, the goal of the borrow checker (in some sense) is to find a minimal `LifetimeValue`
@@ -188,21 +185,26 @@ judgment_fn! {
         (
             (prove_ty_is_wf(env, assumptions, state, ty) => state)
             // The variable being declared is not yet live before this `let`,
-            // so remove it from places_live_on_exit before checking the initializer (if any).
-            (for_all(init in init.into_iter()) with (state) // FIXME: should make syntax for this
-                (let Init { expr } = init)
-                (borrow_check_expr_has_ty(env,
-                    assumptions,
-                    state,
-                    expr,
-                    ty,
-                    LiveBefore::live_before(&Assignment(id), env, &state, &places_live_on_exit),
-                ) => state))
-
+            // so remove it from places_live_on_exit before checking the initializer.
+            (borrow_check_expr_has_ty(env,
+                assumptions,
+                state,
+                expr,
+                ty,
+                LiveBefore::live_before(&Assignment(id), env, &state, &places_live_on_exit),
+            ) => state)
             (let state = state.with_local_in_scope(&env.env, label, id, ty)?)
-            (let state = if init.is_none() { state.with_uninit(&PlaceExpr::Var(id.clone())) } else { state.with_initialized(&PlaceExpr::Var(id.clone())) })
+            (let state = state.with_initialized(&PlaceExpr::Var(id.clone())))
             ------------------------------------------------------------ ("let")
-            (borrow_check_statement(env, assumptions, state, Stmt::Let { label, id, ty, init }, places_live_on_exit) => (env, state))
+            (borrow_check_statement(env, assumptions, state, Stmt::Let { label, id, ty, init: Some(Init { expr }) }, places_live_on_exit) => (env, state))
+        )
+
+        (
+            (prove_ty_is_wf(env, assumptions, state, ty) => state)
+            (let state = state.with_local_in_scope(&env.env, label, id, ty)?)
+            (let state = state.with_uninit(&PlaceExpr::Var(id.clone())))
+            ------------------------------------------------------------ ("let-no-init")
+            (borrow_check_statement(env, assumptions, state, Stmt::Let { label, id, ty, init: None }, places_live_on_exit) => (env, state))
         )
 
         (
@@ -294,41 +296,38 @@ judgment_fn! {
 
         (
             (if feature_gate_enabled_in_program(&env.program, &FeatureGateName::PoloniusUnlocked))!
-            // Existential variables: open the binder and check the inner block
-            (let (env, subst, block) = env.instantiate_existentially(binder))
-            (let assumptions_body = (assumptions, wf_assumptions_for_existential_subst(&subst)))
-            (borrow_check_block(env, assumptions_body, state, block, places_live_on_exit) => state)
-            (let state = state.pop_subst(&env.env, subst))
+            // Existential variables: enter the binder and check the inner block
+            (scope(env.enter_existentially(&with_variables(binder)) => (env, (vars, block))) with(state)
+                (let assumptions_body = (assumptions, wf_assumptions_for_existential_vars(vars)))
+                (borrow_check_block(env, assumptions_body, state, block, places_live_on_exit) => state))
             ------------------------------------------------------------ ("exists")
             (borrow_check_statement(env, assumptions, state, Stmt::Exists { binder }, places_live_on_exit) => (env, state))
         )
 
         (
             (if feature_gate_enabled_in_program(&env.program, &FeatureGateName::PoloniusAlpha))!
-            // Existential variables: open the binder and check the inner block
-            (let (env, subst, block) = env.instantiate_existentially(binder))
-            (let assumptions_body = (assumptions, wf_assumptions_for_existential_subst(&subst)))
-            (borrow_check_block(env, assumptions_body, state, block, places_live_on_exit) => state)
-            // Although we do not rerun borrowck with all outlives, Polonius Alpha
-            // does not change universal region constraints being checked on the
-            // full outlives set.
-            (verify_universal_outlives(env, assumptions_body, &state.all_outlives) => ())
-            (let state = state.pop_subst(&env.env, subst))
+            // Existential variables: enter the binder and check the inner block
+            (scope(env.enter_existentially(&with_variables(binder)) => (env, (vars, block))) with(state)
+                (let assumptions_body = (assumptions, wf_assumptions_for_existential_vars(vars)))
+                (borrow_check_block(env, assumptions_body, state, block, places_live_on_exit) => state)
+                // Although we do not rerun borrowck with all outlives, Polonius Alpha
+                // does not change universal region constraints being checked on the
+                // full outlives set.
+                (verify_universal_outlives(env, assumptions_body, &state.all_outlives) => ()))
             ------------------------------------------------------------ ("exists")
             (borrow_check_statement(env, assumptions, state, Stmt::Exists { binder }, places_live_on_exit) => (env, state))
         )
 
         (
             (if !feature_gate_enabled_in_program(&env.program, &FeatureGateName::PoloniusUnlocked) && !feature_gate_enabled_in_program(&env.program, &FeatureGateName::PoloniusAlpha))!
-            // Existential variables: open the binder and check the inner block
-            (let (env, subst, block) = env.instantiate_existentially(binder))
-            (let assumptions_body = (assumptions, wf_assumptions_for_existential_subst(&subst)))
-            (let entry_state = state.clone())
-            (borrow_check_block(env, assumptions_body, state, block, places_live_on_exit) => state)
-            // Rerun borrowck again, with the *entry* state combined with the entire outlives set.
-            (let state = entry_state.with_global_outlives_from(&state))
-            (borrow_check_block(env, assumptions_body, state, block, places_live_on_exit) => state)
-            (let state = state.pop_subst(&env.env, subst))
+            // Existential variables: enter the binder and check the inner block
+            (scope(env.enter_existentially(&with_variables(binder)) => (env, (vars, block))) with(state)
+                (let assumptions_body = (assumptions, wf_assumptions_for_existential_vars(vars)))
+                (let entry_state = state.clone())
+                (borrow_check_block(env, assumptions_body, state, block, places_live_on_exit) => state)
+                // Rerun borrowck again, with the *entry* state combined with the entire outlives set.
+                (let state = entry_state.with_global_outlives_from(&state))
+                (borrow_check_block(env, assumptions_body, state, block, places_live_on_exit) => state))
             ------------------------------------------------------------ ("exists")
             (borrow_check_statement(env, assumptions, state, Stmt::Exists { binder }, places_live_on_exit) => (env, state))
         )
@@ -379,6 +378,19 @@ judgment_fn! {
         places_live_on_exit: LivePlaces,
     ) => (Ty, FlowState) {
         debug(state, expr, places_live_on_exit, assumptions, env)
+
+        (
+            (borrow_check_expr(env, assumptions, state, expr, places_live_on_exit) => (ty, state))
+            ---- ("parenthesized")
+            (borrow_check_expr(env, assumptions, state, Expr::Parens(expr), places_live_on_exit) => (ty, state))
+        )
+
+        (
+            (let expr = Expr::BinOp { lhs: lhs.clone(), op: BinOpKind::Mul, rhs: rhs.clone() })
+            (borrow_check_expr(env, assumptions, state, expr, places_live_on_exit) => (ty, state))
+            ---- ("multiplication")
+            (borrow_check_expr(env, assumptions, state, Expr::Mul { lhs, rhs }, places_live_on_exit) => (ty, state))
+        )
 
         (
             // Borrow-check and type-check the RHS value expression
@@ -445,6 +457,14 @@ judgment_fn! {
             (prove_where_clauses(env, assumptions, state, where_clauses) => state)
             ------------------------------------------------------------ ("call")
             (borrow_check_expr(env, assumptions, state, Expr::Call { callee, args }, places_live) => (output_ty, state))
+        )
+        (
+            (borrow_check_expr(env, assumptions, state, lhs, rhs.live_before(env, &state, places_live_on_exit)) => (lhs_ty, state))
+            (prove_ty_is_rigid(env, assumptions, state, &lhs_ty) => (RigidTy {name: RigidName::ScalarId(scalar), parameters: _}, state))
+            (if scalar.is_int())
+            (borrow_check_expr_has_ty(env, assumptions, state, rhs, &lhs_ty, places_live_on_exit) => state)
+            ------------("binop")
+            (borrow_check_expr(env, assumptions, state, Expr::BinOp{lhs, op: _, rhs}, places_live_on_exit) => (lhs_ty, state))
         )
 
         (
@@ -513,22 +533,16 @@ judgment_fn! {
             // Only applies when `id` is NOT a local variable.
             (if let PlaceExpr::Var(id) = place)
             (if !state.has_local(id))!
-            (let fn_decl = env.crates().fn_named(id)?)
-            (if fn_decl.binder.len() == 0)
-            (let ty = Ty::rigid(RigidName::fn_def(id), ()))
-            // FIXME: check where clauses from fn
+            (borrow_check_fn_ref(env, assumptions, state, id, Vec::<Parameter>::new()) => (ty, state))
             ------------------------------------------------------------ ("fn-name")
-            (borrow_check_expr(env, _assumptions, state, Expr::Place(place), _places_live_on_exit) => (ty, state))
+            (borrow_check_expr(env, assumptions, state, Expr::Place(place), _places_live_on_exit) => (ty, state))
         )
 
         (
             // A function name with explicit type arguments (e.g., `foo::<'a, T>(args)`).
-            (let fn_decl = env.crates().fn_named(id)?)
-            (if fn_decl.binder.len() == args.len())
-            (let ty = Ty::rigid(RigidName::fn_def(id), args))
-            // FIXME: check where clauses from fn
+            (borrow_check_fn_ref(env, assumptions, state, id, args) => (ty, state))
             ------------------------------------------------------------ ("turbofish")
-            (borrow_check_expr(env, _assumptions, state, Expr::Turbofish { id, args }, _places_live_on_exit) => (ty, state))
+            (borrow_check_expr(env, assumptions, state, Expr::Turbofish { id, args }, _places_live_on_exit) => (ty, state))
         )
 
         // fn foo<'a, T>() where T: 'a { }
@@ -553,9 +567,13 @@ judgment_fn! {
             (let StructBoundData { where_clauses, fields } = binder.instantiate_with(&turbofish.parameters)?)
 
             // Check that the provided field names exactly match the struct definition
-            (let expected_names: Set<&FieldName> = fields.iter().map(|f| &f.name).collect())
-            (let provided_names: Set<&FieldName> = field_exprs.iter().map(|fe| &fe.name).collect())
+            (let expected_names: Set<FieldName> = for_all field in fields => field.name)
+            (let provided_names: Set<FieldName> = for_all field in field_exprs => field.name)
             (if expected_names == provided_names)
+
+            // Check that no field is specified more than once by comparing counts
+            // If field_exprs has duplicates, the set will be smaller
+            (if field_exprs.len() == provided_names.len())
 
             // Type-check each field expression
             (for_all(i in 0..field_exprs.len()) with(state)
@@ -568,6 +586,30 @@ judgment_fn! {
             (let ty = RigidTy::new(adt_id, &turbofish.parameters))
             ------------------------------------------------------------ ("struct")
             (borrow_check_expr(env, assumptions, state, Expr::Struct { adt_id, turbofish, field_exprs }, places_live_on_exit) => (ty, state))
+        )
+    }
+}
+
+judgment_fn! {
+    /// Check a function reference and accumulate its instantiated where-clauses.
+    /// Bare function names supply an empty list of generic arguments.
+    fn borrow_check_fn_ref(
+        env: TypeckEnv,
+        assumptions: Predicates,
+        state: FlowState,
+        id: ValueId,
+        args: Vec<Parameter>,
+    ) => (Ty, FlowState) {
+        debug(env, assumptions, state, id, args)
+
+        (
+            (let Fn { binder, .. } = env.crates().fn_named(id)?)
+            (if binder.len() == args.len())
+            (let FnBoundData { where_clauses, .. } = binder.instantiate_with(args)?)
+            (prove_where_clauses(env, assumptions, state, where_clauses) => state)
+            (let ty = Ty::rigid(RigidName::fn_def(id), args))
+            ---- ("fn-ref")
+            (borrow_check_fn_ref(env, assumptions, state, id, args) => (ty, state))
         )
     }
 }
@@ -1378,8 +1420,8 @@ judgment_fn! {
         // )
 
         (
-            (let (env1, _, parameter) = env.instantiate_universally(&binder))
-            (loan_not_required_by_parameter(env1, assumptions, outlives, loan, parameter) => ())
+            (scope(env.enter_universally(binder) => (env, parameter)) with()
+                (loan_not_required_by_parameter(env, assumptions, outlives, loan, parameter) => ()))
             ------------------------------------------------------------ ("for-all-type")
             (loan_not_required_by_parameter(env, assumptions, outlives, loan, PredicateTy::ForAll(binder)) => ())
         )

@@ -10,3 +10,7 @@ git-repository-url = "https://github.com/rust-lang/a-mir-formality"
 [preprocessor.judgment]
 command = "cargo run -p formality-mdbook --"
 source-dir = "../crates"
+
+[preprocessor.skills]
+command = "cargo run --quiet -p formality-mdbook-skills --"
+before = ["links", "judgment"]

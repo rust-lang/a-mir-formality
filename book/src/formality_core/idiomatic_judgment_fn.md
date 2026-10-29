@@ -1,1 +1,1 @@
-{{#include ../../../crates/formality-core/skills/a-mir-formality-idiomatic-judgment-fn/SKILL.md:mdbook}}
+{{#skill ../../../crates/formality-core/skills/a-mir-formality-idiomatic-judgment-fn/SKILL.md}}

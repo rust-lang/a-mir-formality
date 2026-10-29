@@ -7,8 +7,8 @@ use crate::{
 use formality_core::judgment_fn;
 
 use crate::prove::{
-    combinators::for_all, decls::Program, env::Bias, negation::may_not_be_provable,
-    prove_normalize::prove_normalize, Constraints, Env,
+    binder_scope::enter_existentially, combinators::for_all, decls::Program, env::Bias,
+    negation::may_not_be_provable, prove_normalize::prove_normalize, Constraints, Env,
 };
 
 // From https://rust-lang.github.io/rfcs/2451-re-rebalancing-coherence.html:
@@ -126,6 +126,15 @@ judgment_fn! {
             --- ("via normalize")
             (may_be_downstream_parameter(decls, env, assumptions, AliasTy { name, parameters }) => c)
         )
+
+
+        (
+            (if is_fundamental(decls, name))
+            (p in parameters.iter())
+            (may_be_downstream_parameter(decls, env, assumptions, p) => c)
+            --- ("fundamental rigid type")
+            (may_be_downstream_parameter(decls, env, assumptions, RigidTy { name, parameters }) => c)
+        )
     }
 }
 
@@ -166,8 +175,8 @@ judgment_fn! {
 
         // ForAll predicates: open existentially and check
         (
-            (let (env, ty) = env.instantiate_existentially(binder))
-            (may_contain_downstream_type(decls, env, assumptions, ty) => ())
+            (scope(enter_existentially(env, binder) => (env, ty)) with()
+                (may_contain_downstream_type(decls, env, assumptions, ty) => ()))
             --- ("forall")
             (may_contain_downstream_type(decls, env, assumptions,
                 Ty::PredicateTy(PredicateTy::ForAll(binder))) => ())
@@ -303,7 +312,8 @@ judgment_fn! {
         // Fundamental types are local if all their arguments are local.
         (
             (if is_fundamental(decls, name))
-            (for_all(decls, env, assumptions, parameters, &is_local_parameter) => c)
+            (let type_params: Vec<Parameter> = parameters.iter().filter(|p| !matches!(p, Parameter::Lt(_))).cloned().collect())
+            (for_all(decls, env, assumptions, type_params, &is_local_parameter) => c)
             --- ("fundamental rigid type")
             (is_local_parameter(decls, env, assumptions, RigidTy { name, parameters }) => c)
         )

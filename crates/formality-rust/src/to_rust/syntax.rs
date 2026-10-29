@@ -403,6 +403,7 @@ pub enum TypeBound {
         trait_name: String,
         args: Vec<GenericArg>,
     },
+    Lifetime(String),
 }
 
 impl Display for TypeBound {
@@ -412,6 +413,7 @@ impl Display for TypeBound {
                 write!(f, "{trait_name}")?;
                 fmt_generic_args(f, args, false)
             }
+            TypeBound::Lifetime(lt) => f.write_str(lt),
         }
     }
 }
@@ -974,6 +976,12 @@ pub enum Expr {
         args: Vec<GenericArg>,
         fields: StructExprFields,
     },
+    Paren(Box<Expr>),
+    BinOp {
+        lhs: Box<Expr>,
+        op: String,
+        rhs: Box<Expr>,
+    },
 }
 
 impl Display for Expr {
@@ -1031,6 +1039,10 @@ impl Display for Expr {
                         f.write_char(')')
                     }
                 }
+            }
+            Expr::Paren(expr) => write!(f, "({expr})"),
+            Expr::BinOp { lhs, op, rhs } => {
+                write!(f, "{lhs} {op} {rhs}")
             }
         }
     }

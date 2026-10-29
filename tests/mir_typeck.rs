@@ -166,13 +166,13 @@ fn if_else_different_return_types() {
             error: could not compile `Foo` (lib) due to 1 previous error
         "#]])
         .err(expect_test::expect![[r#"
-                crates/formality-rust/src/prove/prove_normalize.rs:21:1: no applicable rules for prove_normalize { p: bool, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+            crates/formality-rust/src/prove/prove_normalize.rs:22:1: no applicable rules for prove_normalize { p: bool, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-                crates/formality-rust/src/prove/prove_normalize.rs:21:1: no applicable rules for prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+            crates/formality-rust/src/prove/prove_normalize.rs:22:1: no applicable rules for prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-                crates/formality-rust/src/prove/prove_normalize.rs:21:1: no applicable rules for prove_normalize { p: bool, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+            crates/formality-rust/src/prove/prove_normalize.rs:22:1: no applicable rules for prove_normalize { p: bool, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-                crates/formality-rust/src/prove/prove_normalize.rs:21:1: no applicable rules for prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }"#]])
+            crates/formality-rust/src/prove/prove_normalize.rs:22:1: no applicable rules for prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }"#]])
 }
 
 /// Test valid call: bar calls foo.
@@ -343,11 +343,11 @@ fn test_call_invalid_fn() {
         error: could not compile `Foo` (lib) due to 1 previous error
     "#]])
     .err(expect_test::expect![[r#"
-            the rule "fn-name" at (nll.rs) failed because
-              no fn named `foo`
+        the rule "fn-ref" at (nll.rs) failed because
+          no fn named `foo`
 
-            the rule "local" at (nll.rs) failed because
-              unknown local variable `foo`"#]])
+        the rule "local" at (nll.rs) failed because
+          unknown local variable `foo`"#]])
 }
 
 #[test]
@@ -390,13 +390,13 @@ fn test_pass_non_subtype_arg() {
             error: could not compile `Foo` (lib) due to 2 previous errors
         "#]])
         .err(expect_test::expect![[r#"
-                crates/formality-rust/src/prove/prove_normalize.rs:21:1: no applicable rules for prove_normalize { p: (), assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+            crates/formality-rust/src/prove/prove_normalize.rs:22:1: no applicable rules for prove_normalize { p: (), assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-                crates/formality-rust/src/prove/prove_normalize.rs:21:1: no applicable rules for prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+            crates/formality-rust/src/prove/prove_normalize.rs:22:1: no applicable rules for prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-                crates/formality-rust/src/prove/prove_normalize.rs:21:1: no applicable rules for prove_normalize { p: (), assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+            crates/formality-rust/src/prove/prove_normalize.rs:22:1: no applicable rules for prove_normalize { p: (), assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-                crates/formality-rust/src/prove/prove_normalize.rs:21:1: no applicable rules for prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }"#]])
+            crates/formality-rust/src/prove/prove_normalize.rs:22:1: no applicable rules for prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }"#]])
 }
 
 /// Test calling a generic function without turbofish (wrong number of type args: 0 vs 1).
@@ -414,11 +414,11 @@ fn test_call_generic_fn_without_turbofish() {
     }])
     .rustc_ok() // rustc can deduce the generic type
     .err(expect_test::expect![[r#"
-            the rule "fn-name" at (nll.rs) failed because
-              condition evaluated to false: `fn_decl.binder.len() == 0`
+        the rule "fn-ref" at (nll.rs) failed because
+          condition evaluated to false: `binder.len() == args.len()`
 
-            the rule "local" at (nll.rs) failed because
-              unknown local variable `identity`"#]])
+        the rule "local" at (nll.rs) failed because
+          unknown local variable `identity`"#]])
 }
 
 /// Test calling a generic function with correct turbofish.
@@ -486,13 +486,13 @@ fn test_call_generic_fn_wrong_type_with_turbofish() {
             error: could not compile `Foo` (lib) due to 2 previous errors
         "#]])
         .err(expect_test::expect![[r#"
-                crates/formality-rust/src/prove/prove_normalize.rs:21:1: no applicable rules for prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+            crates/formality-rust/src/prove/prove_normalize.rs:22:1: no applicable rules for prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-                crates/formality-rust/src/prove/prove_normalize.rs:21:1: no applicable rules for prove_normalize { p: bool, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+            crates/formality-rust/src/prove/prove_normalize.rs:22:1: no applicable rules for prove_normalize { p: bool, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-                crates/formality-rust/src/prove/prove_normalize.rs:21:1: no applicable rules for prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+            crates/formality-rust/src/prove/prove_normalize.rs:22:1: no applicable rules for prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-                crates/formality-rust/src/prove/prove_normalize.rs:21:1: no applicable rules for prove_normalize { p: bool, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }"#]])
+            crates/formality-rust/src/prove/prove_normalize.rs:22:1: no applicable rules for prove_normalize { p: bool, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }"#]])
 }
 
 /// Test calling a generic function using turbofish syntax with an incorrect number of parameters.
@@ -566,8 +566,8 @@ fn test_call_generic_fn_wrong_arity() {
         error: could not compile `Foo` (lib) due to 1 previous error
     "#]])
     .err(expect_test::expect![[r#"
-            the rule "turbofish" at (nll.rs) failed because
-              condition evaluated to false: `fn_decl.binder.len() == args.len()`"#]])
+        the rule "fn-ref" at (nll.rs) failed because
+          condition evaluated to false: `binder.len() == args.len()`"#]])
 }
 
 /// Test what will happen if the declared and actual return type are not compatible.
@@ -599,13 +599,13 @@ fn test_incompatible_return_type() {
             error: could not compile `Foo` (lib) due to 1 previous error
         "#]])
         .err(expect_test::expect![[r#"
-                crates/formality-rust/src/prove/prove_normalize.rs:21:1: no applicable rules for prove_normalize { p: (), assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+            crates/formality-rust/src/prove/prove_normalize.rs:22:1: no applicable rules for prove_normalize { p: (), assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-                crates/formality-rust/src/prove/prove_normalize.rs:21:1: no applicable rules for prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+            crates/formality-rust/src/prove/prove_normalize.rs:22:1: no applicable rules for prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-                crates/formality-rust/src/prove/prove_normalize.rs:21:1: no applicable rules for prove_normalize { p: (), assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+            crates/formality-rust/src/prove/prove_normalize.rs:22:1: no applicable rules for prove_normalize { p: (), assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-                crates/formality-rust/src/prove/prove_normalize.rs:21:1: no applicable rules for prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }"#]])
+            crates/formality-rust/src/prove/prove_normalize.rs:22:1: no applicable rules for prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }"#]])
 }
 
 // Test the behaviour of having unitialised return local variable.
@@ -846,9 +846,9 @@ fn test_struct_wrong_type_in_initialisation() {
             error: could not compile `Foo` (lib) due to 1 previous error
         "#]])
         .err(expect_test::expect![[r#"
-                crates/formality-rust/src/prove/prove_normalize.rs:21:1: no applicable rules for prove_normalize { p: bool, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+            crates/formality-rust/src/prove/prove_normalize.rs:22:1: no applicable rules for prove_normalize { p: bool, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-                crates/formality-rust/src/prove/prove_normalize.rs:21:1: no applicable rules for prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }"#]])
+            crates/formality-rust/src/prove/prove_normalize.rs:22:1: no applicable rules for prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }"#]])
 }
 
 /// Test the behaviour of having non-adt as the type for struct construction.
@@ -876,6 +876,32 @@ fn test_non_adt_ty_for_struct() {
     .err(expect_test::expect![[r#"
             the rule "struct" at (nll.rs) failed because
               no ADT named `Nonexistent`"#]])
+}
+
+/// Test that duplicate fields in struct construction are rejected.
+#[test]
+fn duplicate_fields_are_rejected() {
+    FormalityTest::new(crates![crate Foo {
+        struct S { x: u32 }
+        fn main() -> () {
+            let s: S = S { x: 1_u32, x: 2_u32 };
+        }
+    }])
+    .rustc_err(expect_test::expect![[r#"
+        error[E0062]: field `x` specified more than once
+         --> lib.rs
+          |
+        6 |     let mut s: S = S { x: 1_u32, x: 2_u32 };
+          |                        --------  ^ used more than once
+          |                        |
+          |                        first use of `x`
+
+        For more information about this error, try `rustc --explain E0062`.
+        error: could not compile `Foo` (lib) due to 1 previous error
+    "#]])
+    .err(expect_test::expect![[r#"
+            the rule "struct" at (nll.rs) failed because
+              condition evaluated to false: `field_exprs.len() == provided_names.len()`"#]])
 }
 
 /// Test that the `false` literal type-checks as `bool`.
@@ -1018,9 +1044,9 @@ fn test_break_nonexistent_label() {
             error: could not compile `Foo` (lib) due to 1 previous error
         "#]])
         .err(expect_test::expect![[r#"
-                crates/formality-rust/src/check/borrow_check/nll.rs:177:1: no applicable rules for borrow_check_statement { state: flow_state([scope(none, None, {}, None, [], []), scope(none, None, {}, None, [], []), scope(none, None, {}, Some({}), [], []), scope(none, None, {}, None, [], [])], point_flow_state({}, {}, {}), {}, {}, {}), statement: break 'nonexistent ;, places_live_on_exit: {}, assumptions: {}, env: TypeckEnv { env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: false }, output_ty: Some(u32) } }
+                crates/formality-rust/src/check/borrow_check/nll.rs:174:1: no applicable rules for borrow_check_statement { state: flow_state([scope(none, None, {}, None, [], []), scope(none, None, {}, None, [], []), scope(none, None, {}, Some({}), [], []), scope(none, None, {}, None, [], [])], point_flow_state({}, {}, {}), {}, {}, {}), statement: break 'nonexistent ;, places_live_on_exit: {}, assumptions: {}, env: TypeckEnv { env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: false }, output_ty: Some(u32) } }
 
-                crates/formality-rust/src/check/borrow_check/nll.rs:177:1: no applicable rules for borrow_check_statement { state: flow_state([scope(none, None, {}, None, [], []), scope(none, None, {}, None, [], []), scope(none, None, {}, Some({}), [], []), scope(none, None, {}, None, [], [])], point_flow_state({}, {}, {}), {}, {}, {}), statement: break 'nonexistent ;, places_live_on_exit: {}, assumptions: {}, env: TypeckEnv { env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: false }, output_ty: Some(u32) } }"#]])
+                crates/formality-rust/src/check/borrow_check/nll.rs:174:1: no applicable rules for borrow_check_statement { state: flow_state([scope(none, None, {}, None, [], []), scope(none, None, {}, None, [], []), scope(none, None, {}, Some({}), [], []), scope(none, None, {}, None, [], [])], point_flow_state({}, {}, {}), {}, {}, {}), statement: break 'nonexistent ;, places_live_on_exit: {}, assumptions: {}, env: TypeckEnv { env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: false }, output_ty: Some(u32) } }"#]])
 }
 
 /// `continue` targeting a valid loop label should pass.
@@ -1140,4 +1166,350 @@ fn test_break_block_label() {
     .skip_execute()
     .rustc_ok()
     .ok()
+}
+
+/// Adding integers of different types should fail.
+#[test]
+fn test_add_mismatched_int_types() {
+    FormalityTest::new(crates![crate Foo {
+        fn foo() -> () {
+            let x: i32 = 1_i32 + 2_u32;
+        }
+    }])
+    .rustc_err(expect_test::expect![[r#"
+        error[E0308]: mismatched types
+         --> lib.rs
+          |
+        2 |     let mut x: i32 = 1_i32 + 2_u32;
+          |                              ^^^^^ expected `i32`, found `u32`
+
+        error[E0277]: cannot add `u32` to `i32`
+           --> lib.rs
+            |
+          2 |     let mut x: i32 = 1_i32 + 2_u32;
+            |                            ^ no implementation for `i32 + u32`
+            |
+            = help: the trait `Add<u32>` is not implemented for `i32`
+        help: the following other types implement trait `Add<Rhs>`
+           --> arith.rs
+            |
+         99 |         impl const Add for $t {
+            |         ^^^^^^^^^^^^^^^^^^^^^ `i32` implements `Add`
+        ...
+        114 | add_impl! { usize u8 u16 u32 u64 u128 isize i8 i16 i32 i64 i128 f16 f32 f64 f128 }
+            | ---------------------------------------------------------------------------------- in this macro invocation
+            |
+           ::: internal_macros.rs
+            |
+         22 |         impl const $imp<$u> for &$t {
+            |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^ `&i32` implements `Add<i32>`
+        ...
+         33 |         impl const $imp<&$u> for $t {
+            |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^ `i32` implements `Add<&i32>`
+        ...
+         44 |         impl const $imp<&$u> for &$t {
+            |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `&i32` implements `Add`
+            = note: this error originates in the macro `add_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+        Some errors have detailed explanations: E0277, E0308.
+        For more information about an error, try `rustc --explain E0277`.
+        error: could not compile `Foo` (lib) due to 2 previous errors
+    "#]])
+    .err(expect_test::expect![[r#"
+        crates/formality-rust/src/prove/prove_normalize.rs:22:1: no applicable rules for prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+
+        crates/formality-rust/src/prove/prove_normalize.rs:22:1: no applicable rules for prove_normalize { p: i32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }"#]])
+}
+
+#[test]
+fn test_sub_mismatched_int_types() {
+    FormalityTest::new(crates![crate Foo {
+        fn foo() -> () {
+            let x: i32 = 10_i32 - 3_u32;
+        }
+    }])
+    .rustc_err(expect_test::expect![[r#"
+        error[E0308]: mismatched types
+         --> lib.rs
+          |
+        2 |     let mut x: i32 = 10_i32 - 3_u32;
+          |                               ^^^^^ expected `i32`, found `u32`
+
+        error[E0277]: cannot subtract `u32` from `i32`
+           --> lib.rs
+            |
+          2 |     let mut x: i32 = 10_i32 - 3_u32;
+            |                             ^ no implementation for `i32 - u32`
+            |
+            = help: the trait `Sub<u32>` is not implemented for `i32`
+        help: the following other types implement trait `Sub<Rhs>`
+           --> arith.rs
+            |
+        212 |         impl const Sub for $t {
+            |         ^^^^^^^^^^^^^^^^^^^^^ `i32` implements `Sub`
+        ...
+        227 | sub_impl! { usize u8 u16 u32 u64 u128 isize i8 i16 i32 i64 i128 f16 f32 f64 f128 }
+            | ---------------------------------------------------------------------------------- in this macro invocation
+            |
+           ::: internal_macros.rs
+            |
+         22 |         impl const $imp<$u> for &$t {
+            |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^ `&i32` implements `Sub<i32>`
+        ...
+         33 |         impl const $imp<&$u> for $t {
+            |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^ `i32` implements `Sub<&i32>`
+        ...
+         44 |         impl const $imp<&$u> for &$t {
+            |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `&i32` implements `Sub`
+            = note: this error originates in the macro `sub_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+        Some errors have detailed explanations: E0277, E0308.
+        For more information about an error, try `rustc --explain E0277`.
+        error: could not compile `Foo` (lib) due to 2 previous errors
+    "#]])
+    .err(expect_test::expect![[r#"
+        crates/formality-rust/src/prove/prove_normalize.rs:22:1: no applicable rules for prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+
+        crates/formality-rust/src/prove/prove_normalize.rs:22:1: no applicable rules for prove_normalize { p: i32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }"#]])
+}
+
+/// Multiplying integers of different types should fail.
+#[test]
+fn test_mul_mismatched_int_types() {
+    FormalityTest::new(crates![crate Foo {
+        fn foo() -> () {
+            let x: i32 = 3_i32 * 4_u32;
+        }
+    }])
+    .rustc_err(expect_test::expect![[r#"
+        error[E0308]: mismatched types
+         --> lib.rs
+          |
+        2 |     let mut x: i32 = 3_i32 * 4_u32;
+          |                              ^^^^^ expected `i32`, found `u32`
+
+        error[E0277]: cannot multiply `i32` by `u32`
+           --> lib.rs
+            |
+          2 |     let mut x: i32 = 3_i32 * 4_u32;
+            |                            ^ no implementation for `i32 * u32`
+            |
+            = help: the trait `Mul<u32>` is not implemented for `i32`
+        help: the following other types implement trait `Mul<Rhs>`
+           --> arith.rs
+            |
+        346 |         impl const Mul for $t {
+            |         ^^^^^^^^^^^^^^^^^^^^^ `i32` implements `Mul`
+        ...
+        361 | mul_impl! { usize u8 u16 u32 u64 u128 isize i8 i16 i32 i64 i128 f16 f32 f64 f128 }
+            | ---------------------------------------------------------------------------------- in this macro invocation
+            |
+           ::: internal_macros.rs
+            |
+         22 |         impl const $imp<$u> for &$t {
+            |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^ `&i32` implements `Mul<i32>`
+        ...
+         33 |         impl const $imp<&$u> for $t {
+            |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^ `i32` implements `Mul<&i32>`
+        ...
+         44 |         impl const $imp<&$u> for &$t {
+            |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `&i32` implements `Mul`
+            = note: this error originates in the macro `mul_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+        Some errors have detailed explanations: E0277, E0308.
+        For more information about an error, try `rustc --explain E0277`.
+        error: could not compile `Foo` (lib) due to 2 previous errors
+    "#]])
+    .err(expect_test::expect![[r#"
+        crates/formality-rust/src/prove/prove_normalize.rs:22:1: no applicable rules for prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+
+        crates/formality-rust/src/prove/prove_normalize.rs:22:1: no applicable rules for prove_normalize { p: i32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }"#]])
+}
+
+/// Multiplication requires integers, even when both operands have the same type.
+#[test]
+fn test_mul_boolean_operands() {
+    FormalityTest::new(crates![crate Foo {
+        fn foo() -> () {
+            let x: bool = true * false;
+        }
+    }])
+    .rustc_err(expect_test::expect![[r#"
+        error[E0369]: cannot multiply `bool` by `bool`
+         --> lib.rs
+          |
+        2 |     let mut x: bool = true * false;
+          |                       ---- ^ ----- bool
+          |                       |
+          |                       bool
+
+        For more information about this error, try `rustc --explain E0369`.
+        error: could not compile `Foo` (lib) due to 1 previous error
+    "#]])
+    .err(expect_test::expect![[r#"
+        the rule "binop" at (nll.rs) failed because
+          condition evaluated to false: `scalar.is_int()`
+            scalar = bool"#]])
+}
+
+/// A generic function named without being called still
+/// needs its where-clauses to hold. `S` does not implement `Marker`.
+#[test]
+fn test_generic_fn_value_with_unsatisfied_where_clause() {
+    FormalityTest::new(crates![crate test {
+        trait Marker {}
+        struct S {}
+        fn require_marker<T>() -> () where T: Marker { trusted }
+        fn main() -> () { require_marker::<S>; }
+    }])
+    .rustc_err(expect_test::expect![[r#"
+        error[E0277]: the trait bound `S: Marker` is not satisfied
+          --> lib.rs
+           |
+        13 |     require_marker::<S>;
+           |                      ^ unsatisfied trait bound
+           |
+        help: the trait `Marker` is not implemented for `S`
+          --> lib.rs
+           |
+         3 | pub struct S {}
+           | ^^^^^^^^^^^^
+        help: this trait has no implementations, consider adding one
+          --> lib.rs
+           |
+         1 | pub trait Marker {}
+           | ^^^^^^^^^^^^^^^^
+        note: required by a bound in `require_marker`
+          --> lib.rs
+           |
+         5 | pub fn require_marker<T00>() -> ()
+           |        -------------- required by a bound in this function
+         6 | where
+         7 |     T00: Marker,
+           |          ^^^^^^ required by this bound in `require_marker`
+
+        For more information about this error, try `rustc --explain E0277`.
+        error: could not compile `test` (lib) due to 1 previous error
+    "#]])
+    .err(expect_test::expect![[r#"
+        the rule "trait implied bound" at (prove_predicate.rs) failed because
+          expression evaluated to an empty collection: `decls.trait_invariants()`"#]]);
+}
+
+/// Calling the same function is still rejected. The where-clauses are now
+/// checked both for the function name and by the call.
+#[test]
+fn test_generic_fn_call_with_unsatisfied_where_clause() {
+    FormalityTest::new(crates![crate test {
+        trait Marker {}
+        struct S {}
+        fn require_marker<T>() -> () where T: Marker { trusted }
+        fn main() -> () { require_marker::<S>(); }
+    }])
+    .rustc_err(expect_test::expect![[r#"
+        error[E0277]: the trait bound `S: Marker` is not satisfied
+          --> lib.rs
+           |
+        13 |     require_marker::<S>();
+           |                      ^ unsatisfied trait bound
+           |
+        help: the trait `Marker` is not implemented for `S`
+          --> lib.rs
+           |
+         3 | pub struct S {}
+           | ^^^^^^^^^^^^
+        help: this trait has no implementations, consider adding one
+          --> lib.rs
+           |
+         1 | pub trait Marker {}
+           | ^^^^^^^^^^^^^^^^
+        note: required by a bound in `require_marker`
+          --> lib.rs
+           |
+         5 | pub fn require_marker<T00>() -> ()
+           |        -------------- required by a bound in this function
+         6 | where
+         7 |     T00: Marker,
+           |          ^^^^^^ required by this bound in `require_marker`
+
+        For more information about this error, try `rustc --explain E0277`.
+        error: could not compile `test` (lib) due to 1 previous error
+    "#]])
+    .err(expect_test::expect![[r#"
+        the rule "trait implied bound" at (prove_predicate.rs) failed because
+          expression evaluated to an empty collection: `decls.trait_invariants()`"#]]);
+}
+
+/// Naming the function with a type that implements `Marker` is accepted.
+#[test]
+fn test_generic_fn_value_with_satisfied_where_clause() {
+    FormalityTest::new(crates![crate test {
+        trait Marker {}
+        impl Marker for u32 {}
+        fn require_marker<T>() -> () where T: Marker {}
+        fn main() -> () { require_marker::<u32>; }
+    }])
+    .rustc_ok()
+    .ok();
+}
+
+#[test]
+fn test_fn_value_with_forwarded_trait_bound() {
+    FormalityTest::new(crates![crate Foo {
+        trait Marker {}
+        impl Marker for u32 {}
+        fn require<T>() -> () where T: Marker {}
+        fn outer<T>() -> () where T: Marker { require::<T>; }
+        fn main() -> () { outer::<u32>(); }
+    }])
+    .rustc_ok()
+    .ok();
+}
+
+#[test]
+fn test_bare_fn_value_with_satisfied_where_clause() {
+    FormalityTest::new(crates![crate Foo {
+        trait Marker {}
+        impl Marker for u32 {}
+        fn require() -> () where u32: Marker {}
+        fn main() -> () { require; }
+    }])
+    .rustc_ok()
+    .ok();
+}
+
+#[test]
+fn test_fn_value_with_forwarded_lifetime_bound() {
+    FormalityTest::new(crates![crate Foo {
+        fn require<'a, 'b>() -> () where 'a: 'b {}
+        fn outer<'a, 'b>() -> () where 'a: 'b { require::<'a, 'b>; }
+        fn main() -> () { outer::<'static, 'static>(); }
+    }])
+    .rustc_ok()
+    .ok();
+}
+
+#[test]
+fn test_fn_value_with_unsatisfied_lifetime_bound() {
+    FormalityTest::new(crates![crate Foo {
+        fn require<'a, 'b>() -> () where 'a: 'b {}
+        fn outer<'a, 'b>() -> () { require::<'a, 'b>; }
+        fn main() -> () {}
+    }])
+    .rustc_err(expect_test::expect![[r#"
+        error: lifetime may not live long enough
+         --> lib.rs
+          |
+        7 | pub fn outer<'a00, 'a01>() -> () {
+          |              ----  ---- lifetime `'a01` defined here
+          |              |
+          |              lifetime `'a00` defined here
+        8 |     require::<'a00, 'a01>;
+          |     ^^^^^^^^^^^^^^^^^^^^^ requires that `'a00` must outlive `'a01`
+          |
+          = help: consider adding the following bound: `'a00: 'a01`
+
+        error: could not compile `Foo` (lib) due to 1 previous error
+    "#]])
+    .err(expect_test::expect!["crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: !lt_1, assumptions: {}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }"]);
 }

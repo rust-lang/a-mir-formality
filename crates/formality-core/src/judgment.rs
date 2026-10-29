@@ -1,25 +1,37 @@
-use std::cell::RefCell;
-
-use crate::{fixed_point::FixedPointStack, Fallible, Map};
+use crate::Fallible;
 
 mod assertion;
 pub use assertion::JudgmentAssertion;
 
 pub mod coverage;
 
+mod memo;
+
 mod proven_set;
 pub use proven_set::{
     insert_smallest_proof, member_of, CheckProven, EachProof, FailedJudgment, FailedRule,
-    FailureLocation, FailureReason, LeafFailure, ProofTree, Proven, ProvenSet, RuleFailureCause,
+    FailureLocation, FailureReason, LeafFailure, ProofNode, ProofTree, Proven, ProvenSet,
+    RuleFailureCause,
 };
+
+mod scope;
+#[cfg(test)]
+mod test_comprehension;
+pub use scope::Scope;
+
+mod runtime;
+#[doc(hidden)]
+pub use runtime::{execute_judgment, JudgmentCache};
 
 mod test_explicit_fail;
 mod test_fallible;
 mod test_filtered;
+mod test_fixed_point;
 mod test_for_all;
+mod test_memo;
+mod test_panic;
 mod test_reachable;
-
-pub type JudgmentStack<J, O> = RefCell<FixedPointStack<J, Map<O, ProofTree>>>;
+mod test_scope;
 
 /// `judgment_fn!` allows construction of inference rules using a more logic-like notation.
 ///
@@ -41,10 +53,216 @@ pub type JudgmentStack<J, O> = RefCell<FixedPointStack<J, Map<O, ProofTree>>>;
 /// * `(if <expr>)`
 /// * `(if let <pat> = <expr>)`
 /// * `(let <binding> = <expr>)`
+/// * `(let <binding>: <collection-type> = for_all <item> in <collection> =>
+///   <conditions>... <value>)` -- collects implicitly upcast values after
+///   requiring the conditions for every element. The type annotation is optional.
+///   A final `(<judgment> => <binding>)` can also supply the collected value.
+/// * `(for_all(<item> in <collection>) <conditions>...)` -- requires the inner
+///   conditions to succeed for every element; an empty collection succeeds.
+/// * `(for_all(<item> in <collection>) with(<variables>...) <conditions>...)` --
+///   additionally carries the named variables between iterations. Shadow them
+///   inside the loop to update them; later conditions see their final values.
+///   The loop preserves successful alternatives across iterations.
+/// * `(scope(<expr> => <pat>) with(<vars>) <conditions>)` -- proves the nested conditions inside a [`Scope`][], see below.
+///
+/// ## Scopes
+///
+/// `<expr>` enters a scope: it evaluates to a pair of the [`Scope`][] and
+/// what is inside it, which `<pat>` binds for the nested conditions. Those
+/// bindings, and any the nested conditions make, end with the `scope`
+/// condition. Only `<vars>` come out: each proof of the nested conditions
+/// leaves the scope with its values for them ([`Scope::leave`][]), and the
+/// rest of the rule sees what that yields.
+///
+/// Like any other condition's expression, `<expr>` may fail; the rule then
+/// does not apply. `<pat>` must be irrefutable: it binds what is inside the
+/// scope, so there is no other case for it to match.
+///
+/// ```ignore
+/// (
+///     (scope(enter_forall(env, binder) => (env, body)) with(c)
+///         (prove(env, body) => c))
+///     --------------------
+///     (prove(env, Goal::ForAll(binder)) => c)
+/// )
+/// ```
+///
+/// So the rule cannot forget to leave the scope, nor use what was inside it
+/// afterwards. A match commit point `!` cannot be nested in a `scope`; it
+/// marks how far the rule got before the scope, so it belongs beside the
+/// conditions `@accum` can see.
 ///
 /// The conclusions can be the following
 ///
 /// * `(<pat> => <binding>)
+///
+/// ## Collection output patterns
+///
+/// A collection-producing `for_all` can end with a judgment premise only when
+/// its output pattern is a single identifier. Destructuring does not implicitly
+/// select a value to collect:
+///
+/// ```compile_fail
+/// # use formality_core::{judgment_fn, Set};
+/// # judgment_fn! {
+/// #     fn expected_field_name(field: u32) => (u32, u32) {
+/// #         debug(field)
+/// #         (--- ("field name") (expected_field_name(field) => (field, 0u32)))
+/// #     }
+/// # }
+/// # judgment_fn! {
+/// #     fn field_names(fields: Vec<u32>) => Set<u32> {
+/// #         debug(fields)
+/// #         (
+/// (let expected_names: Set<u32> = for_all field in fields =>
+///     (expected_field_name(field) => (a, _))
+/// )
+/// #             --- ("field names")
+/// #             (field_names(fields) => expected_names)
+/// #         )
+/// #     }
+/// # }
+/// ```
+///
+/// A wildcard discards the judgment result, so it cannot supply a collected value:
+///
+/// ```compile_fail
+/// # use formality_core::{judgment_fn, Set};
+/// # judgment_fn! {
+/// #     fn expected_field_name(field: u32) => u32 {
+/// #         debug(field)
+/// #         (--- ("field name") (expected_field_name(field) => field))
+/// #     }
+/// # }
+/// # judgment_fn! {
+/// #     fn field_names(fields: Vec<u32>) => Set<u32> {
+/// #         debug(fields)
+/// #         (
+/// (let expected_names: Set<u32> = for_all field in fields =>
+///     (expected_field_name(field) => _)
+/// )
+/// #             --- ("field names")
+/// #             (field_names(fields) => expected_names)
+/// #         )
+/// #     }
+/// # }
+/// ```
+///
+/// Nor is `..` supported as shorthand for collecting the whole result:
+///
+/// ```compile_fail
+/// # use formality_core::{judgment_fn, Set};
+/// # judgment_fn! {
+/// #     fn expected_field_name(field: u32) => u32 {
+/// #         debug(field)
+/// #         (--- ("field name") (expected_field_name(field) => field))
+/// #     }
+/// # }
+/// # judgment_fn! {
+/// #     fn field_names(fields: Vec<u32>) => Set<u32> {
+/// #         debug(fields)
+/// #         (
+/// (let expected_names: Set<u32> = for_all field in fields =>
+///     (expected_field_name(field) => ..)
+/// )
+/// #             --- ("field names")
+/// #             (field_names(fields) => expected_names)
+/// #         )
+/// #     }
+/// # }
+/// ```
+///
+/// After destructuring, add an explicit final expression to select the value:
+///
+/// ```
+/// # use formality_core::{judgment_fn, Set};
+/// # judgment_fn! {
+/// #     fn expected_field_name(field: u32) => (u32, u32) {
+/// #         debug(field)
+/// #         (--- ("field name") (expected_field_name(field) => (field, 0u32)))
+/// #     }
+/// # }
+/// # judgment_fn! {
+/// #     fn field_names(fields: Vec<u32>) => Set<u32> {
+/// #         debug(fields)
+/// #         (
+/// (let expected_names: Set<u32> = for_all field in fields =>
+///     (expected_field_name(field) => (a, _))
+///     a
+/// )
+/// #             --- ("field names")
+/// #             (field_names(fields) => expected_names)
+/// #         )
+/// #     }
+/// # }
+/// # field_names(vec![2u32, 1, 2]).assert_ok(expect_test::expect!["{{1, 2}}"]);
+/// ```
+///
+/// ## Collection result expressions
+///
+/// Non-final parenthesized groups are premises. The remaining tokens are the
+/// result expression, with no extra parentheses required. A tuple `(key, value)`
+/// works as a final expression, but a leading parenthesized group followed by
+/// more tokens is treated as a premise. For example, `(double(value)) * 3` is
+/// rejected because `(double(value))` is not a premise:
+///
+/// ```compile_fail
+/// # use formality_core::judgment_fn;
+/// # fn double(value: &u32) -> u32 { value * 2 }
+/// # judgment_fn! {
+/// #     fn scaled(values: Vec<u32>) => Vec<u32> {
+/// #         debug(values)
+/// #         (
+/// (let result: Vec<u32> = for_all value in values =>
+///     (double(value)) * 3
+/// )
+/// #             --- ("scaled")
+/// #             (scaled(values) => result)
+/// #         )
+/// #     }
+/// # }
+/// ```
+///
+/// Wrap the complete result in parentheses or a Rust block when needed:
+///
+/// ```
+/// # use formality_core::judgment_fn;
+/// # fn double(value: &u32) -> u32 { value * 2 }
+/// # judgment_fn! {
+/// #     fn scaled(values: Vec<u32>) => Vec<u32> {
+/// #         debug(values)
+/// #         (
+/// (let result: Vec<u32> = for_all value in values => ((double(value)) * 3))
+/// // Equivalently:
+/// (let result: Vec<u32> = for_all value in values => { (double(value)) * 3 })
+/// #             --- ("scaled")
+/// #             (scaled(values) => result)
+/// #         )
+/// #     }
+/// # }
+/// # scaled(vec![1u32, 2]).assert_ok(expect_test::expect!["{[6, 12]}"]);
+/// ```
+///
+/// A `!` immediately after a premise is its confirmation marker. To return a
+/// negation after a premise, wrap the result as `(!flag)` or `{ !flag }`.
+///
+/// A final guard has no result to collect. Follow it with a result expression:
+///
+/// ```compile_fail
+/// # use formality_core::judgment_fn;
+/// # judgment_fn! {
+/// #     fn positive(values: Vec<u32>) => Vec<u32> {
+/// #         debug(values)
+/// #         (
+/// (let result: Vec<u32> = for_all value in values =>
+///     (if *value > 0)
+/// )
+/// #             --- ("positive")
+/// #             (positive(values) => result)
+/// #         )
+/// #     }
+/// # }
+/// ```
 ///
 /// ## Failure reporting and match commit points
 ///
@@ -132,9 +350,9 @@ macro_rules! judgment_fn {
 
             let mut failed_rules = $crate::set![];
             let input = __JudgmentStruct($($input_name),*);
-            let output = $crate::fixed_point::fixed_point::<
+            let output = $crate::judgment::execute_judgment::<
                 __JudgmentStruct,
-                $crate::Map<$output, $crate::judgment::ProofTree>,
+                $output,
             >(
                 // Tracing span:
                 |input| {
@@ -145,10 +363,10 @@ macro_rules! judgment_fn {
                     )
                 },
 
-                // Stack:
+                // Per-judgment cache:
                 {
                     thread_local! {
-                        static R: $crate::judgment::JudgmentStack<__JudgmentStruct, $output> = Default::default()
+                        static R: $crate::judgment::JudgmentCache<__JudgmentStruct, $output> = Default::default()
                     }
                     &R
                 },
@@ -156,10 +374,7 @@ macro_rules! judgment_fn {
                 // Input:
                 input.clone(),
 
-                // Default value:
-                |_| Default::default(),
-
-                // Next value:
+                // Execute rules:
                 |input: __JudgmentStruct| {
                     let mut output: $crate::Map<$output, $crate::judgment::ProofTree> = $crate::Map::new();
 
@@ -333,6 +548,15 @@ macro_rules! push_rules {
         }
     };
 
+    // Boolean literals also match an `ident` macro fragment. Handle all
+    // literals before the identity-pattern arm so `true` is treated as a
+    // refutable pattern instead of expanding to the invalid `let true = ...`.
+    (@match $conclusion_name:ident inputs($in0:ident $($inputs:tt)*) patterns($pat0:literal, $($pats:tt)*) args $args:tt) => {
+        if let Some($pat0) = &$crate::Downcast::downcast($in0) {
+            $crate::push_rules!(@match $conclusion_name inputs($($inputs)*) patterns($($pats)*) args $args);
+        }
+    };
+
     (@match $conclusion_name:ident inputs($in0:ident $($inputs:tt)*) patterns($pat0:ident, $($pats:tt)*) args $args:tt) => {
         {
             let $pat0 = $in0;
@@ -356,6 +580,18 @@ macro_rules! push_rules {
     // to evaluate the rule. This is effectively an iterator chain. The
     // expression `v` is carried in from the conclusion and forms the final
     // output of this rule, once all the conditions are evaluated.
+
+    // A match commit point nested in a `scope` would do nothing: the `@accum`
+    // phase only sees the conditions of the rule itself, so it never switched
+    // the match default, and setting it again here has no effect. Reject it
+    // rather than let it look like it works. (This arm must precede the one
+    // below, which would otherwise match.)
+    (
+        @body (scope($scope_proofs:ident, ($($with_var:ident,)*))); $_inputs:tt; $child_proof_trees:ident;
+        ! $($m:tt)*
+    ) => {
+        compile_error!("a match commit point `!` cannot be nested in a `scope`")
+    };
 
     (
         @body $args:tt; ($failed_rules:expr, $match_var:ident, $input_info:tt, $rule_name:literal); $child_proof_trees:ident;
@@ -515,6 +751,206 @@ macro_rules! push_rules {
         }
     };
 
+    // Collection comprehensions desugar into ordinary `for_all` premises.
+    // `@comprehension_body` saves the prefix premises as opaque tokens and splits
+    // off the final result. `@comprehension_finish` also expands a terminal
+    // `(judgment => name)` into that premise followed by the result expression `name`.
+    // `@comprehension_collect` then re-enters `@body` with this schematic expansion:
+    //
+    //     (let collected: Vec<_> = Vec::new())
+    //     (for_all(item in collection) with(collected)
+    //         ...original premises...
+    //         (let collected = /* clone collected, append Upcast::upcast(&value) */))
+    //     (let result: Target = collected.iter().cloned().collect())
+    //
+    // The accumulator is hygienic, so nested comprehensions remain independent.
+    // The destination's FromIterator implementation selects the final collection
+    // type and constrains the element upcast. All premise evaluation, failures,
+    // proof construction, and propagation of successful alternatives
+    // come from the existing `for_all` implementation; we do not reimplement them.
+    //
+    // Capture this DSL syntax before ordinary Rust expressions. The arrow lets
+    // Rust parse the collection expression directly.
+    (
+        @body $args:tt; $inputs:tt; $child_proof_trees:ident;
+        (let $p:ident : $t:ty = for_all $item:ident in $collection:expr => $($body:tt)*) $($m:tt)*
+    ) => {
+        $crate::push_rules!(@comprehension_body
+            $args; $inputs; $child_proof_trees; ($p); $t;
+            $item; ($collection); (); [$($body)*]; ($($m)*));
+    };
+
+    (
+        @body $args:tt; $inputs:tt; $child_proof_trees:ident;
+        (let $p:pat = for_all $item:ident in $collection:expr => $($body:tt)*) $($m:tt)*
+    ) => {
+        $crate::push_rules!(@comprehension_body
+            $args; $inputs; $child_proof_trees; ($p); _;
+            $item; ($collection); (); [$($body)*]; ($($m)*));
+    };
+
+    // A final parenthesized group can be a judgment shorthand or a Rust expression.
+    // Preserve its parentheses so tuple and unit expressions parse normally.
+    (
+        @comprehension_body
+        $args:tt; $inputs:tt; $child_proof_trees:ident; $binding:tt; $t:ty;
+        $item:ident; $collection:tt; $premises:tt; [($($last:tt)*)]; $remaining:tt
+    ) => {
+        $crate::push_rules!(@comprehension_finish
+            $args; $inputs; $child_proof_trees; $binding; $t;
+            $item; $collection; $premises; [($($last)*)]; $remaining);
+    };
+
+    // Non-final parenthesized groups are opaque premises, including an optional
+    // confirmation marker. The existing for_all implementation interprets them.
+    (
+        @comprehension_body
+        $args:tt; $inputs:tt; $child_proof_trees:ident; $binding:tt; $t:ty;
+        $item:ident; $collection:tt; ($($premises:tt)*); [($($premise:tt)*) ! $($rest:tt)*]; $remaining:tt
+    ) => {
+        $crate::push_rules!(@comprehension_body
+            $args; $inputs; $child_proof_trees; $binding; $t;
+            $item; $collection; ($($premises)* ($($premise)*) !); [$($rest)*]; $remaining);
+    };
+
+    (
+        @comprehension_body
+        $args:tt; $inputs:tt; $child_proof_trees:ident; $binding:tt; $t:ty;
+        $item:ident; $collection:tt; ($($premises:tt)*); [($($premise:tt)*) $($rest:tt)+]; $remaining:tt
+    ) => {
+        $crate::push_rules!(@comprehension_body
+            $args; $inputs; $child_proof_trees; $binding; $t;
+            $item; $collection; ($($premises)* ($($premise)*)); [$($rest)+]; $remaining);
+    };
+
+    // Everything remaining is the result expression. An expression beginning with
+    // a non-final parenthesized group must be wrapped as a whole in (...) or {...}.
+    (
+        @comprehension_body
+        $args:tt; $inputs:tt; $child_proof_trees:ident; $binding:tt; $t:ty;
+        $item:ident; $collection:tt; $premises:tt; [$($value:tt)*]; $remaining:tt
+    ) => {
+        $crate::push_rules!(@comprehension_finish
+            $args; $inputs; $child_proof_trees; $binding; $t;
+            $item; $collection; $premises; [$($value)*]; $remaining);
+    };
+
+    (
+        @comprehension_finish
+        $args:tt; $inputs:tt; $child_proof_trees:ident; $binding:tt; $t:ty;
+        $item:ident; $collection:tt; $premises:tt; []; $remaining:tt
+    ) => {
+        compile_error!("end a for_all collection body with a value or `(judgment => binding)`");
+    };
+
+    (
+        @comprehension_finish
+        $args:tt; $inputs:tt; $child_proof_trees:ident; $binding:tt; $t:ty;
+        $item:ident; $collection:tt; ($($premises:tt)*); [($judgment:expr => $result:ident)]; $remaining:tt
+    ) => {
+        $crate::push_rules!(@comprehension_collect
+            $args; $inputs; $child_proof_trees; $binding; $t;
+            ($result); $item; $collection; ($($premises)* ($judgment => $result)); $remaining);
+    };
+
+    (
+        @comprehension_finish
+        $args:tt; $inputs:tt; $child_proof_trees:ident; $binding:tt; $t:ty;
+        $item:ident; $collection:tt; $premises:tt; [($judgment:expr => $result:pat)]; $remaining:tt
+    ) => {
+        compile_error!("after a destructuring judgment result, add an explicit final value to collect");
+    };
+
+    (
+        @comprehension_finish
+        $args:tt; $inputs:tt; $child_proof_trees:ident; $binding:tt; $t:ty;
+        $item:ident; $collection:tt; $premises:tt; [$value:expr]; $remaining:tt
+    ) => {
+        $crate::push_rules!(@comprehension_collect
+            $args; $inputs; $child_proof_trees; $binding; $t;
+            ($value); $item; $collection; $premises; $remaining);
+    };
+
+    (
+        @comprehension_collect
+        $args:tt; $inputs:tt; $child_proof_trees:ident; ($p:pat); $t:ty;
+        ($value:expr); $item:ident; ($collection:expr); ($($premises:tt)*); ($($m:tt)*)
+    ) => {
+        $crate::push_rules!(@body $args; $inputs; $child_proof_trees;
+            (let collected: Vec<_> = Vec::new())
+            (for_all($item in $collection) with(collected)
+                $($premises)*
+                (let collected = {
+                    let mut next = collected.clone();
+                    next.push($crate::Upcast::upcast(&$value));
+                    next
+                }))
+            // Keep the final binding a normal let premise, including its proof
+            // and error handling. The target type constrains the element upcast.
+            (let $p = {
+                let result: $t = collected.iter().cloned().collect();
+                result
+            })
+            $($m)*);
+    };
+
+    // `(scope(<expr> => <pat>) with(<vars>) <conditions>)`: prove the nested
+    // conditions inside a scope. Each of their proofs leaves the scope with
+    // its values for `<vars>`, and the rest of the rule continues with the
+    // result.
+    (
+        @body $args:tt; $inputs:tt; $child_proof_trees:ident;
+        (scope($scope:expr => $inside:pat) with($($with_var:ident),*) $($inner_step:tt)*) $($m:tt)*
+    ) => {
+        match $crate::judgment::try_catch(|| Ok($scope)) {
+            Err(e) => {
+                $crate::push_rules!(@record_failure $inputs; $scope; e);
+            }
+
+            Ok((scope, inside)) => {
+                // Prove the nested conditions. They see what is inside the scope
+                // (and, being in a block, what they bind ends with it). Collect
+                // each proof's values for the `with` variables.
+                let mut scope_proofs = vec![];
+                {
+                    #[allow(unused_variables)]
+                    let $inside = &inside;
+                    #[allow(unused_mut)]
+                    let mut inner_proof_trees: Vec<$crate::judgment::ProofTree> = Vec::new();
+                    $crate::push_rules!(@body (scope(scope_proofs, ($($with_var,)*))); $inputs; inner_proof_trees; $($inner_step)*);
+                }
+
+                // Leave the scope with each, and continue with what comes out.
+                for (values, inner_proof_trees) in scope_proofs {
+                    if let Err(e) = $crate::judgment::EachProof::each_proof(
+                        $crate::judgment::Scope::leave(&scope, values),
+                        |(values, leave_proof_tree)| {
+                            #[allow(unused_variables)]
+                            let ($($with_var,)*) = &values;
+
+                            let len = $child_proof_trees.len();
+
+                            let mut scope_proof_trees = inner_proof_trees.clone();
+                            scope_proof_trees.push(leave_proof_tree);
+                            $child_proof_trees.push($crate::judgment::ProofTree::new(
+                                "scope",
+                                None,
+                                scope_proof_trees,
+                            ));
+
+                            $crate::push_rules!(@body $args; $inputs; $child_proof_trees; $($m)*);
+
+                            assert!($child_proof_trees.len() > len);
+                            $child_proof_trees.truncate(len);
+                        },
+                    ) {
+                        $crate::push_rules!(@record_failure $inputs; $scope; e);
+                    }
+                }
+            }
+        }
+    };
+
     // for_all with accumulator: forward to @body_for_all
     (
         @body $args:tt; $inputs:tt; $child_proof_trees:ident;
@@ -552,58 +988,59 @@ macro_rules! push_rules {
     ) => {
         {
             let collection = $collection;
-            let mut errored = false;
-
             let (file, line, column) = $crate::respan!($collection ((file!(), line!(), column!())));
 
-            let mut loop_carried = ($($with_var.clone(),)*);
-
-            let mut for_all_proof_trees = vec![];
+            // Use the same value equivalence and proof selection as judgment outputs.
+            let mut alternatives = $crate::Map::new();
+            $crate::judgment::insert_smallest_proof(
+                &mut alternatives,
+                ($($with_var.clone(),)*),
+                $crate::judgment::ProofTree::new("for_all", None, vec![]),
+            );
             for $loop_var in collection {
-                if errored {
-                    break;
+                let mut next_alternatives = $crate::Map::new();
+                for (loop_carried, for_all_proof_trees) in alternatives {
+                    let $loop_var = Clone::clone(&$loop_var);
+                    #[allow(unused)]
+                    let ($($with_var,)*) = &loop_carried;
+
+                    let attributes = vec![("item".to_string(), format!("{:?}", $loop_var))];
+                    let mut item_proof_trees = vec![];
+                    let mut next_carried_and_proof = vec![];
+                    $crate::push_rules!(@body (loop(next_carried_and_proof, ($($with_var,)*))); $inputs; item_proof_trees; $($inner_step)*);
+
+                    for (next_carried, next_proof) in next_carried_and_proof {
+                        let mut proofs = for_all_proof_trees.children.clone();
+                        proofs.push($crate::judgment::ProofTree::with_all(
+                            "for_all",
+                            attributes.clone(),
+                            None,
+                            &file[..],
+                            line,
+                            column,
+                            next_proof,
+                        ));
+                         $crate::judgment::insert_smallest_proof(
+                            &mut next_alternatives,
+                            next_carried,
+                            $crate::judgment::ProofTree::new("for_all", None, proofs),
+                        );
+                    }
                 }
-
-                #[allow(unused)]
-                let ($($with_var,)*) = &loop_carried.clone();
-
-                let attributes = vec![("item".to_string(), format!("{:?}", $loop_var))];
-                let mut item_proof_trees = vec![];
-                // Collect the proof tree from each iteration together with the
-                // next values of any loop-carried variables, so the `for_all`
-                // proof tree reflects all iterations (not just the last one).
-                let mut next_carried_and_proof = None;
-                $crate::push_rules!(@body (loop(next_carried_and_proof, ($($with_var,)*))); $inputs; item_proof_trees; $($inner_step)*);
-
-                if let Some((next_carried, next_proof)) = next_carried_and_proof {
-                    for_all_proof_trees.push($crate::judgment::ProofTree::with_all(
-                        "for_all",
-                        attributes,
-                        None,
-                        &file[..],
-                        line,
-                        column,
-                        next_proof,
-                    ));
-
-                    loop_carried = next_carried;
-                } else {
-                    errored = true;
+                alternatives = next_alternatives;
+                if alternatives.is_empty() {
+                    break;
                 }
             }
 
-            if !errored {
+            for (loop_carried, for_all_proof_trees) in alternatives {
                 #[allow(unused)]
-                let ($($with_var,)*) = &loop_carried.clone();
+                let ($($with_var,)*) = &loop_carried;
 
-                // All iterations succeeded
-                let for_all_tree = $crate::judgment::ProofTree::new(
-                    "for_all",
-                    None,
-                    for_all_proof_trees,
-                );
-                $child_proof_trees.push(for_all_tree);
+                let len = $child_proof_trees.len();
+                $child_proof_trees.push(for_all_proof_trees);
                 $crate::push_rules!(@body $args; $inputs; $child_proof_trees; $($m)*);
+                $child_proof_trees.truncate(len);
             }
         }
     };
@@ -695,25 +1132,23 @@ macro_rules! push_rules {
     ) => {
         // [1] I'd prefer to have `$p:pat` but the follow-set rules don't allow for it.
         // That's dumb.
-        match $crate::judgment::try_catch::<$t>(|| Ok($i)) {
-            Ok(p) => {
-                let proof_tree = $crate::judgment::ProofTree::leaf(format!("{} = {p:?}", stringify!($p)));
-                let $p = &p;
-                $child_proof_trees.push(proof_tree);
-                $crate::push_rules!(@body $args; $inputs; $child_proof_trees; $($m)*);
-            }
-
-            Err(e) => {
-                $crate::push_rules!(@record_failure $inputs; $i; e);
-            }
-        }
+        $crate::push_rules!(@body_let
+            $args; $inputs; $child_proof_trees; ($p); $t; $i; $($m)*);
     };
 
     (
         @body $args:tt; $inputs:tt; $child_proof_trees:ident;
         (let $p:pat = $i:expr) $($m:tt)*
     ) => {
-        match $crate::judgment::try_catch(|| Ok($i)) {
+        $crate::push_rules!(@body_let
+            $args; $inputs; $child_proof_trees; ($p); _; $i; $($m)*);
+    };
+
+    (
+        @body_let $args:tt; $inputs:tt; $child_proof_trees:ident;
+        ($p:pat); $t:ty; $i:expr; $($m:tt)*
+    ) => {
+        match $crate::judgment::try_catch::<$t>(|| Ok($i)) {
             Ok(p) => {
                 let proof_tree = $crate::judgment::ProofTree::leaf(format!("{} = {p:?}", stringify!($p)));
                 let $p = &p;
@@ -784,10 +1219,17 @@ macro_rules! push_rules {
     };
 
     (
+        @body (scope($scope_proofs:ident, ($($with_var:ident,)*))); $_inputs:tt; $child_proof_trees:ident;
+    ) => {
+        // one proof of the conditions nested in a `scope`: capture the values to leave it with.
+        $scope_proofs.push((($($with_var.clone(),)*), $child_proof_trees.clone()));
+    };
+
+    (
         @body (loop($next_carried_and_proof:ident, ($($with_var:ident,)*))); $_inputs:tt; $child_proof_trees:ident;
     ) => {
         // when we complete processing a loop with accumulators, capture the final values.
-        $next_carried_and_proof = Some((($($with_var.clone(),)*), $child_proof_trees.clone()));
+        $next_carried_and_proof.push((($($with_var.clone(),)*), $child_proof_trees.clone()));
     };
 
     (@record_failure ($failed_rules:expr, $match_var:expr, $_input_info:tt, $rule_name:literal); $step_expr:expr; $cause:expr) => {

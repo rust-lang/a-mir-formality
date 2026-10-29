@@ -182,6 +182,247 @@ If you want to see a real judgement, take a look at the one for proving where cl
 
 {judgment}`prove_predicate`
 
+### Checking every element with `for_all`
+
+A `for_all` premise requires its inner premises to succeed for **every** element
+of a collection:
+
+```rust,ignore
+(for_all(item in items)
+    (check_item(env, item) => ())
+    (if item.is_supported()))
+```
+
+The collection expression is evaluated once, and elements are visited in its
+iteration order. Each iteration binds `item` and runs the parenthesized premises
+inside the `for_all`. Those premises use the same syntax as other rule premises,
+including judgment calls, `let` bindings, guards, and nested `for_all` premises.
+
+If any element has no successful derivation through all the inner premises, the
+`for_all` fails and the enclosing rule does not continue. An empty collection
+succeeds without running the inner premises. This differs from `(item in items)`,
+which chooses an element and explores the rest of the rule for each choice.
+
+Successful proofs contain a `for_all` subtree with a child for each element,
+recording that element and the proofs of its inner premises. An unsuccessful
+inner premise contributes its usual failure explanation.
+
+### Carrying state with `for_all ... with(...)`
+
+Use `with(...)` to pass updated values from one iteration to the next. Initialize
+the variables before the loop, then shadow them inside the loop to provide their
+next values:
+
+```rust,ignore
+(let state = initial_state)
+(for_all(item in items) with(state)
+    (check_step(env, state, item) => state))
+(check_final_state(state) => ())
+```
+
+The first iteration receives the initial `state`; each later iteration receives
+the preceding iteration's updated `state`. Premises after the `for_all` see the
+final value. For an empty collection, that value is the initial value. Bindings
+created inside the loop stay local unless they are named in `with(...)`.
+
+Several values can be carried together, and ordinary `let` premises can update
+them too:
+
+```rust,ignore
+(let count: usize = 0)
+(for_all(item in items) with(state, count)
+    (check_step(env, state, item) => state)
+    (let count: usize = count + 1))
+```
+
+Like other judgment bindings, carried values are available by reference; there
+is no need to mutate them in place.
+
+Each successful body result carries its own updated values and proof into the
+next iteration. A failing alternative is discarded without discarding other
+successful alternatives. Every complete path continues through the remaining
+premises of the rule. This can produce many combinations when several iterations
+have multiple distinct successful results. Equivalent carried values are merged
+using the same ordered-key equality and smallest-proof selection as judgment
+outputs. Carried values must implement `Ord` as well as `Clone`.
+
+Loop items must implement `Clone` so they can
+be reused for each alternative; iterate over references for non-cloneable items.
+
+### Constructing collections with `for_all`
+
+A `let` premise can construct a collection by producing a value for every input:
+
+```rust,ignore
+(let expected_names: Set<FieldName> = for_all field in fields => field.name)
+(let provided_names: Set<FieldName> = for_all field in field_exprs => field.name)
+(if expected_names == provided_names)
+```
+
+After `=>`, write ordinary parenthesized judgment premises followed by an output
+expression. The premises can call fallible judgments, bind auxiliary values, or
+check guards; the output expression uses their bindings. Braces and parentheses
+around the result are optional:
+
+```rust,ignore
+(let lowered_items: Vec<CoreItem> = for_all item in items =>
+    (lower_item(env, item) => lowered)
+    (validate(lowered) => ())
+    lowered
+)
+```
+
+As a shorthand, a final judgment premise that binds a single identifier yields
+that binding directly:
+
+```rust,ignore
+(let lowered_items: Vec<CoreItem> = for_all item in items =>
+    (lower_item(env, item) => lowered)
+)
+```
+
+This is equivalent to adding `lowered` as the final expression. A destructuring
+pattern does not select an output automatically; follow it with an explicit
+output expression, as in the map example below. A final guard such as
+`(if condition)` does not produce a result either; it must be followed by an
+output expression.
+
+The parser treats each non-final parenthesized group as a premise, then parses
+the remaining tokens as the output expression (or the final judgment shorthand
+above). Consequently, an expression starting with a parenthesized subexpression,
+such as `(foo()) * 3`, needs to be grouped as a whole: write `((foo()) * 3)` or
+`{ (foo()) * 3 }`. A final tuple such as `(key, value)` already forms a single
+group and needs no extra parentheses. A `!` immediately after a premise is that
+premise's confirmation marker; to return a negation after a premise, write
+`(!flag)` or `{ !flag }`.
+
+Every input must succeed: a failed guard or judgment **does not filter** the
+input out. If any input has no successful derivation through the premises, the
+whole construction fails and the enclosing rule does not continue. An empty
+input produces an empty collection.
+
+This is shorthand for collecting results with `for_all ... with(...)`, and has
+the same proof and outcome behavior: it enumerates combinations of successful
+results across inputs.
+
+Each output is implicitly borrowed and upcast to the collection's element type.
+For example, `field.name` above produces an owned `FieldName` without needing an
+explicit clone or `.upcast()`, even when `field` is borrowed. The resulting values
+are collected using `FromIterator`, so the destination type selects the
+collection:
+
+- `Vec<T>` preserves input order and duplicates.
+- `Set<T>` removes duplicates and uses the set's ordering.
+- `Map<K, V>` collects `(key, value)` pairs, with implicit upcasting of their
+  components. Duplicate keys follow the map's ordinary `FromIterator` behavior;
+  they do not cause a judgment failure.
+
+For example:
+
+```rust,ignore
+(let items_by_name: Map<ItemName, CoreItem> = for_all item in items =>
+    (lower_named_item(env, item) => (name, lowered))
+    (name, lowered)
+)
+```
+
+The type annotation is optional when surrounding uses determine the collection
+and element types. Add an annotation if Rust cannot infer the target of the
+implicit upcast or the collection type.
+
+This syntax is available inside a judgment's `let` premise; it is not an ordinary
+Rust expression. The `for_all` body does not select a collection type.
+
+### Entering and leaving scopes
+
+A proof sometimes needs temporary context: for example, fresh variables used to
+check the body of a binder. Before the proof's result can be used outside that
+context, it may need to be checked or transformed. A result that still refers to
+a temporary variable might not be meaningful outside the binder.
+
+The `scope` condition groups the premises that use this temporary context and
+passes their results through an explicit exit operation:
+
+```rust,ignore
+(scope(enter_binder(env, binder) => (env, body)) with(result)
+    (check_body(env, body) => result))
+```
+
+Here `enter_binder` and `check_body` are hypothetical helpers for the language
+being modeled. The macro does not provide binder handling itself. The general
+syntax is:
+
+```text
+(scope(enter_expression => inside_pattern) with(exported_names)
+    (premise)
+    ...)
+```
+
+The entry expression returns a pair: **a scope object and the values available
+inside it**. For the example above, its return type might be:
+
+```rust,ignore
+fn enter_binder(env: &Env, binder: &Binder) -> (BinderScope, (Env, Term))
+```
+
+The pattern `(env, body)` matches only the second element, `(Env, Term)`. The
+macro keeps the `BinderScope` object in a hidden local. The inner `env` shadows
+the outer one for the nested premises; after the scope, `env` refers to the
+outer environment again.
+
+#### Exporting results with `with`
+
+Bindings introduced inside the scope are local to its nested premises. List
+what the rest of the rule needs in `with(...)`. In the example, each successful
+proof of `check_body` supplies a `result` to the exit operation. The rest of the
+rule receives the result returned by that operation, which may differ from the
+one computed inside.
+
+Use `with(a, b)` to export two values, or `with()` when the nested premises only
+need to establish that something holds. Even with no exported values, the exit
+operation runs for each successful inner proof. Scopes can also be nested.
+
+#### Defining what it means to leave
+
+The scope object implements this trait from `formality_core::judgment`:
+
+```rust,ignore
+pub trait Scope<Values> {
+    fn leave(&self, values: Values) -> ProvenSet<Values>;
+}
+```
+
+`Values` is the tuple of exported values: `with(result)` uses `(ResultType,)`,
+`with(a, b)` uses `(A, B)`, and `with()` uses `()`. Thus the example requires an
+implementation of `Scope<(ResultType,)>` for `BinderScope`. The pair `(env, body)`
+is the input to the nested premises, not the object implementing `Scope`.
+
+For every successful inner proof, the macro effectively calls:
+
+```rust,ignore
+Scope::leave(&scope_object, (result,))
+```
+
+`leave` runs for each successful inner proof.
+`leave` returns a `ProvenSet`, so it can reject that result, return one
+transformed result, or produce several alternatives. The remaining premises
+of the rule run for each successful result returned by `leave`. If no inner
+proof can leave the scope successfully, this rule produces no result.
+
+The entry expression can use `?` to report a failure, just like other premise
+expressions. The `inside_pattern` must be irrefutable. A match confirmation
+marker `!` cannot appear inside a scope; put it on a premise before the scope
+when needed.
+
 ### Handling cycles
 
-Judgment functions must be **inductive**, which means that cycles are considered failures. We have a tabling implementation, which means we detect cycles and try to handle them intelligently. Basically we track a stack and, if a cycle is detected, we return an empty set of results. But we remember that the cycle happened. Then, once we are done, we'll have computed some intermediate set of results `R[0]`, and we execute again. This time, when we get the cycle, we return `R[0]` instead of an empty set. This will compute some new set of results, `R[1]`. So then we try again. We keep doing this until the new set of results `R[i]` is equal to the previous set of results `R[i-1]`. At that point, we have reached a fixed point, so we stop. Of course, it could be that you get an infinitely growing set of results, and execution never terminates. This means your rules are broken. Don't do that.
+Judgment functions are **inductive**: a cycle alone provides no proof. Recursive
+calls read the current approximation of the active judgment's outputs, initially
+empty. Base cases can grow that approximation, and the runtime repeats rule
+evaluation until recursive dependencies have seen a stable set of outputs.
+Rules must preserve previously proven values as their premises gain answers.
+
+Completed results can also be reused within one top-level call. Their memo tables
+are invalidated when an enclosing approximation grows, and discarded when the
+root call finishes. See [Fixed points and memoization](./fixed_points.md) for the
+algorithm, its assumptions, and worked examples.
