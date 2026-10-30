@@ -401,7 +401,9 @@ impl LiveBefore for Expr {
                 let place_expr: PlaceExpr = id.upcast();
                 place_expr.live_before(env, scopes, places_live)
             }
-            Expr::BinOp { lhs, op: _, rhs } | Expr::Mul { lhs, rhs } => {
+            Expr::BinOp { lhs, op: _, rhs }
+            | Expr::Mul { lhs, rhs }
+            | Expr::BitXor { lhs, rhs } => {
                 Seq(&**lhs, &**rhs).live_before(env, scopes, places_live)
             }
         }
