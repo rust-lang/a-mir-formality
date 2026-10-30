@@ -110,7 +110,6 @@ enum PremiseKind {
     IfLet(IfLet),
     If(If),
     ForAll(ForAll),
-    ForAllWith(ForAllWith),
     Fail(Fail),
     Implication(Implication),
     Let(Let),
@@ -132,13 +131,6 @@ struct If {
 
 #[derive(Debug, Clone)]
 struct ForAll {
-    identifier: Ident,
-    collection: Expr,
-    body: Premises,
-}
-
-#[derive(Debug, Clone)]
-struct ForAllWith {
     identifier: Ident,
     collection: Expr,
     state: Vec<Ident>,
@@ -504,12 +496,6 @@ impl Parse for ForAll {
     }
 }
 
-impl Parse for ForAllWith {
-    fn parse(input: ParseStream) -> Result<Self> {
-        todo!()
-    }
-}
-
 impl Parse for Fail {
     fn parse(input: ParseStream) -> Result<Self> {
         todo!()
@@ -623,6 +609,8 @@ fn parse_for_all(input: &mut ParseStream) -> Result<PremiseKind> {
     let identifier: Ident = inner.parse()?;
     inner.parse::<Token![in]>()?;
     let collection: Expr = inner.parse()?;
+    // TODO: Parse optional state
+    let state = vec![];
 
     let body: Premises = input.parse()?;
 
@@ -630,6 +618,7 @@ fn parse_for_all(input: &mut ParseStream) -> Result<PremiseKind> {
         identifier,
         collection,
         body,
+        state,
     }))
 }
 
@@ -863,7 +852,7 @@ fn emit_rule(judgment: &Judgment, rule: &Rule) -> TokenStream {
     let match_default = true;
 
     let collect = emit_collect(judgment, rule);
-    let premises = emit_premises(judgment, rule, collect);
+    let premises = emit_premises(judgment, rule, &rule.premises, collect);
 
     // TODO: Maybe move to its own function
     let rule_stream = quote! {
@@ -952,16 +941,20 @@ fn emit_match(judgment: &Judgment, rule: &Rule, rule_stream: TokenStream) -> Tok
         )
 }
 
-fn emit_premises(judgment: &Judgment, rule: &Rule, token_stream: TokenStream) -> TokenStream {
-    rule.premises
+fn emit_premises(
+    judgment: &Judgment,
+    rule: &Rule,
+    premises: &Premises,
+    token_stream: TokenStream,
+) -> TokenStream {
+    premises
         .premises
         .iter()
         .rev()
         .fold(token_stream, |acc, premise| match &premise.kind {
             PremiseKind::IfLet(_) => todo!("if let"),
             PremiseKind::If(_) => todo!("if"),
-            PremiseKind::ForAll(for_all) => todo!("for all"),
-            PremiseKind::ForAllWith(for_all_with) => todo!("for all with"),
+            PremiseKind::ForAll(for_all) => emit_for_all(judgment, rule, for_all, acc),
             PremiseKind::Fail(fail) => todo!("fail"),
             PremiseKind::Implication(implication) => {
                 emit_implication(judgment, rule, implication, acc)
@@ -970,6 +963,85 @@ fn emit_premises(judgment: &Judgment, rule: &Rule, token_stream: TokenStream) ->
             PremiseKind::LetForAll(let_for_all) => todo!("let for all"),
             PremiseKind::Scope(scope) => todo!("scope"),
         })
+}
+
+fn emit_for_all(
+    judgment: &Judgment,
+    rule: &Rule,
+    for_all: &ForAll,
+    token_stream: TokenStream,
+) -> TokenStream {
+    let collection = &for_all.collection;
+    let loop_var = &for_all.identifier;
+    let with_var = &for_all.state;
+
+    let record_failure = emit_record_failure(&rule.name);
+    let collect = quote! { next_carried_and_proof = Some(((#(#with_var.clone(),)*), child_proof_trees.clone())); };
+    let body = emit_premises(judgment, rule, &for_all.body, collect);
+
+    quote! {
+        {
+            let collection = #collection;
+            let mut errored = false;
+
+            let (file, line, column) = ::formality_core::respan!(#collection ((file!(), line!(), column!())));
+
+            let mut loop_carried = (#(#with_var.clone(),)*);
+
+            let mut for_all_proof_trees = vec![];
+            for #loop_var in collection {
+                if errored {
+                    break;
+                }
+
+                #[allow(unused)]
+                let (#(#with_var,)*) = &loop_carried.clone();
+
+                let attributes = vec![("item".to_string(), format!("{:?}", #loop_var))];
+                // let mut item_proof_trees = vec![];
+                // I shadown the outer `child_proof_trees` delibertly, such that the generated code for the premises still uses the correct vector.
+                let mut child_proof_trees = vec![];
+
+                // Collect the proof tree from each iteration together with the
+                // next values of any loop-carried variables, so the `for_all`
+                // proof tree reflects all iterations (not just the last one).
+                let mut next_carried_and_proof = None;
+                // TODO: here is something missing
+                // $crate::push_rules!(@body (loop(next_carried_and_proof, ($($with_var,)*))); $inputs; item_proof_trees; $($inner_step)*);
+                #body
+
+                if let Some((next_carried, next_proof)) = next_carried_and_proof {
+                    for_all_proof_trees.push(::formality_core::judgment::ProofTree::with_all(
+                        "for_all",
+                        attributes,
+                        None,
+                        &file[..],
+                        line,
+                        column,
+                        next_proof,
+                    ));
+
+                    loop_carried = next_carried;
+                } else {
+                    errored = true;
+                }
+            }
+
+            if !errored {
+                #[allow(unused)]
+                let (#(#with_var,)*) = &loop_carried.clone();
+
+                // All iterations succeeded
+                let for_all_tree = ::formality_core::judgment::ProofTree::new(
+                    "for_all",
+                    None,
+                    for_all_proof_trees,
+                );
+                child_proof_trees.push(for_all_tree);
+                #token_stream
+            }
+        }
+    }
 }
 
 fn emit_let(
