@@ -1,7 +1,7 @@
 use crate::grammar::Predicate;
 use crate::grammar::{AtomicPredicate, Lt, Parameter, Predicates, RigidTy};
 use crate::prove::{decls::Program, prove};
-use formality_core::{judgment_fn, Set, Upcast};
+use formality_core::{judgment_fn, Set, To, Upcast};
 
 use super::{constraints::Constraints, env::Env};
 
@@ -80,6 +80,14 @@ judgment_fn! {
             (prove_outlives(_decls, env, assumptions, a, b) => Constraints::none(env))
         )
 
+        // If `a` outlives 'static, it outlives everything.
+        (
+            (let all_outlives = transitively_outlived_by(assumptions, a))
+            (if all_outlives.contains(&Lt::Static.to::<Parameter>()))!
+            ----------------------------- ("outlive static through assumption")
+            (prove_outlives(_decls, env, assumptions, a, _b) => Constraints::none(env))
+        )
+
         // Rather than proving `'a: 'b` locally, we can add it to the environment
         // as a "pending obligation" and leave it to the caller to prove.
         // This is only allowed when `allow_pending_outlives` is set on the environment.
@@ -110,6 +118,14 @@ fn transitively_outlived_by(
     let outlives_assumptions: Vec<AtomicPredicate> = assumptions
         .iter()
         .filter_map(|wc| {
+            let wc = match wc {
+                // Holds for every `'a`, so it holds for 'static. A binder over a type
+                // or const makes `instantiate_with` fail, so it is skipped.
+                Predicate::ForAll(binder) => binder
+                    .instantiate_with(vec![Lt::Static; binder.len()])
+                    .ok()?,
+                wc => wc,
+            };
             if let Predicate::AtomicPredicate(AtomicPredicate::Outlives(r1, r2)) = wc {
                 return Some(AtomicPredicate::Outlives(r1, r2));
             }
