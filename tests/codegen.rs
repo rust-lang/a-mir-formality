@@ -1131,3 +1131,108 @@ fn compound_multiplication_to_field() {
     .expect_output("18\n2\n")
     .ok();
 }
+
+#[test]
+fn integer_bitwise_xor() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(12_i32 ^ 10_i32);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("6\n")
+    .ok();
+}
+
+#[test]
+fn arithmetic_before_bitwise_xor() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(1_i32 ^ 2_i32 + 3_i32);
+            println!(5_i32 + 3_i32 ^ 6_i32);
+            println!(10_i32 - 4_i32 ^ 1_i32);
+            println!(7_i32 ^ 2_i32 * 3_i32);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("4\n14\n7\n1\n")
+    .ok();
+}
+
+#[test]
+fn bitwise_xor_negative_operands() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(-1_i32 ^ 5_i32);
+            println!(-8_i32 ^ -3_i32);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("-6\n5\n")
+    .ok();
+}
+
+#[test]
+fn integer_bitwise_xor_unsigned() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(255_u8 ^ 15_u8);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("240\n")
+    .ok();
+}
+
+#[test]
+fn bitwise_xor_runs_calls_left_to_right() {
+    FormalityTest::new(crates![crate Foo {
+        fn left() -> i32 { println!(1_i32); return 3_i32; }
+        fn right() -> i32 { println!(2_i32); return 5_i32; }
+        fn main() -> () { println!(left() ^ right()); }
+    }])
+    .rustc_ok()
+    .expect_output("1\n2\n6\n")
+    .ok();
+}
+
+#[test]
+fn bitwise_xor_with_parentheses() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!((1_i32 ^ 2_i32) + 3_i32);
+            println!(2_i32 * (3_i32 ^ 5_i32));
+        }
+    }])
+    .rustc_ok()
+    .expect_output("6\n12\n")
+    .ok();
+}
+
+#[test]
+fn bitwise_xor_in_assignment() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            let x: i32 = 5_i32;
+            x = x ^ 3_i32;
+            println!(x);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("6\n")
+    .ok();
+}
+
+#[test]
+fn compound_bitwise_xor() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            let x: u32 = 12_u32;
+            x ^= 3_u32 + 5_u32;
+            println!(x);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("4\n")
+    .ok();
+}
