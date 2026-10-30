@@ -843,7 +843,7 @@ fn emit_rules(judgment: &Judgment) -> TokenStream {
         .rules
         .rules
         .iter()
-        .map(|rule| emit_rule(judgment, rule.clone()))
+        .map(|rule| emit_rule(judgment, rule))
         .collect();
 
     quote! {
@@ -851,7 +851,7 @@ fn emit_rules(judgment: &Judgment) -> TokenStream {
     }
 }
 
-fn emit_rule(judgment: &Judgment, rule: Rule) -> TokenStream {
+fn emit_rule(judgment: &Judgment, rule: &Rule) -> TokenStream {
     let input_names = judgment.input_names();
     let judgment_name = judgment.name();
     let conclusion_name = rule.conclusion.name.clone();
@@ -862,7 +862,9 @@ fn emit_rule(judgment: &Judgment, rule: Rule) -> TokenStream {
     // __matched is updated, from true to false, if a commit point (!) is found.
     let match_default = true;
 
-    let premises = emit_premises(judgment, rule.clone());
+    let collect = emit_collect(judgment, rule);
+    let premises = emit_premises(judgment, rule, collect);
+
     // TODO: Maybe move to its own function
     let rule_stream = quote! {
         tracing::trace_span!("matched rule", rule = #rule_name, judgment = stringify!(#judgment_name)).in_scope(|| {
@@ -904,78 +906,81 @@ fn emit_rule(judgment: &Judgment, rule: Rule) -> TokenStream {
     }
 }
 
-fn emit_match(judgment: &Judgment, rule: Rule, mut rule_stream: TokenStream) -> TokenStream {
-    for (pattern, Argument { name, ty }) in rule
-        .conclusion
+fn emit_match(judgment: &Judgment, rule: &Rule, rule_stream: TokenStream) -> TokenStream {
+    rule.conclusion
         .patterns
         .iter()
         .zip(&judgment.signature.arguments)
         .rev()
-    {
-        match pattern {
-            Pat::Path(expr_path) => {
-                rule_stream = quote! {
-                    if let Some(#pattern) = &::formality_core::Downcast::downcast(#name) {
-                        #rule_stream
+        .fold(
+            rule_stream,
+            |acc, (pattern, Argument { name, ty })| match pattern {
+                Pat::Path(expr_path) => {
+                    quote! {
+                        if let Some(#pattern) = &::formality_core::Downcast::downcast(#name) {
+                            #acc
+                        }
                     }
-                };
-            }
-            Pat::Struct(pat_struct) => todo!(),
-            Pat::Tuple(pat_tuple) => todo!(),
-            Pat::TupleStruct(pat_tuple_struct) => {
-                rule_stream = quote! {
-                    if let Some(#pattern) = &::formality_core::Downcast::downcast(#name) {
-                        #rule_stream
+                }
+                Pat::Struct(pat_struct) => todo!(),
+                Pat::Tuple(pat_tuple) => todo!(),
+                Pat::TupleStruct(pat_tuple_struct) => {
+                    quote! {
+                        if let Some(#pattern) = &::formality_core::Downcast::downcast(#name) {
+                            #acc
+                        }
                     }
-                };
-            }
+                }
 
-            Pat::Ident(pat_ident) => {
-                rule_stream = quote! { { let #pat_ident = #name; #rule_stream }}
-            }
-            Pat::Const(expr_const) => todo!(),
-            Pat::Lit(expr_lit) => todo!(),
-            Pat::Macro(expr_macro) => todo!(),
-            Pat::Or(pat_or) => todo!(),
-            Pat::Paren(pat_paren) => todo!(),
-            Pat::Range(expr_range) => todo!(),
-            Pat::Reference(pat_reference) => todo!(),
-            Pat::Rest(pat_rest) => todo!(),
-            Pat::Slice(pat_slice) => todo!(),
-            Pat::Type(pat_type) => todo!(),
-            Pat::Verbatim(token_stream) => todo!(),
-            Pat::Wild(pat_wild) => todo!(),
-            _ => todo!(),
-        }
-    }
-
-    rule_stream
+                Pat::Ident(pat_ident) => {
+                    quote! { { let #pat_ident = #name; #acc}}
+                }
+                Pat::Const(expr_const) => todo!(),
+                Pat::Lit(expr_lit) => todo!(),
+                Pat::Macro(expr_macro) => todo!(),
+                Pat::Or(pat_or) => todo!(),
+                Pat::Paren(pat_paren) => todo!(),
+                Pat::Range(expr_range) => todo!(),
+                Pat::Reference(pat_reference) => todo!(),
+                Pat::Rest(pat_rest) => todo!(),
+                Pat::Slice(pat_slice) => todo!(),
+                Pat::Type(pat_type) => todo!(),
+                Pat::Verbatim(token_stream) => todo!(),
+                Pat::Wild(pat_wild) => todo!(),
+                _ => todo!(),
+            },
+        )
 }
 
-fn emit_premises(judgment: &Judgment, mut rule: Rule) -> TokenStream {
-    let Some(premise) = rule.premises.premises.pop_front() else {
-        return emit_collect(judgment, rule);
-    };
-
-    match premise.kind {
-        PremiseKind::IfLet(_) => todo!("if let"),
-        PremiseKind::If(_) => todo!("if"),
-        PremiseKind::ForAll(for_all) => todo!("for all"),
-        PremiseKind::ForAllWith(for_all_with) => todo!("for all with"),
-        PremiseKind::Fail(fail) => todo!("fail"),
-        PremiseKind::Implication(implication) => emit_implication(judgment, rule, implication),
-        PremiseKind::Let(let_) => emit_let(judgment, rule, let_),
-        PremiseKind::LetForAll(let_for_all) => todo!("let for all"),
-        PremiseKind::Scope(scope) => todo!("scope"),
-    }
+fn emit_premises(judgment: &Judgment, rule: &Rule, token_stream: TokenStream) -> TokenStream {
+    rule.premises
+        .premises
+        .iter()
+        .rev()
+        .fold(token_stream, |acc, premise| match &premise.kind {
+            PremiseKind::IfLet(_) => todo!("if let"),
+            PremiseKind::If(_) => todo!("if"),
+            PremiseKind::ForAll(for_all) => todo!("for all"),
+            PremiseKind::ForAllWith(for_all_with) => todo!("for all with"),
+            PremiseKind::Fail(fail) => todo!("fail"),
+            PremiseKind::Implication(implication) => {
+                emit_implication(judgment, rule, implication, acc)
+            }
+            PremiseKind::Let(let_) => emit_let(judgment, rule, let_, acc),
+            PremiseKind::LetForAll(let_for_all) => todo!("let for all"),
+            PremiseKind::Scope(scope) => todo!("scope"),
+        })
 }
 
-fn emit_let(judgment: &Judgment, rule: Rule, let_: Let) -> TokenStream {
+fn emit_let(
+    judgment: &Judgment,
+    rule: &Rule,
+    let_: &Let,
+    token_stream: TokenStream,
+) -> TokenStream {
     let record_failure = emit_record_failure(&rule.name);
-    let premises = emit_premises(judgment, rule);
-
-    let expression = let_.expression;
-    let p = match let_.binding {
+    let expression = &let_.expression;
+    let p = match &let_.binding {
         Binding::Pattern { pattern } => quote! { #pattern },
         Binding::Identifier { identifier, ty } => quote! { #identifier},
     };
@@ -986,7 +991,7 @@ fn emit_let(judgment: &Judgment, rule: Rule, let_: Let) -> TokenStream {
                 let proof_tree = ::formality_core::judgment::ProofTree::leaf(format!("{} = {p:?}", stringify!(#p)));
                 let #p = &p;
                 child_proof_trees.push(proof_tree);
-                #premises
+                #token_stream
             }
 
             Err(e) => {
@@ -997,11 +1002,14 @@ fn emit_let(judgment: &Judgment, rule: Rule, let_: Let) -> TokenStream {
     }
 }
 
-fn emit_implication(judgment: &Judgment, rule: Rule, implication: Implication) -> TokenStream {
+fn emit_implication(
+    judgment: &Judgment,
+    rule: &Rule,
+    implication: &Implication,
+    token_stream: TokenStream,
+) -> TokenStream {
     let record_failure = emit_record_failure(&rule.name);
-    let premises = emit_premises(judgment, rule);
-
-    let i = implication.hypothesis;
+    let i = &implication.hypothesis;
 
     quote! {
         match ::formality_core::judgment::CheckProven::check_proven(
@@ -1009,7 +1017,7 @@ fn emit_implication(judgment: &Judgment, rule: Rule, implication: Implication) -
         ) {
             Ok(proof_tree) => {
                 child_proof_trees.push(proof_tree);
-                #premises
+                #token_stream
             }
             Err(e) => {
                 let cause = e;
@@ -1063,10 +1071,10 @@ fn emit_record_failure(rule_name: &str) -> TokenStream {
     }
 }
 
-fn emit_collect(judgment: &Judgment, rule: Rule) -> TokenStream {
+fn emit_collect(judgment: &Judgment, rule: &Rule) -> TokenStream {
     let judgment_name = judgment.name();
-    let rule_name = rule.name;
-    let result = rule.conclusion.result;
+    let rule_name = &rule.name;
+    let result = &rule.conclusion.result;
 
     quote! {
         {
