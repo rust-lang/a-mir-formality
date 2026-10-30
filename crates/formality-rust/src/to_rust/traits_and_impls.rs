@@ -137,8 +137,8 @@ pub fn lower_assoc_ty(
                         .collect::<Result<Vec<_>, _>>()?,
                 });
             }
-            WhereBound::Outlives(_) => {
-                anyhow::bail!("lowering associated type outlives bounds is not implemented yet")
+            WhereBound::Outlives(lt) => {
+                bounds.push(syntax::TypeBound::Lifetime(tys::lower_lt(ctx, lt)?));
             }
             WhereBound::ForAll(_) => {
                 anyhow::bail!("lowering associated type `for` bounds is not implemented yet")
@@ -391,6 +391,63 @@ impl !Bar for Baz {}"#]]
                 }
             ],
             expect_test::expect!["pub trait Foo<T01: ?Sized> where T01: Bar<Self> { }"]
+
+        );
+    }
+
+    #[test]
+    fn assoc_ty_static_outlives_bound() {
+        crate::assert_rust!(
+            [
+                crate Foo {
+                    trait A {
+                        type Item: ['static];
+                    }
+                }
+            ],
+            expect_test::expect![[r#"
+                pub trait A {
+                    type Item: 'static;
+                }"#]]
+
+        );
+    }
+
+    #[test]
+    fn assoc_ty_outer_lifetime_outlives_bound() {
+        crate::assert_rust!(
+            [
+                crate Foo {
+                    trait A<'a> {
+                        type Item: ['a];
+                    }
+                }
+            ],
+            expect_test::expect![[r#"
+                pub trait A<'a01> {
+                    type Item: 'a01;
+                }"#]]
+
+        );
+    }
+
+    #[test]
+    fn assoc_ty_trait_and_outlives_bounds() {
+        crate::assert_rust!(
+            [
+                crate Foo {
+                    trait Bar { }
+                    trait A<'a> {
+                        type Item: [Bar, 'a];
+                    }
+                }
+            ],
+            expect_test::expect![[r#"
+                pub trait Bar { }
+
+                pub trait A<'a01> {
+                    type Item: Bar + 'a01;
+                }"#]]
 
         );
     }

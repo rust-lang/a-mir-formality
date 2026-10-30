@@ -130,7 +130,7 @@ pub(super) fn tuple_value(
     temps: &[MiniRustLocal],
     adt_id: &crate::grammar::AdtId,
     turbofish: &crate::grammar::expr::Turbofish,
-    crates: &Crates,
+    cfn: &CodegenFn,
 ) -> Fallible<MiniRustValue> {
     let fv: List<lang::ValueExpr> = temps
         .iter()
@@ -139,7 +139,7 @@ pub(super) fn tuple_value(
         })
         .collect();
     let st = minirust_ty(
-        crates,
+        cfn,
         &Ty::rigid(
             RigidName::AdtId(adt_id.clone()),
             turbofish.parameters.clone(),
@@ -181,19 +181,54 @@ pub(super) fn unit_value() -> lang::ValueExpr {
 // Type translation
 // ===========================================================================
 
-pub(super) fn minirust_ty(crates: &Crates, ty: &Ty) -> Fallible<lang::Type> {
+pub(super) fn minirust_ty(cfn: &CodegenFn, ty: &Ty) -> Fallible<lang::Type> {
     match ty {
         Ty::RigidTy(r) => match &r.name {
             RigidName::ScalarId(s) => scalar_minirust_ty(s),
-            RigidName::AdtId(id) => struct_minirust_ty(crates, id, &r.parameters),
+            RigidName::AdtId(id) => struct_minirust_ty(cfn, id, &r.parameters),
             RigidName::Never => Ok(unit_ty()),
-            RigidName::Ref(k) => ref_minirust_ty(crates, k, &r.parameters),
-            RigidName::Tuple(n) => tuple_minirust_ty(crates, *n, &r.parameters),
+            RigidName::Ref(k) => ref_minirust_ty(cfn, k, &r.parameters),
+            RigidName::Tuple(n) => tuple_minirust_ty(cfn, *n, &r.parameters),
             RigidName::FnDef(_) => Ok(unit_ty()),
             RigidName::Raw(_) | RigidName::FnPtr(_) => unimplemented!(),
         },
-        Ty::AliasTy(_) | Ty::PredicateTy(_) => unimplemented!(),
+        Ty::AliasTy(alias_ty) => normalize_alias_ty(cfn, alias_ty),
+        Ty::PredicateTy(_) => unimplemented!(),
         Ty::Variable(v) => anyhow::bail!("unmonomorphized {v:?}"),
+    }
+}
+
+fn normalize_alias_ty(cfn: &CodegenFn, alias_ty: &crate::grammar::AliasTy) -> Fallible<lang::Type> {
+    use crate::check::borrow_check::flow_state::FlowState;
+    use crate::grammar::Parameter;
+    use formality_core::Upcast;
+
+    // Use the typeck_env to normalize the alias type
+    let alias_param: Parameter = alias_ty.clone().upcast();
+    let normalized =
+        cfn.typeck_env
+            .prove_normalize(&cfn.assumptions, &FlowState::default(), &alias_param);
+
+    match normalized.into_singleton() {
+        Ok(((normalized_param, _state), _)) => {
+            // Extract the normalized Ty from the Parameter
+            if let Parameter::Ty(normalized_ty) = normalized_param {
+                // Recursively translate the normalized type
+                minirust_ty(cfn, normalized_ty.as_ref())
+            } else {
+                anyhow::bail!(
+                    "normalized alias did not produce a type: {:?}",
+                    normalized_param
+                );
+            }
+        }
+        Err(e) => {
+            anyhow::bail!(
+                "failed to normalize alias {:?}: {}",
+                alias_ty,
+                e.format_leaves()
+            )
+        }
     }
 }
 
@@ -227,7 +262,7 @@ fn literal_minirust_constant(literal: &Literal) -> Fallible<lang::Constant> {
 }
 
 fn ref_minirust_ty(
-    crates: &Crates,
+    cfn: &CodegenFn,
     kind: &crate::grammar::RefKind,
     params: &[Parameter],
 ) -> Fallible<lang::Type> {
@@ -235,7 +270,7 @@ fn ref_minirust_ty(
         Some(Parameter::Ty(t)) => t.as_ref(),
         _ => anyhow::bail!("bad ref"),
     };
-    let mr = minirust_ty(crates, pointee)?;
+    let mr = minirust_ty(cfn, pointee)?;
     let (sz, al) = type_size_align(&mr);
     let mutbl = match kind {
         crate::grammar::RefKind::Shared => Mutability::Immutable,
@@ -253,11 +288,12 @@ fn ref_minirust_ty(
     }))
 }
 
-fn tuple_minirust_ty(crates: &Crates, arity: usize, params: &[Parameter]) -> Fallible<lang::Type> {
+fn tuple_minirust_ty(cfn: &CodegenFn, arity: usize, params: &[Parameter]) -> Fallible<lang::Type> {
     if arity == 0 {
         return Ok(unit_ty());
     }
     layout_fields(
+        cfn,
         params.iter().filter_map(|p| {
             if let Parameter::Ty(t) = p {
                 Some(t.as_ref())
@@ -265,34 +301,33 @@ fn tuple_minirust_ty(crates: &Crates, arity: usize, params: &[Parameter]) -> Fal
                 None
             }
         }),
-        crates,
     )
 }
 
 fn struct_minirust_ty(
-    crates: &Crates,
+    cfn: &CodegenFn,
     id: &crate::grammar::AdtId,
     params: &[Parameter],
 ) -> Fallible<lang::Type> {
-    let s = crates.struct_named(id)?;
+    let s = cfn.crates.struct_named(id)?;
     let bd = if params.is_empty() {
         let (_, d) = s.binder.open();
         d
     } else {
         s.binder.instantiate_with(params)?
     };
-    layout_fields(bd.fields.iter().map(|f| &f.ty), crates)
+    layout_fields(cfn, bd.fields.iter().map(|f| &f.ty))
 }
 
 fn layout_fields<'a>(
+    cfn: &CodegenFn,
     fields: impl Iterator<Item = &'a Ty>,
-    crates: &Crates,
 ) -> Fallible<lang::Type> {
     let mut off = Size::ZERO;
     let mut ma = Align::ONE;
     let mut sf = Vec::new();
     for ty in fields {
-        let ft = minirust_ty(crates, ty)?;
+        let ft = minirust_ty(cfn, ty)?;
         let (fs, fa) = type_size_align(&ft);
         let ab = fa.bytes();
         let ob = off.bytes();
@@ -357,6 +392,8 @@ pub(super) fn struct_field_index(
 pub(super) fn binop(op: &BinOpKind, left: MiniRustValue, right: MiniRustValue) -> MiniRustValue {
     let operator = match op {
         BinOpKind::Add => lang::BinOp::Int(lang::IntBinOp::Add),
+        BinOpKind::Sub => lang::BinOp::Int(lang::IntBinOp::Sub),
+        BinOpKind::Mul => lang::BinOp::Int(lang::IntBinOp::Mul),
     };
     MiniRustValue(lang::ValueExpr::BinOp {
         operator,

@@ -328,6 +328,36 @@ mod test {
     }
 
     #[test]
+    fn exists_lifetime_in_struct_type_and_literal() {
+        crate::assert_rust!(
+            [
+                crate core {
+                    struct Wrapper<'a> { value: &'a u32 }
+                    fn f() -> u32 {
+                        exists<'r0> {
+                            let v: u32 = 0_u32;
+                            let w: Wrapper<'r0> = Wrapper::<'r0> { value: &'r0 v };
+                            return *w.value;
+                        }
+                    }
+                }
+            ],
+            expect_test::expect![[r#"
+                pub struct Wrapper<'a00> {
+                    pub value: &'a00 u32,
+                }
+
+                pub fn f() -> u32 {
+                    {
+                        let mut v: u32 = 0_u32;
+                        let mut w: Wrapper<'_> = Wrapper::<'_> { value: &v };
+                        return *w.value;
+                    }
+                }"#]]
+        )
+    }
+
+    #[test]
     fn forall() {
         crate::assert_rust!(
             [

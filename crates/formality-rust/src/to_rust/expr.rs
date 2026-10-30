@@ -74,7 +74,6 @@ pub fn lower_let(
 }
 
 pub fn lower_exists_stmt(ctx: &mut Context, binder: &Binder<Block>) -> Fallible<syntax::Stmt> {
-    // TODO: Check again, after codegen is merged, if "erased" lifetimes could work here.
     let Wrapped {
         ref mut ctx,
         ref term,
@@ -88,6 +87,11 @@ pub fn lower_expr(ctx: &mut Context, expr: &Expr) -> Fallible<syntax::Expr> {
         Expr::Assign { place, expr } => Ok(syntax::Expr::Assign {
             place: lower_place_expr(ctx, place)?,
             value: Box::new(lower_expr(ctx, expr)?),
+        }),
+        Expr::AssignOp { place, op, rhs } => Ok(syntax::Expr::AssignOp {
+            place: lower_place_expr(ctx, place)?,
+            op: op.as_str().to_string(),
+            value: Box::new(lower_expr(ctx, rhs)?),
         }),
         Expr::Call { callee, args } => Ok(syntax::Expr::Call {
             callee: Box::new(lower_expr(ctx, callee)?),
@@ -103,6 +107,7 @@ pub fn lower_expr(ctx: &mut Context, expr: &Expr) -> Fallible<syntax::Expr> {
             },
             suffix: tys::scalar_to_string(ty),
         }),
+        Expr::Parens(expr) => Ok(syntax::Expr::Paren(Box::new(lower_expr(ctx, expr)?))),
         Expr::True => Ok(syntax::Expr::Bool(true)),
         Expr::False => Ok(syntax::Expr::Bool(false)),
         Expr::Ref { kind, lt: _, place } => Ok(syntax::Expr::Ref {
@@ -161,6 +166,11 @@ pub fn lower_expr(ctx: &mut Context, expr: &Expr) -> Fallible<syntax::Expr> {
                 fields: syntax::StructExprFields::Tuple(tuple_fields),
             })
         }
+        Expr::Mul { lhs, rhs } => Ok(syntax::Expr::BinOp {
+            lhs: Box::new(lower_expr(ctx, lhs)?),
+            op: "*".to_string(),
+            rhs: Box::new(lower_expr(ctx, rhs)?),
+        }),
         Expr::BinOp { lhs, op, rhs } => {
             let lhs = Box::new(lower_expr(ctx, lhs)?);
             let rhs = Box::new(lower_expr(ctx, rhs)?);

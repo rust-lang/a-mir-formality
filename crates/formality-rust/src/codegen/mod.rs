@@ -6,7 +6,7 @@ use crate::check::borrow_check::nll::{
 };
 use crate::check::borrow_check::typed_place_expression::TypedPlaceExpr;
 use crate::grammar::{
-    expr::{Block, Expr, Literal, PlaceExpr, Stmt},
+    expr::{BinOpKind, Block, Expr, Literal, PlaceExpr, Stmt},
     Crates, Fallible, RigidName, RigidTy, Ty,
 };
 use formality_core::judgment_fn;
@@ -229,6 +229,19 @@ judgment_fn! {
         debug(global, cfn, scope, target, expr)
 
         (
+            (codegen_expr_into(global, cfn, scope, target, expr) => (code, global, cfn))
+            ---- ("parenthesized")
+            (codegen_expr_into(global, cfn, scope, target, Expr::Parens(expr)) => (code, global, cfn))
+        )
+
+        (
+            (let expr = Expr::BinOp { lhs: lhs.clone(), op: BinOpKind::Mul, rhs: rhs.clone() })
+            (codegen_expr_into(global, cfn, scope, target, expr) => (code, global, cfn))
+            ---- ("multiplication")
+            (codegen_expr_into(global, cfn, scope, target, Expr::Mul { lhs, rhs }) => (code, global, cfn))
+        )
+
+        (
             (let code = cfn.fresh_code_block())
             ---- ("literal")
             (codegen_expr_into(global, cfn, scope, target, literal@Literal { value: _ , ty: _ }) => (
@@ -300,6 +313,22 @@ judgment_fn! {
         )
 
         (
+            (resolve_place(cfn, scope, place) => typed_dest)
+            (let dest = typed_place_to_minirust(cfn, scope, &typed_dest)?)
+            (type_expr(cfn, scope, rhs) => rhs_ty)
+            (let (rhs_temp, cfn) = cfn.alloc_temp(rhs_ty)?)
+            (codegen_expr_into(global, cfn, scope, rhs_temp, rhs) => (code, global, cfn))
+            ---- ("assign-op")
+            (codegen_expr_into(global, cfn, scope, target, Expr::AssignOp { place, op, rhs }) => (
+                code
+                    .assign(dest, binop(op, load(dest), load(rhs_temp)))
+                    .assign(target, unit_value()),
+                global,
+                cfn,
+            ))
+        )
+
+        (
             // Turbofish always generates a zero-sized value.
             // The important bits (function name, arguments, etc) show up in the *type*.
             (let code = cfn.fresh_code_block())
@@ -349,11 +378,15 @@ judgment_fn! {
             (let fields = resolve_struct_fields(cfn, adt_id, turbofish)?)
             (let (temps, cfn) = alloc_temps_for_fields(cfn, fields)?)
             (let code = cfn.fresh_code_block())
-            (for_all(i in 0..fields.len()) with(code, global, cfn)
-                (let field_expr = find_field_expr(field_exprs, &fields[i])?)
-                (codegen_expr_into(global, cfn, scope, &temps[i], field_expr) => (field_code, global, cfn))
+            (for_all(field_expr in field_exprs) with(code, global, cfn)
+                (let (_, temp) = fields
+                    .iter()
+                    .zip(temps.iter())
+                    .find(|(field, _)| field.name == field_expr.name)
+                    .ok_or_else(|| anyhow::anyhow!("unknown field {:?}", field_expr.name))?)
+                (codegen_expr_into(global, cfn, scope, temp, &field_expr.value) => (field_code, global, cfn))
                 (let (code, cfn) = cfn.append_from(code, field_code)))
-            (let struct_value = tuple_value(&temps, adt_id, turbofish, &cfn.crates)?)
+            (let struct_value = tuple_value(&temps, adt_id, turbofish, &cfn)?)
             ---- ("struct")
             (codegen_expr_into(global, cfn, scope, target, Expr::Struct { field_exprs, adt_id, turbofish }) => (
                 code.assign(target, struct_value),

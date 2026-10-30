@@ -719,729 +719,729 @@ fn move_out_of_shared_ref() {
             }
         }
     }]).borrowck_err(BorrowCheckFailure::All, expect_test::expect![[r#"
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Copy(<&?lt_0 Datum as Derefable>::Target), via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Copy(<&?lt_0 Datum as Derefable>::Target), via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Copy(<&?lt_0 Datum as Derefable>::Target), via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Copy(<&?lt_0 Datum as Derefable>::Target), via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: <&?lt_0 Datum as Derefable>::Target = &?lt_2 ?ty_3, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1, ?lt_2, ?ty_3], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: <&?lt_0 Datum as Derefable>::Target = &?lt_2 ?ty_3, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1, ?lt_2, ?ty_3], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: <&?lt_0 Datum as Derefable>::Target = &?lt_2 ?ty_3, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1, ?lt_2, ?ty_3], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: <&?lt_0 Datum as Derefable>::Target = &?lt_2 ?ty_3, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1, ?lt_2, ?ty_3], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: <&?lt_0 Datum as Derefable>::Target = &?lt_2 ?ty_3, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1, ?lt_2, ?ty_3], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: <&?lt_0 Datum as Derefable>::Target = &?lt_2 ?ty_3, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1, ?lt_2, ?ty_3], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = &?lt_2 ?ty_3, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1, ?lt_2, ?ty_3], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = &?lt_2 ?ty_3, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1, ?lt_2, ?ty_3], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = &?lt_2 ?ty_3, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1, ?lt_2, ?ty_3], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = &?lt_2 ?ty_3, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1, ?lt_2, ?ty_3], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = &?lt_2 ?ty_3, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1, ?lt_2, ?ty_3], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = &?lt_2 ?ty_3, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1, ?lt_2, ?ty_3], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1, ?lt_2, ?ty_3], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1, ?lt_2, ?ty_3], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1, ?lt_2, ?ty_3], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1, ?lt_2, ?ty_3], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1, ?lt_2, ?ty_3], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1, ?lt_2, ?ty_3], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: &?lt_2 ?ty_3, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1, ?lt_2, ?ty_3], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: &?lt_2 ?ty_3, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1, ?lt_2, ?ty_3], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: &?lt_2 ?ty_3, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1, ?lt_2, ?ty_3], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: &?lt_2 ?ty_3, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1, ?lt_2, ?ty_3], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: &?lt_2 ?ty_3, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1, ?lt_2, ?ty_3], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: &?lt_2 ?ty_3, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1, ?lt_2, ?ty_3], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = &?lt_2 ?ty_3, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1, ?lt_2, ?ty_3], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = &?lt_2 ?ty_3, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1, ?lt_2, ?ty_3], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = &?lt_2 ?ty_3, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1, ?lt_2, ?ty_3], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = &?lt_2 ?ty_3, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1, ?lt_2, ?ty_3], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = &?lt_2 ?ty_3, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1, ?lt_2, ?ty_3], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = &?lt_2 ?ty_3, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1, ?lt_2, ?ty_3], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1, ?lt_2, ?ty_3], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1, ?lt_2, ?ty_3], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1, ?lt_2, ?ty_3], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1, ?lt_2, ?ty_3], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1, ?lt_2, ?ty_3], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1, ?lt_2, ?ty_3], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: &?lt_2 ?ty_3, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1, ?lt_2, ?ty_3], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: &?lt_2 ?ty_3, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1, ?lt_2, ?ty_3], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: &?lt_2 ?ty_3, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1, ?lt_2, ?ty_3], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: &?lt_2 ?ty_3, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1, ?lt_2, ?ty_3], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: &?lt_2 ?ty_3, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1, ?lt_2, ?ty_3], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: &?lt_2 ?ty_3, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1, ?lt_2, ?ty_3], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: &?lt_2 ?ty_3, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1, ?lt_2, ?ty_3], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: &?lt_2 ?ty_3, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1, ?lt_2, ?ty_3], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: &?lt_2 ?ty_3, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1, ?lt_2, ?ty_3], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: &?lt_2 ?ty_3, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1, ?lt_2, ?ty_3], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: &?lt_2 ?ty_3, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1, ?lt_2, ?ty_3], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: &?lt_2 ?ty_3, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1, ?lt_2, ?ty_3], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: <&?lt_0 Datum as Derefable>::Target = (), via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: <&?lt_0 Datum as Derefable>::Target = (), via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: <&?lt_0 Datum as Derefable>::Target = (), via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: <&?lt_0 Datum as Derefable>::Target = (), via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: <&?lt_0 Datum as Derefable>::Target = (), via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: <&?lt_0 Datum as Derefable>::Target = (), via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = (), via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = (), via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = (), via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = (), via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = (), via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = (), via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: (), via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: (), via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: (), via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: (), via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: (), via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: (), via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = (), via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = (), via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = (), via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = (), via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = (), via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = (), via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: (), via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: (), via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: (), via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: (), via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: (), via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: (), via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: (), via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: (), via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: (), via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: (), via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: (), via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: (), via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: <&?lt_0 Datum as Derefable>::Target = bool, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: <&?lt_0 Datum as Derefable>::Target = bool, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: <&?lt_0 Datum as Derefable>::Target = bool, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: <&?lt_0 Datum as Derefable>::Target = bool, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: <&?lt_0 Datum as Derefable>::Target = bool, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: <&?lt_0 Datum as Derefable>::Target = bool, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = bool, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = bool, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = bool, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = bool, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = bool, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = bool, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: bool, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: bool, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: bool, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: bool, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: bool, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: bool, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = bool, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = bool, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = bool, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = bool, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = bool, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = bool, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: bool, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: bool, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: bool, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: bool, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: bool, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: bool, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: bool, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: bool, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: bool, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: bool, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: bool, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: bool, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: <&?lt_0 Datum as Derefable>::Target = i128, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: <&?lt_0 Datum as Derefable>::Target = i128, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: <&?lt_0 Datum as Derefable>::Target = i128, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: <&?lt_0 Datum as Derefable>::Target = i128, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: <&?lt_0 Datum as Derefable>::Target = i128, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: <&?lt_0 Datum as Derefable>::Target = i128, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = i128, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = i128, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = i128, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = i128, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = i128, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = i128, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: i128, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i128, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: i128, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i128, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: i128, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i128, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = i128, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = i128, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = i128, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = i128, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = i128, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = i128, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: i128, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i128, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: i128, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i128, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: i128, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i128, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: i128, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i128, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: i128, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i128, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: i128, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i128, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: <&?lt_0 Datum as Derefable>::Target = i16, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: <&?lt_0 Datum as Derefable>::Target = i16, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: <&?lt_0 Datum as Derefable>::Target = i16, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: <&?lt_0 Datum as Derefable>::Target = i16, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: <&?lt_0 Datum as Derefable>::Target = i16, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: <&?lt_0 Datum as Derefable>::Target = i16, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = i16, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = i16, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = i16, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = i16, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = i16, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = i16, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: i16, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i16, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: i16, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i16, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: i16, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i16, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = i16, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = i16, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = i16, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = i16, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = i16, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = i16, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: i16, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i16, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: i16, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i16, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: i16, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i16, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: i16, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i16, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: i16, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i16, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: i16, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i16, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: <&?lt_0 Datum as Derefable>::Target = i32, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: <&?lt_0 Datum as Derefable>::Target = i32, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: <&?lt_0 Datum as Derefable>::Target = i32, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: <&?lt_0 Datum as Derefable>::Target = i32, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: <&?lt_0 Datum as Derefable>::Target = i32, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: <&?lt_0 Datum as Derefable>::Target = i32, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = i32, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = i32, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = i32, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = i32, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = i32, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = i32, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: i32, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i32, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: i32, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i32, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: i32, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i32, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = i32, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = i32, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = i32, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = i32, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = i32, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = i32, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: i32, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i32, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: i32, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i32, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: i32, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i32, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: i32, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i32, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: i32, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i32, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: i32, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i32, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: <&?lt_0 Datum as Derefable>::Target = i64, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: <&?lt_0 Datum as Derefable>::Target = i64, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: <&?lt_0 Datum as Derefable>::Target = i64, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: <&?lt_0 Datum as Derefable>::Target = i64, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: <&?lt_0 Datum as Derefable>::Target = i64, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: <&?lt_0 Datum as Derefable>::Target = i64, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = i64, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = i64, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = i64, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = i64, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = i64, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = i64, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: i64, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i64, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: i64, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i64, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: i64, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i64, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = i64, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = i64, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = i64, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = i64, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = i64, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = i64, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: i64, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i64, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: i64, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i64, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: i64, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i64, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: i64, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i64, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: i64, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i64, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: i64, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i64, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: <&?lt_0 Datum as Derefable>::Target = i8, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: <&?lt_0 Datum as Derefable>::Target = i8, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: <&?lt_0 Datum as Derefable>::Target = i8, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: <&?lt_0 Datum as Derefable>::Target = i8, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: <&?lt_0 Datum as Derefable>::Target = i8, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: <&?lt_0 Datum as Derefable>::Target = i8, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = i8, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = i8, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = i8, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = i8, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = i8, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = i8, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: i8, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i8, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: i8, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i8, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: i8, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i8, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = i8, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = i8, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = i8, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = i8, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = i8, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = i8, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: i8, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i8, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: i8, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i8, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: i8, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i8, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: i8, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i8, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: i8, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i8, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: i8, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i8, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: <&?lt_0 Datum as Derefable>::Target = isize, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: <&?lt_0 Datum as Derefable>::Target = isize, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: <&?lt_0 Datum as Derefable>::Target = isize, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: <&?lt_0 Datum as Derefable>::Target = isize, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: <&?lt_0 Datum as Derefable>::Target = isize, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: <&?lt_0 Datum as Derefable>::Target = isize, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = isize, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = isize, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = isize, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = isize, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = isize, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = isize, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: isize, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: isize, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: isize, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: isize, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: isize, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: isize, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = isize, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = isize, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = isize, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = isize, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = isize, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = isize, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: isize, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: isize, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: isize, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: isize, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: isize, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: isize, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: isize, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: isize, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: isize, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: isize, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: isize, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: isize, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: <&?lt_0 Datum as Derefable>::Target = u128, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: <&?lt_0 Datum as Derefable>::Target = u128, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: <&?lt_0 Datum as Derefable>::Target = u128, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: <&?lt_0 Datum as Derefable>::Target = u128, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: <&?lt_0 Datum as Derefable>::Target = u128, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: <&?lt_0 Datum as Derefable>::Target = u128, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = u128, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = u128, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = u128, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = u128, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = u128, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = u128, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: u128, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u128, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: u128, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u128, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: u128, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u128, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = u128, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = u128, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = u128, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = u128, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = u128, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = u128, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: u128, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u128, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: u128, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u128, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: u128, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u128, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: u128, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u128, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: u128, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u128, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: u128, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u128, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: <&?lt_0 Datum as Derefable>::Target = u16, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: <&?lt_0 Datum as Derefable>::Target = u16, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: <&?lt_0 Datum as Derefable>::Target = u16, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: <&?lt_0 Datum as Derefable>::Target = u16, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: <&?lt_0 Datum as Derefable>::Target = u16, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: <&?lt_0 Datum as Derefable>::Target = u16, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = u16, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = u16, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = u16, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = u16, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = u16, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = u16, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: u16, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u16, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: u16, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u16, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: u16, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u16, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = u16, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = u16, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = u16, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = u16, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = u16, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = u16, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: u16, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u16, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: u16, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u16, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: u16, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u16, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: u16, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u16, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: u16, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u16, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: u16, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u16, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: <&?lt_0 Datum as Derefable>::Target = u32, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: <&?lt_0 Datum as Derefable>::Target = u32, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: <&?lt_0 Datum as Derefable>::Target = u32, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: <&?lt_0 Datum as Derefable>::Target = u32, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: <&?lt_0 Datum as Derefable>::Target = u32, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: <&?lt_0 Datum as Derefable>::Target = u32, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = u32, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = u32, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = u32, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = u32, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = u32, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = u32, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: u32, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u32, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: u32, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u32, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: u32, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u32, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = u32, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = u32, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = u32, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = u32, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = u32, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = u32, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: u32, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u32, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: u32, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u32, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: u32, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u32, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: u32, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u32, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: u32, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u32, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: u32, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u32, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: <&?lt_0 Datum as Derefable>::Target = u64, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: <&?lt_0 Datum as Derefable>::Target = u64, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: <&?lt_0 Datum as Derefable>::Target = u64, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: <&?lt_0 Datum as Derefable>::Target = u64, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: <&?lt_0 Datum as Derefable>::Target = u64, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: <&?lt_0 Datum as Derefable>::Target = u64, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = u64, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = u64, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = u64, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = u64, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = u64, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = u64, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: u64, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u64, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: u64, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u64, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: u64, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u64, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = u64, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = u64, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = u64, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = u64, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = u64, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = u64, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: u64, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u64, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: u64, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u64, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: u64, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u64, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: u64, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u64, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: u64, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u64, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: u64, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u64, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: <&?lt_0 Datum as Derefable>::Target = u8, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: <&?lt_0 Datum as Derefable>::Target = u8, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: <&?lt_0 Datum as Derefable>::Target = u8, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: <&?lt_0 Datum as Derefable>::Target = u8, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: <&?lt_0 Datum as Derefable>::Target = u8, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: <&?lt_0 Datum as Derefable>::Target = u8, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = u8, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = u8, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = u8, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = u8, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = u8, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = u8, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: u8, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u8, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: u8, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u8, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: u8, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u8, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = u8, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = u8, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = u8, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = u8, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = u8, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = u8, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: u8, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u8, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: u8, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u8, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: u8, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u8, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: u8, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u8, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: u8, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u8, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: u8, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u8, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: <&?lt_0 Datum as Derefable>::Target = usize, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: <&?lt_0 Datum as Derefable>::Target = usize, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: <&?lt_0 Datum as Derefable>::Target = usize, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: <&?lt_0 Datum as Derefable>::Target = usize, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: <&?lt_0 Datum as Derefable>::Target = usize, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: <&?lt_0 Datum as Derefable>::Target = usize, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = usize, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = usize, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = usize, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = usize, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = usize, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = usize, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: usize, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: usize, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: usize, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: usize, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: usize, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: usize, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = usize, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = usize, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = usize, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = usize, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = usize, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = usize, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: usize, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: usize, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: usize, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: usize, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: usize, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: usize, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: usize, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: usize, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: usize, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: usize, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: usize, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: usize, via: Copy(<&?lt_0 Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
         the rule "trait implied bound" at (prove_predicate.rs) failed because
           expression evaluated to an empty collection: `decls.trait_invariants()`"#]])
@@ -1474,729 +1474,729 @@ fn move_out_of_mut_ref() {
             }
         }
     }]).borrowck_err(BorrowCheckFailure::All, expect_test::expect![[r#"
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Copy(<&?lt_0 mut Datum as Derefable>::Target), via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Copy(<&?lt_0 mut Datum as Derefable>::Target), via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Copy(<&?lt_0 mut Datum as Derefable>::Target), via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Copy(<&?lt_0 mut Datum as Derefable>::Target), via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: <&?lt_0 mut Datum as Derefable>::Target = &?lt_2 ?ty_3, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1, ?lt_2, ?ty_3], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: <&?lt_0 mut Datum as Derefable>::Target = &?lt_2 ?ty_3, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1, ?lt_2, ?ty_3], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: <&?lt_0 mut Datum as Derefable>::Target = &?lt_2 ?ty_3, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1, ?lt_2, ?ty_3], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: <&?lt_0 mut Datum as Derefable>::Target = &?lt_2 ?ty_3, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1, ?lt_2, ?ty_3], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: <&?lt_0 mut Datum as Derefable>::Target = &?lt_2 ?ty_3, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1, ?lt_2, ?ty_3], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: <&?lt_0 mut Datum as Derefable>::Target = &?lt_2 ?ty_3, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1, ?lt_2, ?ty_3], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = &?lt_2 ?ty_3, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1, ?lt_2, ?ty_3], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = &?lt_2 ?ty_3, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1, ?lt_2, ?ty_3], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = &?lt_2 ?ty_3, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1, ?lt_2, ?ty_3], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = &?lt_2 ?ty_3, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1, ?lt_2, ?ty_3], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = &?lt_2 ?ty_3, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1, ?lt_2, ?ty_3], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = &?lt_2 ?ty_3, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1, ?lt_2, ?ty_3], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1, ?lt_2, ?ty_3], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1, ?lt_2, ?ty_3], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1, ?lt_2, ?ty_3], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1, ?lt_2, ?ty_3], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1, ?lt_2, ?ty_3], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1, ?lt_2, ?ty_3], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: &?lt_2 ?ty_3, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1, ?lt_2, ?ty_3], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: &?lt_2 ?ty_3, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1, ?lt_2, ?ty_3], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: &?lt_2 ?ty_3, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1, ?lt_2, ?ty_3], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: &?lt_2 ?ty_3, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1, ?lt_2, ?ty_3], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: &?lt_2 ?ty_3, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1, ?lt_2, ?ty_3], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: &?lt_2 ?ty_3, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1, ?lt_2, ?ty_3], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = &?lt_2 ?ty_3, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1, ?lt_2, ?ty_3], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = &?lt_2 ?ty_3, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1, ?lt_2, ?ty_3], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = &?lt_2 ?ty_3, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1, ?lt_2, ?ty_3], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = &?lt_2 ?ty_3, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1, ?lt_2, ?ty_3], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = &?lt_2 ?ty_3, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1, ?lt_2, ?ty_3], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = &?lt_2 ?ty_3, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1, ?lt_2, ?ty_3], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1, ?lt_2, ?ty_3], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1, ?lt_2, ?ty_3], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1, ?lt_2, ?ty_3], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1, ?lt_2, ?ty_3], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1, ?lt_2, ?ty_3], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1, ?lt_2, ?ty_3], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: &?lt_2 ?ty_3, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1, ?lt_2, ?ty_3], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: &?lt_2 ?ty_3, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1, ?lt_2, ?ty_3], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: &?lt_2 ?ty_3, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1, ?lt_2, ?ty_3], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: &?lt_2 ?ty_3, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1, ?lt_2, ?ty_3], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: &?lt_2 ?ty_3, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1, ?lt_2, ?ty_3], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: &?lt_2 ?ty_3, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1, ?lt_2, ?ty_3], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: &?lt_2 ?ty_3, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1, ?lt_2, ?ty_3], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: &?lt_2 ?ty_3, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1, ?lt_2, ?ty_3], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: &?lt_2 ?ty_3, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1, ?lt_2, ?ty_3], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: &?lt_2 ?ty_3, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1, ?lt_2, ?ty_3], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: &?lt_2 ?ty_3, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1, ?lt_2, ?ty_3], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: &?lt_2 ?ty_3, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1, ?lt_2, ?ty_3], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: <&?lt_0 mut Datum as Derefable>::Target = (), via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: <&?lt_0 mut Datum as Derefable>::Target = (), via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: <&?lt_0 mut Datum as Derefable>::Target = (), via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: <&?lt_0 mut Datum as Derefable>::Target = (), via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: <&?lt_0 mut Datum as Derefable>::Target = (), via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: <&?lt_0 mut Datum as Derefable>::Target = (), via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = (), via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = (), via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = (), via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = (), via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = (), via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = (), via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: (), via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: (), via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: (), via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: (), via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: (), via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: (), via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = (), via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = (), via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = (), via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = (), via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = (), via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = (), via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: (), via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: (), via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: (), via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: (), via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: (), via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: (), via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: (), via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: (), via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: (), via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: (), via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: (), via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: (), via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: <&?lt_0 mut Datum as Derefable>::Target = bool, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: <&?lt_0 mut Datum as Derefable>::Target = bool, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: <&?lt_0 mut Datum as Derefable>::Target = bool, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: <&?lt_0 mut Datum as Derefable>::Target = bool, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: <&?lt_0 mut Datum as Derefable>::Target = bool, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: <&?lt_0 mut Datum as Derefable>::Target = bool, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = bool, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = bool, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = bool, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = bool, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = bool, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = bool, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: bool, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: bool, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: bool, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: bool, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: bool, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: bool, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = bool, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = bool, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = bool, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = bool, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = bool, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = bool, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: bool, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: bool, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: bool, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: bool, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: bool, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: bool, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: bool, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: bool, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: bool, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: bool, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: bool, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: bool, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: <&?lt_0 mut Datum as Derefable>::Target = i128, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: <&?lt_0 mut Datum as Derefable>::Target = i128, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: <&?lt_0 mut Datum as Derefable>::Target = i128, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: <&?lt_0 mut Datum as Derefable>::Target = i128, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: <&?lt_0 mut Datum as Derefable>::Target = i128, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: <&?lt_0 mut Datum as Derefable>::Target = i128, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = i128, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = i128, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = i128, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = i128, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = i128, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = i128, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: i128, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i128, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: i128, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i128, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: i128, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i128, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = i128, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = i128, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = i128, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = i128, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = i128, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = i128, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: i128, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i128, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: i128, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i128, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: i128, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i128, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: i128, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i128, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: i128, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i128, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: i128, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i128, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: <&?lt_0 mut Datum as Derefable>::Target = i16, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: <&?lt_0 mut Datum as Derefable>::Target = i16, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: <&?lt_0 mut Datum as Derefable>::Target = i16, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: <&?lt_0 mut Datum as Derefable>::Target = i16, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: <&?lt_0 mut Datum as Derefable>::Target = i16, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: <&?lt_0 mut Datum as Derefable>::Target = i16, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = i16, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = i16, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = i16, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = i16, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = i16, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = i16, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: i16, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i16, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: i16, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i16, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: i16, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i16, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = i16, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = i16, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = i16, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = i16, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = i16, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = i16, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: i16, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i16, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: i16, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i16, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: i16, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i16, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: i16, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i16, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: i16, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i16, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: i16, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i16, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: <&?lt_0 mut Datum as Derefable>::Target = i32, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: <&?lt_0 mut Datum as Derefable>::Target = i32, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: <&?lt_0 mut Datum as Derefable>::Target = i32, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: <&?lt_0 mut Datum as Derefable>::Target = i32, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: <&?lt_0 mut Datum as Derefable>::Target = i32, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: <&?lt_0 mut Datum as Derefable>::Target = i32, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = i32, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = i32, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = i32, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = i32, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = i32, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = i32, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: i32, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i32, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: i32, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i32, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: i32, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i32, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = i32, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = i32, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = i32, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = i32, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = i32, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = i32, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: i32, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i32, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: i32, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i32, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: i32, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i32, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: i32, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i32, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: i32, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i32, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: i32, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i32, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: <&?lt_0 mut Datum as Derefable>::Target = i64, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: <&?lt_0 mut Datum as Derefable>::Target = i64, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: <&?lt_0 mut Datum as Derefable>::Target = i64, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: <&?lt_0 mut Datum as Derefable>::Target = i64, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: <&?lt_0 mut Datum as Derefable>::Target = i64, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: <&?lt_0 mut Datum as Derefable>::Target = i64, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = i64, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = i64, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = i64, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = i64, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = i64, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = i64, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: i64, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i64, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: i64, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i64, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: i64, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i64, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = i64, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = i64, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = i64, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = i64, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = i64, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = i64, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: i64, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i64, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: i64, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i64, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: i64, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i64, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: i64, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i64, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: i64, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i64, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: i64, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i64, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: <&?lt_0 mut Datum as Derefable>::Target = i8, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: <&?lt_0 mut Datum as Derefable>::Target = i8, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: <&?lt_0 mut Datum as Derefable>::Target = i8, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: <&?lt_0 mut Datum as Derefable>::Target = i8, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: <&?lt_0 mut Datum as Derefable>::Target = i8, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: <&?lt_0 mut Datum as Derefable>::Target = i8, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = i8, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = i8, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = i8, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = i8, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = i8, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = i8, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: i8, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i8, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: i8, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i8, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: i8, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i8, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = i8, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = i8, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = i8, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = i8, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = i8, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = i8, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: i8, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i8, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: i8, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i8, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: i8, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i8, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: i8, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i8, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: i8, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i8, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: i8, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i8, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: <&?lt_0 mut Datum as Derefable>::Target = isize, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: <&?lt_0 mut Datum as Derefable>::Target = isize, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: <&?lt_0 mut Datum as Derefable>::Target = isize, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: <&?lt_0 mut Datum as Derefable>::Target = isize, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: <&?lt_0 mut Datum as Derefable>::Target = isize, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: <&?lt_0 mut Datum as Derefable>::Target = isize, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = isize, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = isize, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = isize, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = isize, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = isize, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = isize, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: isize, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: isize, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: isize, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: isize, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: isize, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: isize, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = isize, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = isize, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = isize, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = isize, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = isize, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = isize, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: isize, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: isize, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: isize, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: isize, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: isize, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: isize, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: isize, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: isize, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: isize, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: isize, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: isize, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: isize, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: <&?lt_0 mut Datum as Derefable>::Target = u128, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: <&?lt_0 mut Datum as Derefable>::Target = u128, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: <&?lt_0 mut Datum as Derefable>::Target = u128, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: <&?lt_0 mut Datum as Derefable>::Target = u128, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: <&?lt_0 mut Datum as Derefable>::Target = u128, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: <&?lt_0 mut Datum as Derefable>::Target = u128, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = u128, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = u128, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = u128, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = u128, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = u128, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = u128, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: u128, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u128, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: u128, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u128, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: u128, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u128, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = u128, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = u128, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = u128, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = u128, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = u128, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = u128, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: u128, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u128, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: u128, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u128, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: u128, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u128, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: u128, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u128, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: u128, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u128, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: u128, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u128, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: <&?lt_0 mut Datum as Derefable>::Target = u16, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: <&?lt_0 mut Datum as Derefable>::Target = u16, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: <&?lt_0 mut Datum as Derefable>::Target = u16, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: <&?lt_0 mut Datum as Derefable>::Target = u16, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: <&?lt_0 mut Datum as Derefable>::Target = u16, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: <&?lt_0 mut Datum as Derefable>::Target = u16, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = u16, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = u16, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = u16, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = u16, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = u16, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = u16, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: u16, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u16, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: u16, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u16, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: u16, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u16, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = u16, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = u16, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = u16, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = u16, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = u16, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = u16, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: u16, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u16, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: u16, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u16, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: u16, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u16, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: u16, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u16, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: u16, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u16, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: u16, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u16, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: <&?lt_0 mut Datum as Derefable>::Target = u32, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: <&?lt_0 mut Datum as Derefable>::Target = u32, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: <&?lt_0 mut Datum as Derefable>::Target = u32, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: <&?lt_0 mut Datum as Derefable>::Target = u32, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: <&?lt_0 mut Datum as Derefable>::Target = u32, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: <&?lt_0 mut Datum as Derefable>::Target = u32, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = u32, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = u32, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = u32, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = u32, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = u32, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = u32, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: u32, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u32, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: u32, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u32, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: u32, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u32, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = u32, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = u32, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = u32, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = u32, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = u32, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = u32, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: u32, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u32, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: u32, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u32, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: u32, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u32, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: u32, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u32, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: u32, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u32, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: u32, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u32, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: <&?lt_0 mut Datum as Derefable>::Target = u64, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: <&?lt_0 mut Datum as Derefable>::Target = u64, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: <&?lt_0 mut Datum as Derefable>::Target = u64, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: <&?lt_0 mut Datum as Derefable>::Target = u64, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: <&?lt_0 mut Datum as Derefable>::Target = u64, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: <&?lt_0 mut Datum as Derefable>::Target = u64, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = u64, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = u64, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = u64, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = u64, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = u64, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = u64, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: u64, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u64, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: u64, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u64, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: u64, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u64, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = u64, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = u64, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = u64, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = u64, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = u64, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = u64, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: u64, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u64, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: u64, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u64, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: u64, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u64, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: u64, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u64, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: u64, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u64, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: u64, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u64, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: <&?lt_0 mut Datum as Derefable>::Target = u8, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: <&?lt_0 mut Datum as Derefable>::Target = u8, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: <&?lt_0 mut Datum as Derefable>::Target = u8, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: <&?lt_0 mut Datum as Derefable>::Target = u8, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: <&?lt_0 mut Datum as Derefable>::Target = u8, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: <&?lt_0 mut Datum as Derefable>::Target = u8, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = u8, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = u8, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = u8, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = u8, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = u8, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = u8, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: u8, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u8, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: u8, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u8, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: u8, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u8, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = u8, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = u8, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = u8, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = u8, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = u8, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = u8, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: u8, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u8, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: u8, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u8, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: u8, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u8, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: u8, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u8, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: u8, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u8, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: u8, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u8, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: <&?lt_0 mut Datum as Derefable>::Target = usize, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: <&?lt_0 mut Datum as Derefable>::Target = usize, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: <&?lt_0 mut Datum as Derefable>::Target = usize, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: <&?lt_0 mut Datum as Derefable>::Target = usize, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: <&?lt_0 mut Datum as Derefable>::Target = usize, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: <&?lt_0 mut Datum as Derefable>::Target = usize, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = usize, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = usize, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = usize, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = usize, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = usize, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = usize, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: usize, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: usize, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: usize, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: usize, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: usize, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: usize, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [Datum : ?lt_0, Datum : ?lt_0], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = usize, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = usize, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = usize, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = usize, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = usize, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = usize, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: usize, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: usize, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: usize, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: usize, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: usize, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: usize, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: usize, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: usize, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: usize, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: usize, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: usize, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: usize, via: Copy(<&?lt_0 mut Datum as Derefable>::Target), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(<&?lt_0 mut Datum as Derefable>::Target)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
         the rule "trait implied bound" at (prove_predicate.rs) failed because
           expression evaluated to an empty collection: `decls.trait_invariants()`"#]])
@@ -2395,6 +2395,43 @@ fn shared_ref_prevents_mutation() {
 
             the rule "write-indirect" at (nll.rs) failed because
               pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `v1`"#]])
+}
+
+/// The variables of an `exists` block leave the scope with it, so the block
+/// after one starts numbering where it did: `'r0` and `'r1` below are
+/// `?lt_1` and `?lt_2`, not `?lt_2` and `?lt_3`.
+#[test]
+fn exists_block_variables_leave_the_env() {
+    FormalityTest::new(crates![crate Foo {
+        fn foo() -> i32 {
+            exists<'r> {
+                let v3: i32 = 0_i32;
+                let v4: &'r i32 = &'r v3;
+            }
+            exists<'r0, 'r1> {
+                let v1: i32 = 0_i32;
+                let v2: &'r0 i32 = &'r1 v1;
+                v1 = 1_i32;
+                return *v2;
+            }
+        }
+    }])
+    .borrowck_err(
+        BorrowCheckFailure::All,
+        expect_test::expect![[r#"
+        the rule "borrow of disjoint places" at (nll.rs) failed because
+          condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
+            &loan.place = v1 : i32
+            &access.place = v1 : i32
+
+        the rule "loan_cannot_outlive" at (nll.rs) failed because
+          condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+            outlived_by_loan = {?lt_1, ?lt_2}
+            &lifetime.upcast() = ?lt_1
+
+        the rule "write-indirect" at (nll.rs) failed because
+          pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `v1`"#]],
+    )
 }
 
 /// Test the holding a shared reference to a local
@@ -2665,13 +2702,21 @@ fn undeclared_universal_region_relationship() {
             }
         }
     }]).borrowck_err(BorrowCheckFailure::All, expect_test::expect![[r#"
-                crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: !lt_1 : !lt_2, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0)}, env: Env { variables: [!lt_1, !lt_2, ?lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: !lt_1 : !lt_2, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0)}, env: Env { variables: [!lt_1, !lt_2, ?lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
 
-                crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_1, b: !lt_2, assumptions: {@ wf(?lt_0)}, env: Env { variables: [!lt_1, !lt_2, ?lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+        crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_1, b: !lt_2, assumptions: {@ wf(?lt_0)}, env: Env { variables: [!lt_1, !lt_2, ?lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
 
-                crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: !lt_1 : !lt_2, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0)}, env: Env { variables: [!lt_1, !lt_2, ?lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: !lt_1 : !lt_2, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0)}, env: Env { variables: [!lt_1, !lt_2, ?lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
 
-                crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_1, b: !lt_2, assumptions: {@ wf(?lt_0)}, env: Env { variables: [!lt_1, !lt_2, ?lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }"#]])
+        crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_1, b: !lt_2, assumptions: {@ wf(?lt_0)}, env: Env { variables: [!lt_1, !lt_2, ?lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: !lt_1 : !lt_2, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0)}, env: Env { variables: [!lt_1, !lt_2, ?lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+        crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_1, b: !lt_2, assumptions: {@ wf(?lt_0)}, env: Env { variables: [!lt_1, !lt_2, ?lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: !lt_1 : !lt_2, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0)}, env: Env { variables: [!lt_1, !lt_2, ?lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+        crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_1, b: !lt_2, assumptions: {@ wf(?lt_0)}, env: Env { variables: [!lt_1, !lt_2, ?lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }"#]])
 }
 
 /// Same as `undeclared_universal_region_relationship`, but the function
@@ -2687,13 +2732,21 @@ fn undeclared_universal_region_relationship_no_return() {
             }
         }
     }]).borrowck_err(BorrowCheckFailure::All, expect_test::expect![[r#"
-                crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: !lt_1, assumptions: {}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+        crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: !lt_1, assumptions: {}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
 
-                crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: !lt_1, assumptions: {}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+        crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: !lt_1, assumptions: {}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
 
-                crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: !lt_1, assumptions: {}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+        crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: !lt_1, assumptions: {}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
 
-                crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: !lt_1, assumptions: {}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }"#]])
+        crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: !lt_1, assumptions: {}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+        crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: !lt_1, assumptions: {}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+        crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: !lt_1, assumptions: {}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+        crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: !lt_1, assumptions: {}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+        crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: !lt_1, assumptions: {}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }"#]])
 }
 
 /// Upcasting from `'a` to `'b` is allowed because
@@ -2744,13 +2797,13 @@ fn undeclared_transitive_universal_region_relationship() {
             return v1;
         }
     }]).borrowck_err(BorrowCheckFailure::All, expect_test::expect![[r#"
-                crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: !lt_0 : !lt_2, via: !lt_0 : !lt_1, assumptions: {!lt_0 : !lt_1}, env: Env { variables: [!lt_0, !lt_1, !lt_2], bias: Soundness, pending: [], allow_pending_outlives: false } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: !lt_0 : !lt_2, via: !lt_0 : !lt_1, assumptions: {!lt_0 : !lt_1}, env: Env { variables: [!lt_0, !lt_1, !lt_2], bias: Soundness, pending: [], allow_pending_outlives: false } }
 
-                crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: !lt_2, assumptions: {!lt_0 : !lt_1}, env: Env { variables: [!lt_0, !lt_1, !lt_2], bias: Soundness, pending: [], allow_pending_outlives: false } }
+        crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: !lt_2, assumptions: {!lt_0 : !lt_1}, env: Env { variables: [!lt_0, !lt_1, !lt_2], bias: Soundness, pending: [], allow_pending_outlives: false } }
 
-                crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: !lt_0 : !lt_2, via: !lt_0 : !lt_1, assumptions: {!lt_0 : !lt_1}, env: Env { variables: [!lt_0, !lt_1, !lt_2], bias: Soundness, pending: [], allow_pending_outlives: false } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: !lt_0 : !lt_2, via: !lt_0 : !lt_1, assumptions: {!lt_0 : !lt_1}, env: Env { variables: [!lt_0, !lt_1, !lt_2], bias: Soundness, pending: [], allow_pending_outlives: false } }
 
-                crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: !lt_2, assumptions: {!lt_0 : !lt_1}, env: Env { variables: [!lt_0, !lt_1, !lt_2], bias: Soundness, pending: [], allow_pending_outlives: false } }"#]])
+        crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: !lt_2, assumptions: {!lt_0 : !lt_1}, env: Env { variables: [!lt_0, !lt_1, !lt_2], bias: Soundness, pending: [], allow_pending_outlives: false } }"#]])
 }
 
 // For `list: &mut Map`, borrow `&mut (*list).value` then assign to `list`.
@@ -3756,19 +3809,36 @@ fn loan_cannot_outlive_lifetime_fail() {
                 return 0_u32;
             }
         }
-    }]).borrowck_err(BorrowCheckFailure::All, expect_test::expect![[r#"
-            the rule "borrow of disjoint places" at (nll.rs) failed because
-              condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
-                &loan.place = x : u32
-                &access.place = x : u32
+    }])
+    .borrowck_err(
+        BorrowCheckFailure::All,
+        expect_test::expect![[r#"
+        the rule "borrow of disjoint places" at (nll.rs) failed because
+          condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
+            &loan.place = x : u32
+            &access.place = x : u32
 
-            the rule "loan_cannot_outlive" at (nll.rs) failed because
-              condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
-                outlived_by_loan = {?lt_1, ?lt_2, ?lt_3}
-                &lifetime.upcast() = ?lt_3
+        the rule "loan_cannot_outlive" at (nll.rs) failed because
+          condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+            outlived_by_loan = {?lt_1, ?lt_2, ?lt_3}
+            &lifetime.upcast() = ?lt_3
 
-            the rule "write-indirect" at (nll.rs) failed because
-              pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `x`"#]])
+        the rule "write-indirect" at (nll.rs) failed because
+          pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `x`
+
+        the rule "borrow of disjoint places" at (nll.rs) failed because
+          condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
+            &loan.place = x : u32
+            &access.place = x : u32
+
+        the rule "loan_cannot_outlive" at (nll.rs) failed because
+          condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+            outlived_by_loan = {?lt_1, ?lt_2, ?lt_3}
+            &lifetime.upcast() = ?lt_3
+
+        the rule "write-indirect" at (nll.rs) failed because
+          pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `x`"#]],
+    )
 }
 
 /// Pass test for loan_cannot_outlive's "lifetime" rule.
@@ -3809,7 +3879,9 @@ fn cannot_move_from_drop_struct() {
         struct Pair {
             x: Datum,
         }
-        impl Drop for Pair {}
+        impl Drop for Pair {
+            fn drop<'a>(self: &'a mut Pair) -> () {}
+        }
 
         fn foo(f: Pair) -> () {
             let s: Datum = f.x;
@@ -3817,101 +3889,101 @@ fn cannot_move_from_drop_struct() {
     }])
     .skip_execute()
     .borrowck_err(BorrowCheckFailure::All, expect_test::expect![[r#"
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = &?lt_0 ?ty_1, via: Copy(Datum), assumptions: {Copy(Datum)}, env: Env { variables: [?lt_0, ?ty_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = &?lt_0 ?ty_1, via: Copy(Datum), assumptions: {Copy(Datum)}, env: Env { variables: [?lt_0, ?ty_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(Datum), assumptions: {Copy(Datum)}, env: Env { variables: [?lt_0, ?ty_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(Datum), assumptions: {Copy(Datum)}, env: Env { variables: [?lt_0, ?ty_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: &?lt_0 ?ty_1, via: Copy(Datum), assumptions: {Copy(Datum)}, env: Env { variables: [?lt_0, ?ty_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: &?lt_0 ?ty_1, via: Copy(Datum), assumptions: {Copy(Datum)}, env: Env { variables: [?lt_0, ?ty_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = (), via: Copy(Datum), assumptions: {Copy(Datum)}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = (), via: Copy(Datum), assumptions: {Copy(Datum)}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(Datum), assumptions: {Copy(Datum)}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(Datum), assumptions: {Copy(Datum)}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: (), via: Copy(Datum), assumptions: {Copy(Datum)}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: (), via: Copy(Datum), assumptions: {Copy(Datum)}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = bool, via: Copy(Datum), assumptions: {Copy(Datum)}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = bool, via: Copy(Datum), assumptions: {Copy(Datum)}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(Datum), assumptions: {Copy(Datum)}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(Datum), assumptions: {Copy(Datum)}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: bool, via: Copy(Datum), assumptions: {Copy(Datum)}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: bool, via: Copy(Datum), assumptions: {Copy(Datum)}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = i128, via: Copy(Datum), assumptions: {Copy(Datum)}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = i128, via: Copy(Datum), assumptions: {Copy(Datum)}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(Datum), assumptions: {Copy(Datum)}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(Datum), assumptions: {Copy(Datum)}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: i128, via: Copy(Datum), assumptions: {Copy(Datum)}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i128, via: Copy(Datum), assumptions: {Copy(Datum)}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = i16, via: Copy(Datum), assumptions: {Copy(Datum)}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = i16, via: Copy(Datum), assumptions: {Copy(Datum)}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(Datum), assumptions: {Copy(Datum)}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(Datum), assumptions: {Copy(Datum)}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: i16, via: Copy(Datum), assumptions: {Copy(Datum)}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i16, via: Copy(Datum), assumptions: {Copy(Datum)}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = i32, via: Copy(Datum), assumptions: {Copy(Datum)}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = i32, via: Copy(Datum), assumptions: {Copy(Datum)}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(Datum), assumptions: {Copy(Datum)}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(Datum), assumptions: {Copy(Datum)}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: i32, via: Copy(Datum), assumptions: {Copy(Datum)}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i32, via: Copy(Datum), assumptions: {Copy(Datum)}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = i64, via: Copy(Datum), assumptions: {Copy(Datum)}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = i64, via: Copy(Datum), assumptions: {Copy(Datum)}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(Datum), assumptions: {Copy(Datum)}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(Datum), assumptions: {Copy(Datum)}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: i64, via: Copy(Datum), assumptions: {Copy(Datum)}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i64, via: Copy(Datum), assumptions: {Copy(Datum)}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = i8, via: Copy(Datum), assumptions: {Copy(Datum)}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = i8, via: Copy(Datum), assumptions: {Copy(Datum)}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(Datum), assumptions: {Copy(Datum)}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(Datum), assumptions: {Copy(Datum)}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: i8, via: Copy(Datum), assumptions: {Copy(Datum)}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i8, via: Copy(Datum), assumptions: {Copy(Datum)}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = isize, via: Copy(Datum), assumptions: {Copy(Datum)}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = isize, via: Copy(Datum), assumptions: {Copy(Datum)}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(Datum), assumptions: {Copy(Datum)}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(Datum), assumptions: {Copy(Datum)}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: isize, via: Copy(Datum), assumptions: {Copy(Datum)}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: isize, via: Copy(Datum), assumptions: {Copy(Datum)}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = u128, via: Copy(Datum), assumptions: {Copy(Datum)}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = u128, via: Copy(Datum), assumptions: {Copy(Datum)}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(Datum), assumptions: {Copy(Datum)}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(Datum), assumptions: {Copy(Datum)}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: u128, via: Copy(Datum), assumptions: {Copy(Datum)}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u128, via: Copy(Datum), assumptions: {Copy(Datum)}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = u16, via: Copy(Datum), assumptions: {Copy(Datum)}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = u16, via: Copy(Datum), assumptions: {Copy(Datum)}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(Datum), assumptions: {Copy(Datum)}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(Datum), assumptions: {Copy(Datum)}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: u16, via: Copy(Datum), assumptions: {Copy(Datum)}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u16, via: Copy(Datum), assumptions: {Copy(Datum)}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = u32, via: Copy(Datum), assumptions: {Copy(Datum)}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = u32, via: Copy(Datum), assumptions: {Copy(Datum)}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(Datum), assumptions: {Copy(Datum)}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(Datum), assumptions: {Copy(Datum)}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: u32, via: Copy(Datum), assumptions: {Copy(Datum)}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u32, via: Copy(Datum), assumptions: {Copy(Datum)}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = u64, via: Copy(Datum), assumptions: {Copy(Datum)}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = u64, via: Copy(Datum), assumptions: {Copy(Datum)}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(Datum), assumptions: {Copy(Datum)}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(Datum), assumptions: {Copy(Datum)}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: u64, via: Copy(Datum), assumptions: {Copy(Datum)}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u64, via: Copy(Datum), assumptions: {Copy(Datum)}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = u8, via: Copy(Datum), assumptions: {Copy(Datum)}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = u8, via: Copy(Datum), assumptions: {Copy(Datum)}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(Datum), assumptions: {Copy(Datum)}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(Datum), assumptions: {Copy(Datum)}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: u8, via: Copy(Datum), assumptions: {Copy(Datum)}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u8, via: Copy(Datum), assumptions: {Copy(Datum)}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Datum = usize, via: Copy(Datum), assumptions: {Copy(Datum)}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = usize, via: Copy(Datum), assumptions: {Copy(Datum)}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(Datum), assumptions: {Copy(Datum)}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(Datum), assumptions: {Copy(Datum)}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-        crates/formality-rust/src/prove/prove_normalize.rs:57:1: no applicable rules for prove_normalize_via { goal: usize, via: Copy(Datum), assumptions: {Copy(Datum)}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: usize, via: Copy(Datum), assumptions: {Copy(Datum)}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
         the rule "trait implied bound" at (prove_predicate.rs) failed because
           expression evaluated to an empty collection: `decls.trait_invariants()`
 
         the rule "field" at (nll.rs) failed because
-          pattern `None` did not match value `Some(impl Drop for Pair { })`"#]])
+          pattern `None` did not match value `Some(impl Drop for Pair { fn drop <lt> (self : &^lt0_0 mut Pair) { } })`"#]])
 }
 
 #[test]
@@ -4757,7 +4829,7 @@ fn flow_sensitive_invariance_use_it() {
     }])
         .skip_execute()
         .borrowck_err(BorrowCheckFailure::Alpha, expect_test::expect![[r#"
-            crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: !lt_1 : !lt_2, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0)}, env: Env { variables: [!lt_1, !lt_2, ?lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+            crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: !lt_1 : !lt_2, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0)}, env: Env { variables: [!lt_1, !lt_2, ?lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
 
             crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_1, b: !lt_2, assumptions: {@ wf(?lt_0)}, env: Env { variables: [!lt_1, !lt_2, ?lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }"#]]);
 }
@@ -4788,7 +4860,7 @@ fn flow_sensitive_invariance_use_both() {
     }])
         .skip_execute()
         .borrowck_err(BorrowCheckFailure::All, expect_test::expect![[r#"
-            crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: !lt_1 : !lt_2, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0)}, env: Env { variables: [!lt_1, !lt_2, ?lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+            crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: !lt_1 : !lt_2, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0)}, env: Env { variables: [!lt_1, !lt_2, ?lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
 
             crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_1, b: !lt_2, assumptions: {@ wf(?lt_0)}, env: Env { variables: [!lt_1, !lt_2, ?lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }"#]]);
 }
@@ -4875,4 +4947,330 @@ fn issue_70044_location_insensitive_constraints() {
     }])
     .skip_execute()
     .borrowck_err(BorrowCheckFailure::Nll, expect_test::expect![[""]]);
+}
+
+/// A struct with a lifetime from `exists` in a `let` type and a struct literal.
+/// The Rust translation must print that lifetime as `'_` so rustc can infer it.
+///
+/// rustc: [nll] pass, [polonius] pass, [legacy] pass.
+#[test]
+fn struct_with_exists_lifetime_translates_for_rustc() {
+    FormalityTest::new(crates![crate Foo {
+        struct Wrapper<'a> { value: &'a u32 }
+        fn f() -> u32 {
+            exists<'r0> {
+                let v: u32 = 0_u32;
+                let w: Wrapper<'r0> = Wrapper::<'r0> { value: &'r0 v };
+                return *w.value;
+            }
+        }
+    }])
+    .rustc_ok()
+    .skip_execute()
+    .borrowck_ok();
+}
+
+// From #448: reading a Copy value must not prevent reading it again.
+#[test]
+fn read_copy_place_twice() {
+    FormalityTest::new(crates![crate Foo {
+        fn foo() -> u32 {
+            let a: u32 = 0_u32;
+            a;
+            a;
+            return 0_u32;
+        }
+    }])
+    .skip_execute()
+    .borrowck_ok()
+}
+
+// From #448: shared references can be copied and used again.
+#[test]
+fn read_copy_reference_twice() {
+    FormalityTest::new(crates![crate Foo {
+        fn foo() -> u32 {
+            exists<'l0> {
+                let a: u32 = 0_u32;
+                let p: &'l0 u32 = &'l0 a;
+                let q: &'l0 u32 = p;
+                let r: &'l0 u32 = p;
+                p;
+                return 0_u32;
+            }
+        }
+    }])
+    .skip_execute()
+    .borrowck_ok();
+}
+
+/// `*r` is evaluated before `x` is read, so the loan is no longer live by then.
+/// `x = x + *r` reads `x` first and is an error (E0503).
+#[test]
+fn compound_assignment_evaluates_rhs_first() {
+    FormalityTest::new(crates![crate Foo {
+        fn foo() -> () {
+            let x: u32 = 1_u32;
+            exists<'r0> {
+                let r: &'r0 mut u32 = &'r0 mut x;
+                x += *r;
+            }
+        }
+    }])
+    .rustc_ok()
+    .skip_execute()
+    .borrowck_ok();
+}
+
+/// Compound assignment writes its place, so it conflicts with a live shared loan.
+#[test]
+fn compound_assignment_while_borrowed() {
+    FormalityTest::new(crates![crate Foo {
+        fn foo() -> () {
+            let x: u32 = 1_u32;
+            exists<'r0> {
+                let r: &'r0 u32 = &'r0 x;
+                x += 1_u32;
+                let y: u32 = *r;
+            }
+        }
+    }])
+    .rustc_err(expect_test::expect![[r#"
+        error[E0506]: cannot assign to `x` because it is borrowed
+         --> lib.rs
+          |
+        4 |         let mut r: &'_ u32 = &x;
+          |                              -- `x` is borrowed here
+        5 |         x += 1_u32;
+          |         ^^^^^^^^^^ `x` is assigned to here but it was already borrowed
+        6 |         let mut y: u32 = *r;
+          |                          -- borrow later used here
+
+        For more information about this error, try `rustc --explain E0506`.
+        error: could not compile `Foo` (lib) due to 1 previous error
+    "#]])
+    .borrowck_err(
+        BorrowCheckFailure::All,
+        expect_test::expect![[r#"
+        the rule "borrow of disjoint places" at (nll.rs) failed because
+          condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
+            &loan.place = x : u32
+            &access.place = x : u32
+
+        the rule "loan_cannot_outlive" at (nll.rs) failed because
+          condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+            outlived_by_loan = {?lt_1}
+            &lifetime.upcast() = ?lt_1
+
+        the rule "write-indirect" at (nll.rs) failed because
+          pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `x`"#]],
+    );
+}
+
+/// Compound assignment reads its place, so the place must be initialized.
+#[test]
+fn compound_assignment_of_uninitialized() {
+    FormalityTest::new(crates![crate Foo {
+        fn foo() -> () {
+            let x: u32;
+            x += 1_u32;
+        }
+    }])
+    .rustc_err(expect_test::expect![[r#"
+        error[E0381]: used binding `x` isn't initialized
+         --> lib.rs
+          |
+        2 |     let mut x: u32;
+          |         ----- binding declared here but left uninitialized
+        3 |     x += 1_u32;
+          |     ^^^^^^^^^^ `x` used here but it isn't initialized
+          |
+        help: consider assigning a value
+          |
+        2 |     let mut x: u32 = 42;
+          |                    ++++
+
+        For more information about this error, try `rustc --explain E0381`.
+        error: could not compile `Foo` (lib) due to 1 previous error
+    "#]])
+    .borrowck_err(
+        BorrowCheckFailure::All,
+        expect_test::expect![[r#"
+        the rule "access_permitted" at (nll.rs) failed because
+          condition evaluated to false: `match access.kind
+          {
+              AccessKind::Write =>
+              check_place_writable(&state, &access.place.to_place_expression()),
+              AccessKind::Read | AccessKind::Move =>
+              check_place_initialized(&state, &access.place.to_place_expression()),
+          }`"#]],
+    );
+}
+
+/// Compound assignment through a mutable reference should be OK.
+#[test]
+fn compound_assignment_through_mut_ref() {
+    FormalityTest::new(crates![crate Foo {
+        fn bump<'a>(p: &'a mut u32) -> () {
+            *p += 1_u32;
+        }
+    }])
+    .rustc_ok()
+    .skip_execute()
+    .borrowck_ok();
+}
+
+/// Unlike `+=`, ordinary addition reads `x` before the last use of its mutable loan.
+#[test]
+fn expanded_compound_assignment_reads_lhs_too_early() {
+    FormalityTest::new(crates![crate Foo {
+        fn foo() -> () {
+            let x: u32 = 1_u32;
+            exists<'a> {
+                let r: &'a mut u32 = &'a mut x;
+                x = x + *r;
+            }
+        }
+    }])
+    .rustc_err(expect_test::expect![[r#"
+        error[E0503]: cannot use `x` because it was mutably borrowed
+         --> lib.rs
+          |
+        4 |         let mut r: &'_ mut u32 = &mut x;
+          |                                  ------ `x` is borrowed here
+        5 |         x = x + *r;
+          |             ^   -- borrow later used here
+          |             |
+          |             use of borrowed `x`
+
+        For more information about this error, try `rustc --explain E0503`.
+        error: could not compile `Foo` (lib) due to 1 previous error
+    "#]])
+    .borrowck_err(
+        BorrowCheckFailure::All,
+        expect_test::expect![[r#"
+        the rule "borrow of disjoint places" at (nll.rs) failed because
+          condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
+            &loan.place = x : u32
+            &access.place = x : u32
+
+        the rule "loan_cannot_outlive" at (nll.rs) failed because
+          condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+            outlived_by_loan = {?lt_1}
+            &lifetime.upcast() = ?lt_1
+
+        the rule "borrow of disjoint places" at (nll.rs) failed because
+          condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
+            &loan.place = x : u32
+            &access.place = x : u32
+
+        the rule "loan_cannot_outlive" at (nll.rs) failed because
+          condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+            outlived_by_loan = {?lt_1}
+            &lifetime.upcast() = ?lt_1"#]],
+    );
+}
+
+/// RHS-first evaluation cannot end a mutable loan that is used again afterward.
+#[test]
+fn compound_assignment_with_future_mutable_use() {
+    FormalityTest::new(crates![crate Foo {
+        fn foo() -> () {
+            let x: u32 = 1_u32;
+            exists<'a> {
+                let r: &'a mut u32 = &'a mut x;
+                x += *r;
+                let y: u32 = *r;
+            }
+        }
+    }])
+    .rustc_err(expect_test::expect![[r#"
+        error[E0503]: cannot use `x` because it was mutably borrowed
+         --> lib.rs
+          |
+        4 |         let mut r: &'_ mut u32 = &mut x;
+          |                                  ------ `x` is borrowed here
+        5 |         x += *r;
+          |         ^^^^^^^ use of borrowed `x`
+        6 |         let mut y: u32 = *r;
+          |                          -- borrow later used here
+
+        For more information about this error, try `rustc --explain E0503`.
+        error: could not compile `Foo` (lib) due to 1 previous error
+    "#]])
+    .borrowck_err(
+        BorrowCheckFailure::All,
+        expect_test::expect![[r#"
+        the rule "borrow of disjoint places" at (nll.rs) failed because
+          condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
+            &loan.place = x : u32
+            &access.place = x : u32
+
+        the rule "loan_cannot_outlive" at (nll.rs) failed because
+          condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+            outlived_by_loan = {?lt_1}
+            &lifetime.upcast() = ?lt_1
+
+        the rule "borrow of disjoint places" at (nll.rs) failed because
+          condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
+            &loan.place = x : u32
+            &access.place = x : u32
+
+        the rule "loan_cannot_outlive" at (nll.rs) failed because
+          condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+            outlived_by_loan = {?lt_1}
+            &lifetime.upcast() = ?lt_1"#]],
+    );
+}
+
+/// The reference used to find the destination must remain live across the RHS.
+#[test]
+fn compound_assignment_keeps_destination_reference_live() {
+    FormalityTest::new(crates![crate Foo {
+        fn foo() -> () {
+            let x: u32 = 1_u32;
+            exists<'a> {
+                let r: &'a mut u32 = &'a mut x;
+                *r += x;
+            }
+        }
+    }])
+    .rustc_err(expect_test::expect![[r#"
+        error[E0503]: cannot use `x` because it was mutably borrowed
+         --> lib.rs
+          |
+        4 |         let mut r: &'_ mut u32 = &mut x;
+          |                                  ------ `x` is borrowed here
+        5 |         *r += x;
+          |         ------^
+          |         |     |
+          |         |     use of borrowed `x`
+          |         borrow later used here
+
+        For more information about this error, try `rustc --explain E0503`.
+        error: could not compile `Foo` (lib) due to 1 previous error
+    "#]])
+    .borrowck_err(
+        BorrowCheckFailure::All,
+        expect_test::expect![[r#"
+        the rule "borrow of disjoint places" at (nll.rs) failed because
+          condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
+            &loan.place = x : u32
+            &access.place = x : u32
+
+        the rule "loan_cannot_outlive" at (nll.rs) failed because
+          condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+            outlived_by_loan = {?lt_1}
+            &lifetime.upcast() = ?lt_1
+
+        the rule "borrow of disjoint places" at (nll.rs) failed because
+          condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
+            &loan.place = x : u32
+            &access.place = x : u32
+
+        the rule "loan_cannot_outlive" at (nll.rs) failed because
+          condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+            outlived_by_loan = {?lt_1}
+            &lifetime.upcast() = ?lt_1"#]],
+    );
 }

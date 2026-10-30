@@ -152,6 +152,12 @@ pub enum Stmt {
 
 #[term]
 pub enum Expr {
+    /// Group a value expression without changing its meaning.
+    /// Parenthesized places are handled by `PlaceExpr::Parens`.
+    #[grammar(($v0))]
+    #[reject(Expr::Place(_))]
+    Parens(Arc<Expr>),
+
     /// `place = expr`
     ///
     /// Assign a value to a place expression. Evaluates to `()`.
@@ -160,6 +166,17 @@ pub enum Expr {
     #[precedence(0, right)]
     Assign { place: PlaceExpr, expr: Arc<Expr> },
 
+    /// `place op= rhs`
+    ///
+    /// Compound assignment. Evaluates to `()`.
+    #[grammar($place $op = $rhs)]
+    #[precedence(0, right)]
+    AssignOp {
+        place: PlaceExpr,
+        op: BinOpKind,
+        rhs: Arc<Expr>,
+    },
+
     /// `call callee<tys>(args)`
     ///
     /// Call a function. The callee is a named function reference.
@@ -167,7 +184,9 @@ pub enum Expr {
     #[grammar($callee ($,args))]
     // Restrict the callee without restricting precedence inside the arguments.
     #[reject(Expr::Assign { .. }, _)]
+    #[reject(Expr::AssignOp { .. }, _)]
     #[reject(Expr::BinOp { .. }, _)]
+    #[reject(Expr::Mul { .. }, _)]
     Call { callee: Arc<Expr>, args: Vec<Expr> },
 
     #[cast]
@@ -210,11 +229,17 @@ pub enum Expr {
 
     #[grammar($lhs $op $rhs)]
     #[precedence(1)]
+    #[reject(_, BinOpKind::Mul, _)]
     BinOp {
         lhs: Arc<Expr>,
         op: BinOpKind,
         rhs: Arc<Expr>,
     },
+
+    // Multiplication comes before addition.
+    #[grammar($lhs * $rhs)]
+    #[precedence(2)]
+    Mul { lhs: Arc<Expr>, rhs: Arc<Expr> },
 }
 
 // ANCHOR: PlaceExpr
@@ -311,12 +336,18 @@ pub enum FnName {
 pub enum BinOpKind {
     #[grammar(+)]
     Add,
+    #[grammar(-)]
+    Sub,
+    #[grammar(*)]
+    Mul,
 }
 
 impl BinOpKind {
     pub fn as_str(&self) -> &'static str {
         match self {
             BinOpKind::Add => "+",
+            BinOpKind::Sub => "-",
+            BinOpKind::Mul => "*",
         }
     }
 }

@@ -237,7 +237,6 @@ fn structs() {
 }
 
 #[test]
-#[ignore = "codegen does not yet handle AliasTy from Derefable"]
 fn references_and_deref() {
     FormalityTest::new(crates![crate test {
         fn main() -> () {
@@ -360,7 +359,6 @@ fn generic_struct() {
 }
 
 #[test]
-#[ignore = "codegen does not yet handle AliasTy from Derefable"]
 fn ref_to_struct_field() {
     FormalityTest::new(crates![crate test {
         struct Pair<> where { x: i32, y: i32 }
@@ -377,7 +375,6 @@ fn ref_to_struct_field() {
 }
 
 #[test]
-#[ignore = "codegen does not yet handle AliasTy from Derefable"]
 fn deref_through_ref_to_struct_field() {
     FormalityTest::new(crates![crate test {
         struct Pair<> where { x: i32, y: i32 }
@@ -473,7 +470,6 @@ fn multiple_breaks_same_label() {
 }
 
 #[test]
-#[ignore = "codegen does not yet handle AliasTy from Derefable"]
 fn mut_reference() {
     FormalityTest::new(crates![crate test {
         fn main() -> () {
@@ -490,7 +486,6 @@ fn mut_reference() {
 }
 
 #[test]
-#[ignore = "codegen does not yet handle AliasTy from Derefable"]
 fn reborrow_shared() {
     FormalityTest::new(crates![crate test {
         fn main() -> () {
@@ -507,7 +502,6 @@ fn reborrow_shared() {
 }
 
 #[test]
-#[ignore = "codegen does not yet handle AliasTy from Derefable"]
 fn exists_with_lifetime_parameterized_type() {
     FormalityTest::new(crates![crate test {
         fn main() -> () {
@@ -573,6 +567,26 @@ fn break_from_labeled_block() {
 }
 
 #[test]
+fn reference_mutation_then_read() {
+    FormalityTest::new(crates![crate Foo {
+        fn update<'a>(r: &'a mut u32) -> u32 {
+            *r = 10_u32;
+            return 2_u32;
+        }
+        fn main() -> () {
+            let x: u32 = 1_u32;
+            exists<'a> {
+                let r: &'a mut u32 = &'a mut x;
+                let amount: u32 = update::<'a>(r);
+                println!(amount);
+            }
+        }
+    }])
+    .expect_output("2\n")
+    .ok()
+}
+
+#[test]
 fn integer_addition() {
     FormalityTest::new(crates![crate test {
         fn main() -> () {
@@ -593,8 +607,24 @@ fn addition_in_assignment() {
             println!(x);
         }
     }])
-    .rustc_ok()
     .expect_output("6\n")
+    .ok()
+}
+
+#[test]
+fn associated_type_in_generic_signature() {
+    FormalityTest::new(crates![crate Foo {
+        trait Value { type Item: []; }
+        struct S {}
+        impl Value for S { type Item = u32; }
+        fn identity<T>(x: <T as Value>::Item) -> <T as Value>::Item where T: Value {
+            return x;
+        }
+        fn main() -> () {
+            println!(identity::<S>(7_u32));
+        }
+    }])
+    .expect_output("7\n")
     .ok()
 }
 
@@ -645,4 +675,459 @@ fn parse_and_run_with_128_bit_integers() {
         u128::MAX
     ))
     .ok()
+}
+
+#[test]
+fn field_evaluation_order() {
+    FormalityTest::new(crates![crate Foo {
+        struct S { a: u32, b: u32 }
+        fn first() -> u32 { println!(1_u32); return 10_u32; }
+        fn second() -> u32 { println!(2_u32); return 20_u32; }
+        fn main() -> () {
+            let s: S = S { b: second(), a: first() };
+            println!(s.a);
+            println!(s.b);
+        }
+    }])
+    .expect_output("2\n1\n10\n20\n")
+    .ok();
+}
+
+#[test]
+fn integer_subtraction() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(10_i32 - 3_i32);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("7\n")
+    .ok();
+}
+
+#[test]
+fn associated_type_in_struct_field() {
+    FormalityTest::new(crates![crate Foo {
+        trait Value { type Item: []; }
+        struct S {}
+        impl Value for S { type Item = u32; }
+        struct Wrap<T> { value: T }
+        fn main() -> () {
+            let w: Wrap<<S as Value>::Item> = Wrap::<<S as Value>::Item> { value: 7_u32 };
+            println!(w.value);
+        }
+    }])
+    .expect_output("7\n")
+    .ok()
+}
+
+#[test]
+fn integer_subtraction_negative_result() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(3_i32 - 10_i32);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("-7\n")
+    .ok();
+}
+
+#[test]
+fn integer_subtraction_is_left_associative() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(10_i32 - 3_i32 - 2_i32);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("5\n")
+    .ok();
+}
+
+#[test]
+fn integer_subtraction_with_addition() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(10_i32 - 3_i32 + 2_i32);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("9\n")
+    .ok();
+}
+
+#[test]
+fn subtraction_evaluates_calls_left_to_right() {
+    FormalityTest::new(crates![crate Foo {
+        fn left() -> i32 { println!(1_i32); return 10_i32; }
+        fn right() -> i32 { println!(2_i32); return 3_i32; }
+        fn main() -> () { println!(left() - right()); }
+    }])
+    .rustc_ok()
+    .expect_output("1\n2\n7\n")
+    .ok();
+}
+
+#[test]
+fn integer_subtraction_unsigned() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(10_u32 - 3_u32);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("7\n")
+    .ok();
+}
+
+#[test]
+fn chained_associated_types() {
+    FormalityTest::new(crates![crate Foo {
+        trait Inner { type Item: []; }
+        trait Outer { type Item: []; }
+        struct S {}
+        impl Inner for S { type Item = u32; }
+        impl Outer for S { type Item = <S as Inner>::Item; }
+        fn main() -> () {
+            let x: <S as Outer>::Item = 7_u32;
+            println!(x);
+        }
+    }])
+    .expect_output("7\n")
+    .ok()
+}
+
+#[test]
+fn integer_subtraction_with_parentheses() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(10_i32 - (3_i32 - 2_i32));
+        }
+    }])
+    .rustc_ok()
+    .expect_output("9\n")
+    .ok();
+}
+
+#[test]
+fn nested_parentheses_preserve_grouping() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(20_i32 - (10_i32 - (3_i32 - 1_i32)));
+        }
+    }])
+    .rustc_ok()
+    .expect_output("12\n")
+    .ok();
+}
+
+#[test]
+fn parenthesized_assignment_updates_local() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            let x: i32 = 10_i32;
+            (x = (x - 3_i32));
+            println!(x);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("7\n")
+    .ok();
+}
+
+// FIXME: Type checking cannot choose between pending-outlives proofs;
+// this currently fails before reaching codegen.
+#[test]
+#[ignore = "type-checking ambiguity between pending-outlives proofs"]
+fn nested_reference_dereference() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            let x: u32 = 7_u32;
+            exists<'a, 'b> {
+                let r: &'a u32 = &'a x;
+                let rr: &'b &'a u32 = &'b r;
+                println!(**rr);
+            }
+        }
+    }])
+    .rustc_ok()
+    .expect_output("7\n")
+    .ok();
+}
+
+// FIXME: Type checking cannot choose between pending-outlives proofs;
+// this currently fails before reaching codegen.
+#[test]
+#[ignore = "type-checking ambiguity between pending-outlives proofs"]
+fn associated_type_field_through_reference() {
+    FormalityTest::new(crates![crate Foo {
+        trait Value { type Item: []; }
+        struct S {}
+        impl Value for S { type Item = u32; }
+        struct Wrap<T> { value: T }
+        fn main() -> () {
+            let w: Wrap<<S as Value>::Item> = Wrap::<<S as Value>::Item> { value: 7_u32 };
+            exists<'a> {
+                let r: &'a Wrap<<S as Value>::Item> = &'a w;
+                println!((*r).value);
+            }
+        }
+    }])
+    .rustc_ok()
+    .expect_output("7\n")
+    .ok()
+}
+
+#[test]
+fn integer_multiplication() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(3_i32 * 4_i32);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("12\n")
+    .ok();
+}
+
+#[test]
+fn multiplication_before_addition() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(2_i32 + 3_i32 * 4_i32);
+            println!(2_i32 * 3_i32 + 4_i32);
+            println!(2_i32 + 3_i32 * 4_i32 * 2_i32);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("14\n10\n26\n")
+    .ok();
+}
+
+#[test]
+fn associated_type_distinct_instantiations() {
+    FormalityTest::new(crates![crate Foo {
+        trait Value { type Item: []; }
+        struct Number {}
+        struct Flag {}
+        impl Value for Number { type Item = u32; }
+        impl Value for Flag { type Item = bool; }
+        fn identity<T>(x: <T as Value>::Item) -> <T as Value>::Item where T: Value {
+            return x;
+        }
+        fn main() -> () {
+            println!(identity::<Number>(7_u32));
+            println!(identity::<Flag>(true));
+            println!(identity::<Number>(9_u32));
+        }
+    }])
+    .rustc_ok()
+    .expect_output("7\ntrue\n9\n")
+    .ok();
+}
+
+/// Exercise codegen's error path directly: ordinary checking rejects this input.
+#[test]
+fn unresolvable_associated_type_reports_error() {
+    let program = formality_rust::rust::term(crates![crate Foo {
+        trait Value { type Item: []; }
+        struct S {}
+        fn main() -> () {
+            let x: <S as Value>::Item;
+        }
+    }]);
+    let error = formality_rust::codegen::codegen_program(&program).unwrap_err();
+    let message = format!("{error:#}");
+    assert!(message.contains("failed to normalize alias"), "{message}");
+}
+
+/// The RHS changes the destination; += must read its new value afterward.
+#[test]
+fn compound_assignment_reads_destination_after_rhs_call() {
+    FormalityTest::new(crates![crate Foo {
+        fn update<'a>(r: &'a mut u32) -> u32 {
+            *r = 10_u32;
+            return 2_u32;
+        }
+        fn main() -> () {
+            let x: u32 = 1_u32;
+            exists<'a> {
+                let r: &'a mut u32 = &'a mut x;
+                x += update::<'a>(r);
+            }
+            println!(x);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("12\n")
+    .ok()
+}
+
+#[test]
+fn integer_multiplication_negative_result() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(-3_i32 * 4_i32);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("-12\n")
+    .ok();
+}
+
+#[test]
+fn integer_multiplication_unsigned() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(3_u32 * 4_u32);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("12\n")
+    .ok();
+}
+
+#[test]
+fn multiplication_runs_calls_left_to_right() {
+    FormalityTest::new(crates![crate Foo {
+        fn left() -> i32 { println!(1_i32); return 3_i32; }
+        fn right() -> i32 { println!(2_i32); return 4_i32; }
+        fn main() -> () { println!(left() * right()); }
+    }])
+    .rustc_ok()
+    .expect_output("1\n2\n12\n")
+    .ok();
+}
+
+#[test]
+fn multiplication_with_parentheses() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!((2_i32 + 3_i32) * 4_i32);
+            println!(2_i32 * (3_i32 + 4_i32));
+        }
+    }])
+    .rustc_ok()
+    .expect_output("20\n14\n")
+    .ok();
+}
+
+#[test]
+fn multiplication_with_subtraction() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(20_i32 - 2_i32 * 3_i32);
+            println!((20_i32 - 2_i32) * 3_i32);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("14\n54\n")
+    .ok();
+}
+
+// FIXME(#478): Normalize Derefable::Target before MiniRust type translation.
+#[test]
+#[ignore = "FIXME(#478): codegen cannot translate Derefable::Target yet"]
+fn multiplication_with_dereference() {
+    FormalityTest::new(crates![crate Foo {
+        fn multiply_left<'a>(r: &'a i32) -> i32 {
+            return *r * 3_i32;
+        }
+        fn multiply_right<'a>(r: &'a i32) -> i32 {
+            return 3_i32 * *r;
+        }
+        fn main() -> () {
+            let x: i32 = 4_i32;
+            exists<'a, 'b> {
+                let r: &'a i32 = &'a x;
+                println!(multiply_left::<'a>(r));
+                let s: &'b i32 = &'b x;
+                println!(multiply_right::<'b>(s));
+            }
+        }
+    }])
+    .rustc_ok()
+    .expect_output("12\n12\n")
+    .ok();
+}
+
+// FIXME(#511): Copy/move proof search rejects the second read of *r.
+// This also reproduces with addition. Execution additionally needs #478.
+#[test]
+#[ignore = "FIXME(#511): repeated Copy dereference rejected; codegen also needs #478"]
+fn multiplication_reuses_copy_referent() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            let x: i32 = 4_i32;
+            exists<'a> {
+                let r: &'a i32 = &'a x;
+                println!(*r * 3_i32);
+                println!(3_i32 * *r);
+            }
+        }
+    }])
+    .rustc_ok()
+    .expect_output("12\n12\n")
+    .ok();
+}
+
+#[test]
+fn compound_addition() {
+    FormalityTest::new(crates![crate test {
+        fn main() -> () {
+            let x: u32 = 1_u32;
+            x += 2_u32 + 3_u32;
+            println!(x);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("6\n")
+    .ok()
+}
+
+#[test]
+fn compound_addition_to_field() {
+    FormalityTest::new(crates![crate test {
+        struct Pair { a: u32, b: u32 }
+
+        fn main() -> () {
+            let p: Pair = Pair { a: 1_u32, b: 10_u32 };
+            p.b += p.a;
+            println!(p.b);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("11\n")
+    .ok()
+}
+
+#[test]
+fn compound_subtraction() {
+    FormalityTest::new(crates![crate test {
+        fn main() -> () {
+            let x: u32 = 20_u32;
+            x -= 2_u32 + 3_u32;
+            println!(x);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("15\n")
+    .ok();
+}
+
+#[test]
+fn compound_multiplication_to_field() {
+    FormalityTest::new(crates![crate test {
+        struct Pair { a: u32, b: u32 }
+        fn main() -> () {
+            let p: Pair = Pair { a: 2_u32, b: 3_u32 };
+            p.b *= p.a + 4_u32;
+            println!(p.b);
+            println!(p.a);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("18\n2\n")
+    .ok();
 }
