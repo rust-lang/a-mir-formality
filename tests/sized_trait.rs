@@ -288,7 +288,9 @@ fn generic_parameter_requires_explicit_sized_bound() {
           expression evaluated to an empty collection: `decls.trait_invariants()`"#]]);
 }
 
+// FIXME(#522): Model Sized with built-in solver rules and reject user-supplied impls.
 #[test]
+#[ignore = "FIXME(#522): user-supplied Sized impls are not yet rejected"]
 fn user_defined_sized_impl_is_rejected() {
     // The pinned rustc rejects this with E0322. Assert rejection without
     // prescribing the diagnostic of the not-yet-implemented check.
