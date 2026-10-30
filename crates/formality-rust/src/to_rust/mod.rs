@@ -301,7 +301,7 @@ mod test {
             expect_test::expect![[r#"
                 pub trait Trait { }
 
-                pub struct A<T00> where T00: Trait {}
+                pub struct A<T00: ?Sized> where T00: Trait {}
 
                 pub fn valid<'a00, T01>(mut x: &'a00 A<T01>) -> () where T01: 'a00, T01: Trait {}"#]]
         )

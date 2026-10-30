@@ -100,6 +100,24 @@ pub struct Generics {
 
 impl Generics {
     fn fmt_params(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        self.fmt_params_with(f, false)
+    }
+
+    /// Like `fmt_params`, but adds `?Sized` to every type parameter.
+    ///
+    /// Formality makes `Sized` explicit, while rustc adds an implicit `Sized` bound to every
+    /// type parameter. We use this for traits and structs, where the implicit bound makes
+    /// rustc reject programs formality accepts (e.g. `trait Foo<T> where T: Bar<Self>`,
+    /// since `Self` is not `Sized`). A program with an explicit `T: Sized` bound
+    /// therefore prints as `T: ?Sized + Sized`, which is redundant but valid.
+    ///
+    /// It is not used for fns, enums or impls: a by-value fn parameter of type `T`
+    /// requires `T: Sized`.
+    fn fmt_params_relaxed(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        self.fmt_params_with(f, true)
+    }
+
+    fn fmt_params_with(&self, f: &mut Formatter<'_>, relax_sized: bool) -> fmt::Result {
         if self.params.is_empty() {
             return Ok(());
         }
@@ -109,7 +127,10 @@ impl Generics {
             if index > 0 {
                 f.write_str(", ")?;
             }
-            write!(f, "{param}")?;
+            match param {
+                GenericParam::Type(name) if relax_sized => write!(f, "{name}: ?Sized")?,
+                _ => write!(f, "{param}")?,
+            }
         }
         f.write_char('>')
     }
@@ -479,7 +500,7 @@ impl Pretty for StructItem {
             write!(f, "{} ", self.visibility)?;
         }
         write!(f, "struct {}", self.name)?;
-        self.generics.fmt_params(f)?;
+        self.generics.fmt_params_relaxed(f)?;
         self.generics.fmt_where_clauses(f)?;
         f.write_str(" {")?;
 
@@ -664,7 +685,7 @@ impl Pretty for TraitItem {
         }
 
         write!(f, "trait {}", self.name)?;
-        self.generics.fmt_params(f)?;
+        self.generics.fmt_params_relaxed(f)?;
         self.generics.fmt_where_clauses(f)?;
 
         if self.items.is_empty() {
