@@ -293,7 +293,7 @@ mod test {
     use super::*;
     use crate::grammar::{
         AdtId, AliasName, AssociatedItemId, AssociatedTyName, BoundVar, DebruijnIndex,
-        ExistentialVar, TraitId, VarIndex, Variable,
+        ExistentialVar, ScalarValue, TraitId, VarIndex, Variable,
     };
 
     fn alias(item_arity: usize, parameters: Vec<Parameter>) -> AliasTy {
@@ -593,6 +593,22 @@ mod test {
                 }
             ],
             expect_test::expect!["impl<T00, T01, T02> A for T00 where <T00 as B<T01>>::C<T02>: A {}"]
+        );
+    }
+
+    #[test]
+    fn alias_ty_rejects_const_self_argument() {
+        let alias_ty = alias(
+            0,
+            vec![Parameter::Const(
+                Const::Scalar(ScalarValue::Bool(true)).into(),
+            )],
+        );
+
+        let error = lower_alias_ty(&mut Context::default(), &alias_ty).unwrap_err();
+        assert_eq!(
+            error.to_string(),
+            "alias type `Trait::Assoc` must have a type as its self argument, found a const"
         );
     }
 }
