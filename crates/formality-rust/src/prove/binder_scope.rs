@@ -210,6 +210,9 @@ pub fn without_var(pending: &Predicates, v: Variable) -> Result<Predicates, Pred
 
     for wc in pending {
         match &wc {
+            // Reflexive outlives clauses impose no obligation, even when
+            // they mention `v`. Eliminating a cycle can create such a clause.
+            Predicate::AtomicPredicate(AtomicPredicate::Outlives(a, b)) if a == b => {}
             _ if !wc.free_variables().contains(&v) => restated.push(wc),
             Predicate::AtomicPredicate(AtomicPredicate::Outlives(x, b))
                 if b.downcast() == Some(v) && !x.free_variables().contains(&v) =>
