@@ -452,7 +452,7 @@ judgment_fn! {
             (if input_tys.len() == args.len())
 
             (for_all(i in 0..args.len()) with(state)
-                (borrow_check_expr_has_ty(env, assumptions, state, &args[i], &input_tys[i], places_live) => state))
+                (borrow_check_expr_has_ty(env, assumptions, state, &args[i], &input_tys[i], args[i+1..].live_before(env, &state, places_live)) => state))
 
             (prove_where_clauses(env, assumptions, state, where_clauses) => state)
             ------------------------------------------------------------ ("call")
@@ -579,7 +579,7 @@ judgment_fn! {
             (for_all(i in 0..field_exprs.len()) with(state)
                 (field in fields)
                 (if field.name == field_exprs[i].name)
-                (borrow_check_expr_has_ty(env, assumptions, state, &field_exprs[i].value, &field.ty, places_live_on_exit) => state))
+                (borrow_check_expr_has_ty(env, assumptions, state, &field_exprs[i].value, &field.ty, field_exprs[i+1..].live_before(env, &state, places_live_on_exit)) => state))
 
             (prove_where_clauses(env, assumptions, state, where_clauses) => state)
 
