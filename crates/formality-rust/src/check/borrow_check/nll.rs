@@ -6,7 +6,7 @@ use crate::check::borrow_check::typed_place_expression::{
 };
 use crate::check::feature_gate_enabled_in_program;
 
-use crate::grammar::expr::{BinOpKind, Block, Expr, Init, Literal, PlaceExpr, Stmt};
+use crate::grammar::expr::{Block, Expr, Init, Literal, PlaceExpr, Stmt};
 use crate::grammar::{
     AliasName, AliasTy, AssociatedItemId, AtomicPredicate, FeatureGateName, FieldName, Fn, Lt,
     Parameter, Predicates, RefKind, RigidName, RigidTy, ScalarId, Struct, StructBoundData, TraitId,
@@ -383,13 +383,6 @@ judgment_fn! {
             (borrow_check_expr(env, assumptions, state, expr, places_live_on_exit) => (ty, state))
             ---- ("parenthesized")
             (borrow_check_expr(env, assumptions, state, Expr::Parens(expr), places_live_on_exit) => (ty, state))
-        )
-
-        (
-            (let expr = Expr::BinOp { lhs: lhs.clone(), op: BinOpKind::Mul, rhs: rhs.clone() })
-            (borrow_check_expr(env, assumptions, state, expr, places_live_on_exit) => (ty, state))
-            ---- ("multiplication")
-            (borrow_check_expr(env, assumptions, state, Expr::Mul { lhs, rhs }, places_live_on_exit) => (ty, state))
         )
 
         (

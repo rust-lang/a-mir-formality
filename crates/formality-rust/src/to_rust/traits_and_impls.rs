@@ -140,8 +140,50 @@ pub fn lower_assoc_ty(
             WhereBound::Outlives(lt) => {
                 bounds.push(syntax::TypeBound::Lifetime(tys::lower_lt(ctx, lt)?));
             }
-            WhereBound::ForAll(_) => {
-                anyhow::bail!("lowering associated type `for` bounds is not implemented yet")
+            WhereBound::ForAll(binder) => {
+                // Check that only lifetime parameters are quantified
+                for kind in binder.kinds() {
+                    if !matches!(kind, crate::grammar::ParameterKind::Lt) {
+                        anyhow::bail!(
+                            "higher-ranked bounds on associated types only support lifetime quantification, found {:?}",
+                            kind
+                        );
+                    }
+                }
+
+                let Wrapped {
+                    ref mut ctx,
+                    ref term,
+                } = ctx.open_universal(binder.as_ref().clone());
+
+                // Recursively lower the inner bound
+                let inner_bound = match term {
+                    WhereBound::IsImplemented(trait_id, parameters) => syntax::TypeBound::Trait {
+                        trait_name: trait_id.deref().clone(),
+                        args: parameters
+                            .iter()
+                            .map(|arg| tys::lower_generic_arg(ctx, arg))
+                            .collect::<Result<Vec<_>, _>>()?,
+                    },
+                    WhereBound::Outlives(_) => {
+                        anyhow::bail!(
+                            "lowering associated type outlives bounds is not implemented yet"
+                        )
+                    }
+                    WhereBound::ForAll(_) => {
+                        anyhow::bail!("nested `for` bounds on associated types are not supported")
+                    }
+                };
+
+                let forall_generics =
+                    to_rust::lower_generics_for_binder(ctx, binder.kinds(), &[], false)?;
+
+                // Add as a type bound instead of where clause
+                // The inner bound is what gets applied after the for quantifier
+                bounds.push(syntax::TypeBound::ForAll {
+                    generics: forall_generics,
+                    bound: Box::new(inner_bound),
+                });
             }
         }
     }
@@ -449,6 +491,26 @@ impl !Bar for Baz {}"#]]
                     type Item: Bar + 'a01;
                 }"#]]
 
+        );
+    }
+
+    #[test]
+    fn assoc_ty_with_lifetime_forall_bound() {
+        crate::assert_rust!(
+            [
+                crate Foo {
+                    trait A { }
+                    trait B {
+                        type Item: [for<'a> A];
+                    }
+                }
+            ],
+            expect_test::expect![[r#"
+                pub trait A { }
+
+                pub trait B {
+                    type Item: for<'a20> A;
+                }"#]]
         );
     }
 }
