@@ -14,8 +14,8 @@ use crate::grammar::{
 };
 use crate::grammar::{FnBoundData, PredicateTy};
 use crate::prove::{with_variables, Safety};
-use formality_core::judgment::ProofTree;
-use formality_core::{judgment_fn, term, ProvenSet, Set, Union, Upcast};
+use formality_core::judgment::{FailureLocation, ProofTree};
+use formality_core::{judgment_fn, term, Downcast, ProvenSet, Set, Union, Upcast};
 
 use crate::check::borrow_check::liveness::{Assignment, Either, LiveBefore, LivePlaces, Seq};
 
@@ -485,9 +485,10 @@ judgment_fn! {
             (borrow_check_expr(env, assumptions, state, lhs, rhs.live_before(env, &state, places_live_on_exit)) => (lhs_ty, state))
             (prove_ty_is_rigid(env, assumptions, state, &lhs_ty) => (RigidTy {name: RigidName::ScalarId(scalar), parameters: _}, state))
             (if scalar.is_int())
-            (borrow_check_expr_has_ty(env, assumptions, state, rhs, &lhs_ty, places_live_on_exit) => state)
+            (borrow_check_expr(env, assumptions, state, rhs, places_live_on_exit) => (rhs_ty, state))
+            (prove_binop_assignable(env, assumptions, state, op, lhs_ty, rhs_ty) => state)
             ------------("binop")
-            (borrow_check_expr(env, assumptions, state, Expr::BinOp{lhs, op: _, rhs}, places_live_on_exit) => (lhs_ty, state))
+            (borrow_check_expr(env, assumptions, state, Expr::BinOp{lhs, op, rhs}, places_live_on_exit) => (lhs_ty, state))
         )
 
         (
@@ -1151,6 +1152,37 @@ judgment_fn! {
             ------------------------------------------------------------ ("subtype")
             (prove_assignable(env, assumptions, state, a, b) => state)
         )
+    }
+}
+
+fn prove_binop_assignable(
+    env: &TypeckEnv,
+    assumptions: &Predicates,
+    state: &FlowState,
+    op: &BinOpKind,
+    lhs_ty: &Ty,
+    rhs_ty: &Ty,
+) -> ProvenSet<FlowState> {
+    match prove_assignable(env, assumptions, state, rhs_ty, lhs_ty).into_map() {
+        Ok(proofs) => ProvenSet::proven(proofs),
+        Err(failure) => {
+            if let (Some(lhs), Some(rhs)) =
+                (lhs_ty.downcast::<ScalarId>(), rhs_ty.downcast::<ScalarId>())
+            {
+                if lhs.is_int() && rhs.is_int() && lhs != rhs {
+                    return ProvenSet::failed(
+                        "binary operator values",
+                        FailureLocation::caller(),
+                        format!(
+                            "cannot apply `{}` to values of types `{lhs:?}` and `{rhs:?}`\n\
+                             both values must have the same integer type",
+                            op.as_str(),
+                        ),
+                    );
+                }
+            }
+            ProvenSet::from(*failure)
+        }
     }
 }
 
