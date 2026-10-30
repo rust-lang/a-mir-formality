@@ -237,7 +237,6 @@ fn structs() {
 }
 
 #[test]
-#[ignore = "codegen does not yet handle AliasTy from Derefable"]
 fn references_and_deref() {
     FormalityTest::new(crates![crate test {
         fn main() -> () {
@@ -360,7 +359,6 @@ fn generic_struct() {
 }
 
 #[test]
-#[ignore = "codegen does not yet handle AliasTy from Derefable"]
 fn ref_to_struct_field() {
     FormalityTest::new(crates![crate test {
         struct Pair<> where { x: i32, y: i32 }
@@ -377,7 +375,6 @@ fn ref_to_struct_field() {
 }
 
 #[test]
-#[ignore = "codegen does not yet handle AliasTy from Derefable"]
 fn deref_through_ref_to_struct_field() {
     FormalityTest::new(crates![crate test {
         struct Pair<> where { x: i32, y: i32 }
@@ -473,7 +470,6 @@ fn multiple_breaks_same_label() {
 }
 
 #[test]
-#[ignore = "codegen does not yet handle AliasTy from Derefable"]
 fn mut_reference() {
     FormalityTest::new(crates![crate test {
         fn main() -> () {
@@ -490,7 +486,6 @@ fn mut_reference() {
 }
 
 #[test]
-#[ignore = "codegen does not yet handle AliasTy from Derefable"]
 fn reborrow_shared() {
     FormalityTest::new(crates![crate test {
         fn main() -> () {
@@ -507,7 +502,6 @@ fn reborrow_shared() {
 }
 
 #[test]
-#[ignore = "codegen does not yet handle AliasTy from Derefable"]
 fn exists_with_lifetime_parameterized_type() {
     FormalityTest::new(crates![crate test {
         fn main() -> () {
@@ -573,6 +567,26 @@ fn break_from_labeled_block() {
 }
 
 #[test]
+fn reference_mutation_then_read() {
+    FormalityTest::new(crates![crate Foo {
+        fn update<'a>(r: &'a mut u32) -> u32 {
+            *r = 10_u32;
+            return 2_u32;
+        }
+        fn main() -> () {
+            let x: u32 = 1_u32;
+            exists<'a> {
+                let r: &'a mut u32 = &'a mut x;
+                let amount: u32 = update::<'a>(r);
+                println!(amount);
+            }
+        }
+    }])
+    .expect_output("2\n")
+    .ok()
+}
+
+#[test]
 fn integer_addition() {
     FormalityTest::new(crates![crate test {
         fn main() -> () {
@@ -593,8 +607,24 @@ fn addition_in_assignment() {
             println!(x);
         }
     }])
-    .rustc_ok()
     .expect_output("6\n")
+    .ok()
+}
+
+#[test]
+fn associated_type_in_generic_signature() {
+    FormalityTest::new(crates![crate Foo {
+        trait Value { type Item: []; }
+        struct S {}
+        impl Value for S { type Item = u32; }
+        fn identity<T>(x: <T as Value>::Item) -> <T as Value>::Item where T: Value {
+            return x;
+        }
+        fn main() -> () {
+            println!(identity::<S>(7_u32));
+        }
+    }])
+    .expect_output("7\n")
     .ok()
 }
 
@@ -676,6 +706,22 @@ fn integer_subtraction() {
 }
 
 #[test]
+fn associated_type_in_struct_field() {
+    FormalityTest::new(crates![crate Foo {
+        trait Value { type Item: []; }
+        struct S {}
+        impl Value for S { type Item = u32; }
+        struct Wrap<T> { value: T }
+        fn main() -> () {
+            let w: Wrap<<S as Value>::Item> = Wrap::<<S as Value>::Item> { value: 7_u32 };
+            println!(w.value);
+        }
+    }])
+    .expect_output("7\n")
+    .ok()
+}
+
+#[test]
 fn integer_subtraction_negative_result() {
     FormalityTest::new(crates![crate Foo {
         fn main() -> () {
@@ -736,6 +782,23 @@ fn integer_subtraction_unsigned() {
 }
 
 #[test]
+fn chained_associated_types() {
+    FormalityTest::new(crates![crate Foo {
+        trait Inner { type Item: []; }
+        trait Outer { type Item: []; }
+        struct S {}
+        impl Inner for S { type Item = u32; }
+        impl Outer for S { type Item = <S as Inner>::Item; }
+        fn main() -> () {
+            let x: <S as Outer>::Item = 7_u32;
+            println!(x);
+        }
+    }])
+    .expect_output("7\n")
+    .ok()
+}
+
+#[test]
 fn integer_subtraction_with_parentheses() {
     FormalityTest::new(crates![crate Foo {
         fn main() -> () {
@@ -773,6 +836,49 @@ fn parenthesized_assignment_updates_local() {
     .ok();
 }
 
+// FIXME: Type checking cannot choose between pending-outlives proofs;
+// this currently fails before reaching codegen.
+#[test]
+#[ignore = "type-checking ambiguity between pending-outlives proofs"]
+fn nested_reference_dereference() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            let x: u32 = 7_u32;
+            exists<'a, 'b> {
+                let r: &'a u32 = &'a x;
+                let rr: &'b &'a u32 = &'b r;
+                println!(**rr);
+            }
+        }
+    }])
+    .rustc_ok()
+    .expect_output("7\n")
+    .ok();
+}
+
+// FIXME: Type checking cannot choose between pending-outlives proofs;
+// this currently fails before reaching codegen.
+#[test]
+#[ignore = "type-checking ambiguity between pending-outlives proofs"]
+fn associated_type_field_through_reference() {
+    FormalityTest::new(crates![crate Foo {
+        trait Value { type Item: []; }
+        struct S {}
+        impl Value for S { type Item = u32; }
+        struct Wrap<T> { value: T }
+        fn main() -> () {
+            let w: Wrap<<S as Value>::Item> = Wrap::<<S as Value>::Item> { value: 7_u32 };
+            exists<'a> {
+                let r: &'a Wrap<<S as Value>::Item> = &'a w;
+                println!((*r).value);
+            }
+        }
+    }])
+    .rustc_ok()
+    .expect_output("7\n")
+    .ok()
+}
+
 #[test]
 fn integer_multiplication() {
     FormalityTest::new(crates![crate Foo {
@@ -797,6 +903,67 @@ fn multiplication_before_addition() {
     .rustc_ok()
     .expect_output("14\n10\n26\n")
     .ok();
+}
+
+#[test]
+fn associated_type_distinct_instantiations() {
+    FormalityTest::new(crates![crate Foo {
+        trait Value { type Item: []; }
+        struct Number {}
+        struct Flag {}
+        impl Value for Number { type Item = u32; }
+        impl Value for Flag { type Item = bool; }
+        fn identity<T>(x: <T as Value>::Item) -> <T as Value>::Item where T: Value {
+            return x;
+        }
+        fn main() -> () {
+            println!(identity::<Number>(7_u32));
+            println!(identity::<Flag>(true));
+            println!(identity::<Number>(9_u32));
+        }
+    }])
+    .rustc_ok()
+    .expect_output("7\ntrue\n9\n")
+    .ok();
+}
+
+/// Exercise codegen's error path directly: ordinary checking rejects this input.
+#[test]
+fn unresolvable_associated_type_reports_error() {
+    let program = formality_rust::rust::term(crates![crate Foo {
+        trait Value { type Item: []; }
+        struct S {}
+        fn main() -> () {
+            let x: <S as Value>::Item;
+        }
+    }]);
+    let error = formality_rust::codegen::codegen_program(&program).unwrap_err();
+    let message = format!("{error:#}");
+    assert!(message.contains("failed to normalize alias"), "{message}");
+}
+
+// FIXME: Enable once PR #496 supplies compound-assignment syntax.
+// Verified to execute and produce 12 with #488 and #496 combined.
+#[test]
+#[ignore = "requires compound assignment support from PR #496"]
+fn compound_assignment_reads_destination_after_rhs_call() {
+    FormalityTest::new(crates![crate Foo {
+        fn update<'a>(r: &'a mut u32) -> u32 {
+            *r = 10_u32;
+            return 2_u32;
+        }
+        fn main() -> () {
+            let x: u32 = 1_u32;
+            exists<'a> {
+                let r: &'a mut u32 = &'a mut x;
+                x += update::<'a>(r);
+            }
+            println!(x);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("12\n")
+    .ok()
 }
 
 #[test]

@@ -370,7 +370,7 @@ judgment_fn! {
                     .ok_or_else(|| anyhow::anyhow!("unknown field {:?}", field_expr.name))?)
                 (codegen_expr_into(global, cfn, scope, temp, &field_expr.value) => (field_code, global, cfn))
                 (let (code, cfn) = cfn.append_from(code, field_code)))
-            (let struct_value = tuple_value(&temps, adt_id, turbofish, &cfn.crates)?)
+            (let struct_value = tuple_value(&temps, adt_id, turbofish, &cfn)?)
             ---- ("struct")
             (codegen_expr_into(global, cfn, scope, target, Expr::Struct { field_exprs, adt_id, turbofish }) => (
                 code.assign(target, struct_value),

@@ -187,7 +187,7 @@ impl CodegenFn {
 
     /// Translate a formality-rust type to its MiniRust representation.
     pub(super) fn minirust_ty(&self, ty: &Ty) -> Fallible<lang::Type> {
-        minirust_ty(&self.crates, ty)
+        minirust_ty(self, ty)
     }
 
     /// Create a new empty anonymous `CodeBlock`.
