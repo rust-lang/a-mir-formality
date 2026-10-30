@@ -404,6 +404,10 @@ pub enum TypeBound {
         args: Vec<GenericArg>,
     },
     Lifetime(String),
+    ForAll {
+        generics: Generics,
+        bound: Box<TypeBound>,
+    },
 }
 
 impl Display for TypeBound {
@@ -414,6 +418,11 @@ impl Display for TypeBound {
                 fmt_generic_args(f, args, false)
             }
             TypeBound::Lifetime(lt) => f.write_str(lt),
+            TypeBound::ForAll { generics, bound } => {
+                write!(f, "for")?;
+                generics.fmt_params(f)?;
+                write!(f, " {bound}")
+            }
         }
     }
 }
