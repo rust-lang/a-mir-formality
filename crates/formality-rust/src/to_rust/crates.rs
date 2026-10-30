@@ -40,8 +40,14 @@ pub fn lower_crate(
         Vec::new()
     };
 
+    let is_core = *(krate.id) == CORE_CRATE_NAME;
+
     for item in &krate.items {
         match item {
+            // `Sized` is a language item: emitting our own would shadow rustc's `Sized`
+            // via `use mycore::*;`, so bare `Sized` bounds must resolve to the real one.
+            CrateItem::Trait(t) if is_core && *t.id == "Sized" => {}
+            CrateItem::TraitImpl(ti) if is_core && **ti.trait_id() == "Sized" => {}
             CrateItem::FeatureGate(gate) => attrs.push(feature_gate::lower_feature_gate(gate)?),
             CrateItem::AdtItem(AdtItem::Struct(strukt)) => {
                 items.push(syntax::Item::Struct(structs_enums_and_adts::lower_struct(
