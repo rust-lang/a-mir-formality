@@ -1131,3 +1131,129 @@ fn compound_multiplication_to_field() {
     .expect_output("18\n2\n")
     .ok();
 }
+
+#[test]
+fn integer_remainder() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(7_i32 % 3_i32);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("1\n")
+    .ok();
+}
+
+#[test]
+fn integer_remainder_negative_operands() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(-7_i32 % 3_i32);
+            println!(7_i32 % -3_i32);
+            println!(-7_i32 % -3_i32);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("-1\n1\n-1\n")
+    .ok();
+}
+
+#[test]
+fn integer_remainder_unsigned() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(13_u32 % 3_u32);
+            println!(2_u32 % 7_u32);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("1\n2\n")
+    .ok();
+}
+
+#[test]
+fn remainder_before_addition() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(10_i32 + 7_i32 % 4_i32);
+            println!(7_i32 % 4_i32 + 10_i32);
+            println!(20_i32 - 7_i32 % 4_i32);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("13\n13\n17\n")
+    .ok();
+}
+
+#[test]
+fn remainder_runs_left_to_right() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(10_i32 % 4_i32 % 3_i32);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("2\n")
+    .ok();
+}
+
+#[test]
+fn remainder_with_multiplication() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(3_i32 * 7_i32 % 4_i32);
+            println!(7_i32 % 4_i32 * 3_i32);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("1\n9\n")
+    .ok();
+}
+
+#[test]
+fn remainder_with_parentheses() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(10_i32 % (4_i32 % 3_i32));
+            println!((10_i32 + 7_i32) % 4_i32);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("0\n1\n")
+    .ok();
+}
+
+#[test]
+fn remainder_runs_calls_left_to_right() {
+    FormalityTest::new(crates![crate Foo {
+        fn left() -> i32 { println!(1_i32); return 7_i32; }
+        fn right() -> i32 { println!(2_i32); return 3_i32; }
+        fn main() -> () { println!(left() % right()); }
+    }])
+    .rustc_ok()
+    .expect_output("1\n2\n1\n")
+    .ok();
+}
+
+// Rust panics on these; MiniRust reports them as undefined behavior.
+#[test]
+#[should_panic(expected = "modulus of remainder is zero")]
+fn integer_remainder_by_zero() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(7_i32 % 0_i32);
+        }
+    }])
+    .ok();
+}
+
+#[test]
+#[should_panic(expected = "overflow in remainder")]
+fn integer_remainder_overflow() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(-2147483648_i32 % -1_i32);
+        }
+    }])
+    .ok();
+}

@@ -393,6 +393,13 @@ judgment_fn! {
         )
 
         (
+            (let expr = Expr::BinOp { lhs: lhs.clone(), op: BinOpKind::Rem, rhs: rhs.clone() })
+            (borrow_check_expr(env, assumptions, state, expr, places_live_on_exit) => (ty, state))
+            ---- ("remainder")
+            (borrow_check_expr(env, assumptions, state, Expr::Rem { lhs, rhs }, places_live_on_exit) => (ty, state))
+        )
+
+        (
             // Borrow-check and type-check the RHS value expression
             (borrow_check_expr(
                 env,
