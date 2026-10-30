@@ -1193,10 +1193,10 @@ fn test_add_mismatched_int_types() {
         help: the following other types implement trait `Add<Rhs>`
            --> arith.rs
             |
-         99 |         impl const Add for $t {
+         98 |         impl const Add for $t {
             |         ^^^^^^^^^^^^^^^^^^^^^ `i32` implements `Add`
         ...
-        114 | add_impl! { usize u8 u16 u32 u64 u128 isize i8 i16 i32 i64 i128 f16 f32 f64 f128 }
+        113 | add_impl! { usize u8 u16 u32 u64 u128 isize i8 i16 i32 i64 i128 f16 f32 f64 f128 }
             | ---------------------------------------------------------------------------------- in this macro invocation
             |
            ::: internal_macros.rs
