@@ -166,6 +166,17 @@ pub enum Expr {
     #[precedence(0, right)]
     Assign { place: PlaceExpr, expr: Arc<Expr> },
 
+    /// `place op= rhs`
+    ///
+    /// Compound assignment. Evaluates to `()`.
+    #[grammar($place $op = $rhs)]
+    #[precedence(0, right)]
+    AssignOp {
+        place: PlaceExpr,
+        op: BinOpKind,
+        rhs: Arc<Expr>,
+    },
+
     /// `call callee<tys>(args)`
     ///
     /// Call a function. The callee is a named function reference.
@@ -173,6 +184,7 @@ pub enum Expr {
     #[grammar($callee ($,args))]
     // Restrict the callee without restricting precedence inside the arguments.
     #[reject(Expr::Assign { .. }, _)]
+    #[reject(Expr::AssignOp { .. }, _)]
     #[reject(Expr::BinOp { .. }, _)]
     #[reject(Expr::Mul { .. }, _)]
     Call { callee: Arc<Expr>, args: Vec<Expr> },

@@ -942,10 +942,8 @@ fn unresolvable_associated_type_reports_error() {
     assert!(message.contains("failed to normalize alias"), "{message}");
 }
 
-// FIXME: Enable once PR #496 supplies compound-assignment syntax.
-// Verified to execute and produce 12 with #488 and #496 combined.
+/// The RHS changes the destination; += must read its new value afterward.
 #[test]
-#[ignore = "requires compound assignment support from PR #496"]
 fn compound_assignment_reads_destination_after_rhs_call() {
     FormalityTest::new(crates![crate Foo {
         fn update<'a>(r: &'a mut u32) -> u32 {
@@ -1071,5 +1069,65 @@ fn multiplication_reuses_copy_referent() {
     }])
     .rustc_ok()
     .expect_output("12\n12\n")
+    .ok();
+}
+
+#[test]
+fn compound_addition() {
+    FormalityTest::new(crates![crate test {
+        fn main() -> () {
+            let x: u32 = 1_u32;
+            x += 2_u32 + 3_u32;
+            println!(x);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("6\n")
+    .ok()
+}
+
+#[test]
+fn compound_addition_to_field() {
+    FormalityTest::new(crates![crate test {
+        struct Pair { a: u32, b: u32 }
+
+        fn main() -> () {
+            let p: Pair = Pair { a: 1_u32, b: 10_u32 };
+            p.b += p.a;
+            println!(p.b);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("11\n")
+    .ok()
+}
+
+#[test]
+fn compound_subtraction() {
+    FormalityTest::new(crates![crate test {
+        fn main() -> () {
+            let x: u32 = 20_u32;
+            x -= 2_u32 + 3_u32;
+            println!(x);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("15\n")
+    .ok();
+}
+
+#[test]
+fn compound_multiplication_to_field() {
+    FormalityTest::new(crates![crate test {
+        struct Pair { a: u32, b: u32 }
+        fn main() -> () {
+            let p: Pair = Pair { a: 2_u32, b: 3_u32 };
+            p.b *= p.a + 4_u32;
+            println!(p.b);
+            println!(p.a);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("18\n2\n")
     .ok();
 }

@@ -5003,3 +5003,274 @@ fn read_copy_reference_twice() {
     .skip_execute()
     .borrowck_ok();
 }
+
+/// `*r` is evaluated before `x` is read, so the loan is no longer live by then.
+/// `x = x + *r` reads `x` first and is an error (E0503).
+#[test]
+fn compound_assignment_evaluates_rhs_first() {
+    FormalityTest::new(crates![crate Foo {
+        fn foo() -> () {
+            let x: u32 = 1_u32;
+            exists<'r0> {
+                let r: &'r0 mut u32 = &'r0 mut x;
+                x += *r;
+            }
+        }
+    }])
+    .rustc_ok()
+    .skip_execute()
+    .borrowck_ok();
+}
+
+/// Compound assignment writes its place, so it conflicts with a live shared loan.
+#[test]
+fn compound_assignment_while_borrowed() {
+    FormalityTest::new(crates![crate Foo {
+        fn foo() -> () {
+            let x: u32 = 1_u32;
+            exists<'r0> {
+                let r: &'r0 u32 = &'r0 x;
+                x += 1_u32;
+                let y: u32 = *r;
+            }
+        }
+    }])
+    .rustc_err(expect_test::expect![[r#"
+        error[E0506]: cannot assign to `x` because it is borrowed
+         --> lib.rs
+          |
+        4 |         let mut r: &'_ u32 = &x;
+          |                              -- `x` is borrowed here
+        5 |         x += 1_u32;
+          |         ^^^^^^^^^^ `x` is assigned to here but it was already borrowed
+        6 |         let mut y: u32 = *r;
+          |                          -- borrow later used here
+
+        For more information about this error, try `rustc --explain E0506`.
+        error: could not compile `Foo` (lib) due to 1 previous error
+    "#]])
+    .borrowck_err(
+        BorrowCheckFailure::All,
+        expect_test::expect![[r#"
+        the rule "borrow of disjoint places" at (nll.rs) failed because
+          condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
+            &loan.place = x : u32
+            &access.place = x : u32
+
+        the rule "loan_cannot_outlive" at (nll.rs) failed because
+          condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+            outlived_by_loan = {?lt_1}
+            &lifetime.upcast() = ?lt_1
+
+        the rule "write-indirect" at (nll.rs) failed because
+          pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `x`"#]],
+    );
+}
+
+/// Compound assignment reads its place, so the place must be initialized.
+#[test]
+fn compound_assignment_of_uninitialized() {
+    FormalityTest::new(crates![crate Foo {
+        fn foo() -> () {
+            let x: u32;
+            x += 1_u32;
+        }
+    }])
+    .rustc_err(expect_test::expect![[r#"
+        error[E0381]: used binding `x` isn't initialized
+         --> lib.rs
+          |
+        2 |     let mut x: u32;
+          |         ----- binding declared here but left uninitialized
+        3 |     x += 1_u32;
+          |     ^^^^^^^^^^ `x` used here but it isn't initialized
+          |
+        help: consider assigning a value
+          |
+        2 |     let mut x: u32 = 42;
+          |                    ++++
+
+        For more information about this error, try `rustc --explain E0381`.
+        error: could not compile `Foo` (lib) due to 1 previous error
+    "#]])
+    .borrowck_err(
+        BorrowCheckFailure::All,
+        expect_test::expect![[r#"
+        the rule "access_permitted" at (nll.rs) failed because
+          condition evaluated to false: `match access.kind
+          {
+              AccessKind::Write =>
+              check_place_writable(&state, &access.place.to_place_expression()),
+              AccessKind::Read | AccessKind::Move =>
+              check_place_initialized(&state, &access.place.to_place_expression()),
+          }`"#]],
+    );
+}
+
+/// Compound assignment through a mutable reference should be OK.
+#[test]
+fn compound_assignment_through_mut_ref() {
+    FormalityTest::new(crates![crate Foo {
+        fn bump<'a>(p: &'a mut u32) -> () {
+            *p += 1_u32;
+        }
+    }])
+    .rustc_ok()
+    .skip_execute()
+    .borrowck_ok();
+}
+
+/// Unlike `+=`, ordinary addition reads `x` before the last use of its mutable loan.
+#[test]
+fn expanded_compound_assignment_reads_lhs_too_early() {
+    FormalityTest::new(crates![crate Foo {
+        fn foo() -> () {
+            let x: u32 = 1_u32;
+            exists<'a> {
+                let r: &'a mut u32 = &'a mut x;
+                x = x + *r;
+            }
+        }
+    }])
+    .rustc_err(expect_test::expect![[r#"
+        error[E0503]: cannot use `x` because it was mutably borrowed
+         --> lib.rs
+          |
+        4 |         let mut r: &'_ mut u32 = &mut x;
+          |                                  ------ `x` is borrowed here
+        5 |         x = x + *r;
+          |             ^   -- borrow later used here
+          |             |
+          |             use of borrowed `x`
+
+        For more information about this error, try `rustc --explain E0503`.
+        error: could not compile `Foo` (lib) due to 1 previous error
+    "#]])
+    .borrowck_err(
+        BorrowCheckFailure::All,
+        expect_test::expect![[r#"
+        the rule "borrow of disjoint places" at (nll.rs) failed because
+          condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
+            &loan.place = x : u32
+            &access.place = x : u32
+
+        the rule "loan_cannot_outlive" at (nll.rs) failed because
+          condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+            outlived_by_loan = {?lt_1}
+            &lifetime.upcast() = ?lt_1
+
+        the rule "borrow of disjoint places" at (nll.rs) failed because
+          condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
+            &loan.place = x : u32
+            &access.place = x : u32
+
+        the rule "loan_cannot_outlive" at (nll.rs) failed because
+          condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+            outlived_by_loan = {?lt_1}
+            &lifetime.upcast() = ?lt_1"#]],
+    );
+}
+
+/// RHS-first evaluation cannot end a mutable loan that is used again afterward.
+#[test]
+fn compound_assignment_with_future_mutable_use() {
+    FormalityTest::new(crates![crate Foo {
+        fn foo() -> () {
+            let x: u32 = 1_u32;
+            exists<'a> {
+                let r: &'a mut u32 = &'a mut x;
+                x += *r;
+                let y: u32 = *r;
+            }
+        }
+    }])
+    .rustc_err(expect_test::expect![[r#"
+        error[E0503]: cannot use `x` because it was mutably borrowed
+         --> lib.rs
+          |
+        4 |         let mut r: &'_ mut u32 = &mut x;
+          |                                  ------ `x` is borrowed here
+        5 |         x += *r;
+          |         ^^^^^^^ use of borrowed `x`
+        6 |         let mut y: u32 = *r;
+          |                          -- borrow later used here
+
+        For more information about this error, try `rustc --explain E0503`.
+        error: could not compile `Foo` (lib) due to 1 previous error
+    "#]])
+    .borrowck_err(
+        BorrowCheckFailure::All,
+        expect_test::expect![[r#"
+        the rule "borrow of disjoint places" at (nll.rs) failed because
+          condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
+            &loan.place = x : u32
+            &access.place = x : u32
+
+        the rule "loan_cannot_outlive" at (nll.rs) failed because
+          condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+            outlived_by_loan = {?lt_1}
+            &lifetime.upcast() = ?lt_1
+
+        the rule "borrow of disjoint places" at (nll.rs) failed because
+          condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
+            &loan.place = x : u32
+            &access.place = x : u32
+
+        the rule "loan_cannot_outlive" at (nll.rs) failed because
+          condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+            outlived_by_loan = {?lt_1}
+            &lifetime.upcast() = ?lt_1"#]],
+    );
+}
+
+/// The reference used to find the destination must remain live across the RHS.
+#[test]
+fn compound_assignment_keeps_destination_reference_live() {
+    FormalityTest::new(crates![crate Foo {
+        fn foo() -> () {
+            let x: u32 = 1_u32;
+            exists<'a> {
+                let r: &'a mut u32 = &'a mut x;
+                *r += x;
+            }
+        }
+    }])
+    .rustc_err(expect_test::expect![[r#"
+        error[E0503]: cannot use `x` because it was mutably borrowed
+         --> lib.rs
+          |
+        4 |         let mut r: &'_ mut u32 = &mut x;
+          |                                  ------ `x` is borrowed here
+        5 |         *r += x;
+          |         ------^
+          |         |     |
+          |         |     use of borrowed `x`
+          |         borrow later used here
+
+        For more information about this error, try `rustc --explain E0503`.
+        error: could not compile `Foo` (lib) due to 1 previous error
+    "#]])
+    .borrowck_err(
+        BorrowCheckFailure::All,
+        expect_test::expect![[r#"
+        the rule "borrow of disjoint places" at (nll.rs) failed because
+          condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
+            &loan.place = x : u32
+            &access.place = x : u32
+
+        the rule "loan_cannot_outlive" at (nll.rs) failed because
+          condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+            outlived_by_loan = {?lt_1}
+            &lifetime.upcast() = ?lt_1
+
+        the rule "borrow of disjoint places" at (nll.rs) failed because
+          condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
+            &loan.place = x : u32
+            &access.place = x : u32
+
+        the rule "loan_cannot_outlive" at (nll.rs) failed because
+          condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+            outlived_by_loan = {?lt_1}
+            &lifetime.upcast() = ?lt_1"#]],
+    );
+}
