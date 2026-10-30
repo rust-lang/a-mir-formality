@@ -1216,9 +1216,9 @@ fn test_add_mismatched_int_types() {
         error: could not compile `Foo` (lib) due to 2 previous errors
     "#]])
     .err(expect_test::expect![[r#"
-        crates/formality-rust/src/prove/prove_normalize.rs:22:1: no applicable rules for prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-        crates/formality-rust/src/prove/prove_normalize.rs:22:1: no applicable rules for prove_normalize { p: i32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }"#]])
+        failed at (proven_set.rs) because
+          cannot apply `+` to values of types `i32` and `u32`
+          both values must have the same integer type"#]])
 }
 
 #[test]
@@ -1268,9 +1268,9 @@ fn test_sub_mismatched_int_types() {
         error: could not compile `Foo` (lib) due to 2 previous errors
     "#]])
     .err(expect_test::expect![[r#"
-        crates/formality-rust/src/prove/prove_normalize.rs:22:1: no applicable rules for prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-        crates/formality-rust/src/prove/prove_normalize.rs:22:1: no applicable rules for prove_normalize { p: i32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }"#]])
+        failed at (proven_set.rs) because
+          cannot apply `-` to values of types `i32` and `u32`
+          both values must have the same integer type"#]])
 }
 
 /// Multiplying integers of different types should fail.
@@ -1321,9 +1321,9 @@ fn test_mul_mismatched_int_types() {
         error: could not compile `Foo` (lib) due to 2 previous errors
     "#]])
     .err(expect_test::expect![[r#"
-        crates/formality-rust/src/prove/prove_normalize.rs:22:1: no applicable rules for prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-        crates/formality-rust/src/prove/prove_normalize.rs:22:1: no applicable rules for prove_normalize { p: i32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }"#]])
+        failed at (proven_set.rs) because
+          cannot apply `*` to values of types `i32` and `u32`
+          both values must have the same integer type"#]])
 }
 
 /// Multiplication requires integers, even when both operands have the same type.
@@ -1587,4 +1587,60 @@ fn test_compound_add_bool() {
         the rule "assign-op" at (nll.rs) failed because
           condition evaluated to false: `scalar.is_int()`
             scalar = bool"#]])
+}
+
+#[test]
+fn test_binop_mismatched_integer_sizes() {
+    FormalityTest::new(crates![crate Foo {
+        fn foo() -> () {
+            let x: i32 = 1_i32 + 2_i64;
+        }
+    }])
+    .err(expect_test::expect![[r#"
+        failed at (proven_set.rs) because
+          cannot apply `+` to values of types `i32` and `i64`
+          both values must have the same integer type"#]]);
+}
+
+#[test]
+fn test_binop_mismatch_keeps_value_order() {
+    FormalityTest::new(crates![crate Foo {
+        fn foo() -> () {
+            let x: u32 = 10_u32 - 3_i32;
+        }
+    }])
+    .err(expect_test::expect![[r#"
+        failed at (proven_set.rs) because
+          cannot apply `-` to values of types `u32` and `i32`
+          both values must have the same integer type"#]]);
+}
+
+#[test]
+fn test_binop_mismatch_in_nested_expression() {
+    FormalityTest::new(crates![crate Foo {
+        fn foo() -> () {
+            let x: i32 = 1_i32 + (2_u32 * 3_i64);
+        }
+    }])
+    .err(expect_test::expect![[r#"
+        failed at (proven_set.rs) because
+          cannot apply `*` to values of types `u32` and `i64`
+          both values must have the same integer type"#]]);
+}
+
+#[test]
+fn test_binop_normalizes_referent_types() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            let x: i32 = 4_i32;
+            exists<'a> {
+                let r: &'a i32 = &'a x;
+                println!(*r + 3_i32);
+                println!(3_i32 + *r);
+            }
+        }
+    }])
+    .rustc_ok()
+    .skip_execute()
+    .borrowck_ok();
 }
