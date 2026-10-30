@@ -34,15 +34,14 @@ fn trait_param_used_in_struct_type() {
 }
 
 // A `?Sized` trait parameter used as a by-value fn parameter in a default method.
-// Fails in rustc (E0277): a by-value parameter needs `T: Sized`, and formality has no way to
-// write a `Sized` bound yet, so the generated code can't promise it.
+// A by-value parameter needs `T: Sized`, so the program says so explicitly (formality
+// makes `Sized` explicit). The generated trait prints as `T: ?Sized + Sized`.
 #[test]
-#[ignore = "by-value use of a ?Sized parameter needs a Sized bound, which formality can't express"]
 fn trait_param_used_by_value_in_default_method() {
     FormalityTest::new(crates![crate Foo {
-        fn consume<T>(value: T) -> () { trusted }
+        fn consume<T>(value: T) -> () where T: Sized { trusted }
 
-        trait Consumer<T> {
+        trait Consumer<T> where T: Sized {
             fn consume_value(value: T) -> () { trusted }
         }
     }])
