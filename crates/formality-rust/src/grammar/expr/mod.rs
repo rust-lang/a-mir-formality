@@ -187,6 +187,7 @@ pub enum Expr {
     #[reject(Expr::AssignOp { .. }, _)]
     #[reject(Expr::BinOp { .. }, _)]
     #[reject(Expr::Mul { .. }, _)]
+    #[reject(Expr::Div { .. }, _)]
     Call { callee: Arc<Expr>, args: Vec<Expr> },
 
     #[cast]
@@ -230,6 +231,7 @@ pub enum Expr {
     #[grammar($lhs $op $rhs)]
     #[precedence(1)]
     #[reject(_, BinOpKind::Mul, _)]
+    #[reject(_, BinOpKind::Div, _)]
     BinOp {
         lhs: Arc<Expr>,
         op: BinOpKind,
@@ -240,6 +242,10 @@ pub enum Expr {
     #[grammar($lhs * $rhs)]
     #[precedence(2)]
     Mul { lhs: Arc<Expr>, rhs: Arc<Expr> },
+    // Division comes before addition and subtraction.
+    #[grammar($lhs / $rhs)]
+    #[precedence(2)]
+    Div { lhs: Arc<Expr>, rhs: Arc<Expr> },
 }
 
 // ANCHOR: PlaceExpr
@@ -340,6 +346,8 @@ pub enum BinOpKind {
     Sub,
     #[grammar(*)]
     Mul,
+    #[grammar(/)]
+    Div,
 }
 
 impl BinOpKind {
@@ -348,6 +356,7 @@ impl BinOpKind {
             BinOpKind::Add => "+",
             BinOpKind::Sub => "-",
             BinOpKind::Mul => "*",
+            BinOpKind::Div => "/",
         }
     }
 }

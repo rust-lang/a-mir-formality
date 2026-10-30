@@ -1131,3 +1131,219 @@ fn compound_multiplication_to_field() {
     .expect_output("18\n2\n")
     .ok();
 }
+
+#[test]
+fn integer_division() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(12_i32 / 3_i32);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("4\n")
+    .ok();
+}
+
+#[test]
+fn integer_division_drops_fraction() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(7_i32 / 2_i32);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("3\n")
+    .ok();
+}
+
+#[test]
+fn integer_division_negative_result() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(-7_i32 / 2_i32);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("-3\n")
+    .ok();
+}
+
+#[test]
+fn division_before_addition() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(2_i32 + 12_i32 / 3_i32);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("6\n")
+    .ok();
+}
+
+#[test]
+fn division_runs_left_to_right() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(24_i32 / 4_i32 / 2_i32);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("3\n")
+    .ok();
+}
+
+#[test]
+fn integer_division_with_parentheses() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(24_i32 / (4_i32 / 2_i32));
+        }
+    }])
+    .rustc_ok()
+    .expect_output("12\n")
+    .ok();
+}
+
+#[test]
+fn integer_division_unsigned() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(13_u32 / 3_u32);
+            println!(0_u32 / 3_u32);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("4\n0\n")
+    .ok();
+}
+
+#[test]
+fn integer_division_negative_divisor() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(7_i32 / -2_i32);
+            println!(-7_i32 / -2_i32);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("-3\n3\n")
+    .ok();
+}
+
+#[test]
+fn division_with_subtraction() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(20_i32 - 12_i32 / 3_i32);
+            println!(12_i32 / 3_i32 - 2_i32);
+            println!((20_i32 - 12_i32) / 2_i32);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("16\n2\n4\n")
+    .ok();
+}
+
+#[test]
+fn division_runs_calls_left_to_right() {
+    FormalityTest::new(crates![crate Foo {
+        fn left() -> i32 { println!(1_i32); return 12_i32; }
+        fn right() -> i32 { println!(2_i32); return 3_i32; }
+        fn main() -> () { println!(left() / right()); }
+    }])
+    .rustc_ok()
+    .expect_output("1\n2\n4\n")
+    .ok();
+}
+
+// MiniRust reports invalid division as an execution error.
+#[test]
+#[should_panic(expected = "division by zero")]
+fn integer_division_by_zero() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(12_i32 / 0_i32);
+        }
+    }])
+    .ok();
+}
+
+#[test]
+#[should_panic(expected = "overflow in division")]
+fn integer_division_overflow() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(-2147483648_i32 / -1_i32);
+        }
+    }])
+    .ok();
+}
+
+#[test]
+fn division_with_multiplication() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(24_i32 / 4_i32 * 2_i32);
+            println!(20_i32 * 3_i32 / 4_i32);
+            println!(24_i32 / (4_i32 * 2_i32));
+            println!(2_i32 + 24_i32 / 4_i32 * 2_i32);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("12\n15\n3\n14\n")
+    .ok();
+}
+
+#[test]
+fn integer_division_result_is_zero() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(2_i32 / 7_i32);
+            println!(-2_i32 / 7_i32);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("0\n0\n")
+    .ok();
+}
+
+#[test]
+fn integer_division_different_sizes() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(127_i8 / 2_i8);
+            println!(-127_i8 / 2_i8);
+            println!(18446744073709551616_u128 / 2_u128);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("63\n-63\n9223372036854775808\n")
+    .ok();
+}
+
+#[test]
+fn division_in_assignment() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            let x: i32 = 0_i32;
+            x = 12_i32 / 3_i32;
+            println!(x);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("4\n")
+    .ok();
+}
+
+#[test]
+fn division_in_call_arguments() {
+    FormalityTest::new(crates![crate Foo {
+        fn sum(x: i32, y: i32) -> i32 { return x + y; }
+        fn main() -> () {
+            println!(sum(12_i32 / 3_i32, 10_i32 / 2_i32));
+        }
+    }])
+    .rustc_ok()
+    .expect_output("9\n")
+    .ok();
+}
