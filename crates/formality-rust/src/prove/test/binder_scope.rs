@@ -66,3 +66,18 @@ fn outlives_through_some_lifetime() {
     )
     .assert_ok(expect!["{Constraints { env: Env { variables: [!lt_1, !lt_2], bias: Soundness, pending: [!lt_1 : !lt_2], allow_pending_outlives: true }, known_true: true, substitution: {} }}"]);
 }
+
+/// The two lifetimes can be equal. Eliminating one creates a reflexive
+/// constraint on the other, which must be discarded rather than rejected.
+#[test]
+fn existential_outlives_cycle() {
+    let decls = Program {
+        crates: Arc::new(Program::program_from_items(vec![
+            term("trait Cycle where {}"),
+            term("impl<'a, 'b> Cycle for u32 where 'a : 'b, 'b : 'a {}"),
+        ])),
+        ..Program::empty()
+    };
+    let result = test_prove_pending_outlives(decls, term("{} => {Cycle(u32)}"));
+    assert!(result.is_proven(), "{result:#?}");
+}
