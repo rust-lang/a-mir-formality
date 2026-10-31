@@ -6,7 +6,7 @@ use crate::check::borrow_check::typed_place_expression::{
 };
 use crate::check::feature_gate_enabled_in_program;
 
-use crate::grammar::expr::{BinOpKind, Block, Expr, Init, Literal, PlaceExpr, Stmt};
+use crate::grammar::expr::{BinOpKind, Block, Expr, Init, Label, Literal, PlaceExpr, Stmt};
 use crate::grammar::{
     AliasName, AliasTy, AssociatedItemId, AtomicPredicate, FeatureGateName, FieldName, Fn, Lt,
     Parameter, Predicates, RefKind, RigidName, RigidTy, ScalarId, Struct, StructBoundData, TraitId,
@@ -246,7 +246,9 @@ judgment_fn! {
             // the loop's own label, so that continue/break inside the body resolve correctly.
             (let continue_live = Stmt::loop_(label, body).live_before(&env, &state, places_live_on_exit))
             (let state = state.push_continue_scope(&env.env, label, places_live_on_exit, continue_live)?)
-            (borrow_check_loop(env, assumptions, state, body, places_live_on_exit) => state)
+            (borrow_check_loop(env, assumptions, state, label, body, places_live_on_exit) => state)
+            // A `loop` is only exited by `break`, so only the break states flow out of it.
+            (let state = state.diverges())
             (let state = state.pop_scope(label))
             ------------------------------------------------------------ ("loop")
             (borrow_check_statement(env, assumptions, state, Stmt::Loop { label, body }, places_live_on_exit) => (env, state))
@@ -643,24 +645,26 @@ judgment_fn! {
         env: TypeckEnv,
         assumptions: Predicates,
         state: FlowState,
+        label: Option<Label>,
         body: Block,
         places_live_on_exit: LivePlaces,
     ) => FlowState {
-        debug(state, body, places_live_on_exit, assumptions, env)
+        debug(state, label, body, places_live_on_exit, assumptions, env)
 
         (
             (borrow_check_block(env, assumptions, state, body, places_live_on_exit) => state)
-            // FIXME: add continues here
-            (borrow_check_loop(env, assumptions, state, body, places_live_on_exit) => state)
+            (let state = state.merge_continues(label))
+            (borrow_check_loop(env, assumptions, state, label, body, places_live_on_exit) => state)
             ------------------------------------------------------------ ("loop")
-            (borrow_check_loop(env, assumptions, state, body, places_live_on_exit) => state)
+            (borrow_check_loop(env, assumptions, state, label, body, places_live_on_exit) => state)
         )
 
         (
             (borrow_check_block(env, assumptions, state0, body, places_live_on_exit) => state1)
+            (let state1 = state1.merge_continues(label))
             (if state0 == state1)
             ------------------------------------------------------------ ("fixed-point")
-            (borrow_check_loop(env, assumptions, state0, body, places_live_on_exit) => state1)
+            (borrow_check_loop(env, assumptions, state0, label, body, places_live_on_exit) => state1)
         )
     }
 }
