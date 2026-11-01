@@ -1,14 +1,14 @@
 #![expect(dead_code)]
 #![expect(unused_variables)]
 
-use proc_macro2::TokenStream;
+use proc_macro2::{Span, TokenStream};
 use quote::quote;
 use syn::parse::{Parse, ParseStream, Result};
 use syn::punctuated::Punctuated;
 use syn::token::Paren;
 use syn::{
-    braced, parenthesized, parse_macro_input, Attribute, Expr, Ident, LitStr, Pat, Token, Type,
-    Visibility,
+    braced, parenthesized, parse_macro_input, Attribute, BinOp, Expr, ExprBinary, ExprUnary, Ident,
+    LitStr, Pat, Token, Type, UnOp, Visibility,
 };
 
 use std::collections::VecDeque;
@@ -114,6 +114,7 @@ enum PremiseKind {
     Implication(Implication),
     Let(Let),
     LetForAll(LetForAll),
+    In(In),
     // TODO: Define Structure
     Scope(Scope),
 }
@@ -162,6 +163,12 @@ struct LetForAll {
     looper: Ident,
     expression: Expr,
     body: Premises,
+}
+
+#[derive(Debug, Clone)]
+struct In {
+    pattern: Pat,
+    expression: Expr,
 }
 
 #[derive(Debug, Clone)]
@@ -457,9 +464,11 @@ impl Parse for Premise {
         } else if inner.peek(keyword::for_all) {
             parse_for_all(&mut &inner)?
         } else if inner.peek(keyword::fail) {
-            todo!()
+            todo!("parse fail")
         } else if inner.peek(keyword::scope) {
             PremiseKind::Scope(inner.parse()?)
+        } else if inner.peek2(Token![in]) {
+            PremiseKind::In(inner.parse()?)
         } else {
             PremiseKind::Implication(inner.parse()?)
         };
@@ -480,13 +489,16 @@ impl Parse for Premise {
 
 impl Parse for IfLet {
     fn parse(input: ParseStream) -> Result<Self> {
-        todo!()
+        todo!("parse if let")
     }
 }
 
 impl Parse for If {
     fn parse(input: ParseStream) -> Result<Self> {
-        todo!()
+        input.parse::<Token![if]>()?;
+        let expression: Expr = input.parse()?;
+
+        Ok(If { expression })
     }
 }
 
@@ -512,6 +524,19 @@ impl Parse for Implication {
         Ok(Implication {
             hypothesis,
             conclusion,
+        })
+    }
+}
+
+impl Parse for In {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let pattern = Pat::parse_multi_with_leading_vert(input)?;
+        input.parse::<Token![in]>()?;
+        let expression: Expr = input.parse()?;
+
+        Ok(In {
+            pattern,
+            expression,
         })
     }
 }
@@ -953,7 +978,7 @@ fn emit_premises(
         .rev()
         .fold(token_stream, |acc, premise| match &premise.kind {
             PremiseKind::IfLet(_) => todo!("if let"),
-            PremiseKind::If(_) => todo!("if"),
+            PremiseKind::If(if_) => emit_if(judgment, rule, if_, acc),
             PremiseKind::ForAll(for_all) => emit_for_all(judgment, rule, for_all, acc),
             PremiseKind::Fail(fail) => todo!("fail"),
             PremiseKind::Implication(implication) => {
@@ -961,8 +986,131 @@ fn emit_premises(
             }
             PremiseKind::Let(let_) => emit_let(judgment, rule, let_, acc),
             PremiseKind::LetForAll(let_for_all) => todo!("let for all"),
+            PremiseKind::In(in_) => emit_in(judgment, rule, in_, acc),
             PremiseKind::Scope(scope) => todo!("scope"),
         })
+}
+
+fn emit_if(judgment: &Judgment, rule: &Rule, if_: &If, token_stream: TokenStream) -> TokenStream {
+    let origcond = &if_.expression;
+    let record_failure = emit_record_failure(&rule.name);
+
+    let (argn, arge, cond) = if_helper(&if_.expression);
+
+    // TODO: Get the arguments for better error reporting
+    quote! {
+        #(
+            let #argn = #arge;
+        )*
+        let if_then = ::formality_core::judgment::IfThen::new(
+            stringify!(#origcond),
+            vec![
+                #(
+                    (
+                        stringify!(#arge),
+                        ::formality_core::judgment::DebugString::new(#argn),
+                    ),
+                )*
+            ],
+        );
+        if {
+            #cond
+        } {
+            child_proof_trees.push(::formality_core::judgment::ProofTree::leaf(format!("{if_then:?}")));
+            #token_stream
+        } else {
+            let cause = ::formality_core::judgment::RuleFailureCause::IfFalse(if_then);
+            #record_failure
+        }
+    }
+}
+
+// TODO: Extend for more cases.
+// Currently mirrors the bahvior of the existing macro_rule macro.
+// This functions is also ugly as hell.
+fn if_helper(expression: &Expr) -> (Vec<Ident>, Vec<&Expr>, TokenStream) {
+    let mut argn = vec![];
+    let mut arge = vec![];
+    let mut cond = quote! { #expression };
+
+    let arg0n = Ident::new("arg0", Span::call_site());
+    let arg1n = Ident::new("arg1", Span::call_site());
+    let arg2n = Ident::new("arg2", Span::call_site());
+
+    match &expression {
+        Expr::Call(expr_call) => {
+            if expr_call.args.len() == 1 {
+                let arg0e = &expr_call.args[0];
+                arge.push(arg0e);
+                argn.push(arg0n);
+                cond = quote! { arg0(arg1) };
+            } else if expr_call.args.len() == 2 {
+                let arg0e = &expr_call.args[0];
+                arge.push(arg0e);
+                argn.push(arg0n);
+                cond = quote! { arg0(arg1, arg2) };
+            }
+        }
+        Expr::Binary(ExprBinary {
+            attrs,
+            left,
+            op,
+            right,
+        }) => match (&op, &left.as_ref(), &right.as_ref()) {
+            (BinOp::Eq(_), Expr::Path(_), Expr::Path(_)) => {
+                let arg0 = left;
+                let arg1 = right;
+                arge.push(arg0);
+                arge.push(arg1);
+                argn.push(arg0n);
+                argn.push(arg1n);
+                cond = quote! { arg0 == arg1 }
+            }
+            (BinOp::Ne(_), Expr::Path(_), Expr::Path(_)) => {
+                let arg0 = left;
+                let arg1 = right;
+                arge.push(arg0);
+                arge.push(arg1);
+                argn.push(arg0n);
+                argn.push(arg1n);
+                cond = quote! { arg0 != arg1 }
+            }
+            _ => {}
+        },
+        Expr::MethodCall(expr_method_call) => {
+            let arg0e = &expr_method_call.receiver;
+            argn.push(arg0n.clone());
+            arge.push(arg0e);
+
+            if expr_method_call.args.len() == 2 {
+                let arg1e = &expr_method_call.args[0];
+                let arg2e = &expr_method_call.args[1];
+                argn.push(arg1n);
+                argn.push(arg2n);
+                arge.push(arg1e);
+                arge.push(arg2e);
+                cond = quote! { arg0(arg1, arg2) };
+            } else if expr_method_call.args.len() == 1 {
+                let arg1e = &expr_method_call.args[0];
+                argn.push(arg1n);
+                arge.push(arg1e);
+                cond = quote! { arg0(arg1) };
+            }
+        }
+        Expr::Unary(ExprUnary {
+            attrs,
+            op: UnOp::Not(_),
+            expr,
+        }) => {
+            let (argnx, argex, condx) = if_helper(expr);
+            argn = argnx;
+            arge = argex;
+            cond = quote! { !#cond };
+        }
+        _ => {}
+    }
+
+    (argn, arge, cond)
 }
 
 fn emit_for_all(
@@ -1074,6 +1222,39 @@ fn emit_let(
     }
 }
 
+fn emit_in(judgment: &Judgment, rule: &Rule, in_: &In, token_stream: TokenStream) -> TokenStream {
+    let record_failure = emit_record_failure(&rule.name);
+
+    let expression = &in_.expression;
+    let pattern = &in_.pattern;
+    quote! {
+        if let Err(e) = ::formality_core::judgment::member_of(
+            #expression,
+            || stringify!(#expression).to_string(),
+            |(value, proof_tree)| {
+                let #pattern = &value;
+
+                // Remember the size of the child proof tree stack
+                let len = child_proof_trees.len();
+
+                // Push this child proof tree
+                child_proof_trees.push(proof_tree);
+
+                // Recursively process successors
+                #token_stream
+
+                // Restore the original child proof tree stack; note that there may be multiple entries
+                // in case "non-iterative" steps like `(let ...)` and `(if ...)` are interspersed.
+                assert!(child_proof_trees.len() > len);
+                child_proof_trees.truncate(len);
+            },
+        ) {
+            let cause = e;
+            #record_failure
+        }
+    }
+}
+
 fn emit_implication(
     judgment: &Judgment,
     rule: &Rule,
@@ -1105,6 +1286,7 @@ fn emit_record_failure(rule_name: &str) -> TokenStream {
     let step_expr = quote! {};
 
     quote! {
+        // TODO: Get somehow this respan correctly
         // let file = ::formality_core::respan!(#step_expr (file!()));
         // let line = ::formality_core::respan!(#step_expr (line!()));
         // let column = ::formality_core::respan!(#step_expr (column!()));
