@@ -6746,15 +6746,17 @@ fn eq_reads_lhs_while_mutably_borrowed() {
 #[test]
 fn eq_reads_rhs_after_loan_ends() {
     FormalityTest::new(crates![crate Foo {
+        fn main() -> () { foo(); }
         fn foo() -> () {
             let x: u32 = 1_u32;
             exists<'a> {
                 let r: &'a mut u32 = &'a mut x;
                 let b: bool = *r == x;
+                println!(b);
             }
         }
     }])
     .rustc_ok()
-    .skip_execute()
+    .expect_output("true\n")
     .borrowck_ok();
 }
