@@ -122,6 +122,7 @@ pub struct If {
     pub expression: Expr,
 }
 
+/// ForAll ::= "for_all" "(" Ident "in" Expression ("with" "(" {Ident, } ")" )? ")" "(" Premises ")"
 #[derive(Debug, Clone)]
 pub struct ForAll {
     pub identifier: Ident,

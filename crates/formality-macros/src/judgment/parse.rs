@@ -290,8 +290,18 @@ impl Parse for ForAll {
         let identifier: Ident = inner.parse()?;
         inner.parse::<Token![in]>()?;
         let collection: Expr = inner.parse()?;
-        // TODO: Parse optional state
-        let state = vec![];
+
+        let state = if inner.peek(keyword::with) {
+            inner.parse::<keyword::with>()?;
+
+            let with;
+            parenthesized!(with in inner);
+            let state: Punctuated<Ident, Token![,]> =
+                with.parse_terminated(Ident::parse, Token![,])?;
+            state.into_iter().collect()
+        } else {
+            vec![]
+        };
 
         let body: Premises = input.parse()?;
 

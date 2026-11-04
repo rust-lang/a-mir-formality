@@ -860,14 +860,111 @@ fn parse_for_all() {
 }
 
 #[test]
-#[ignore = "not implemented yet"]
 fn parse_for_all_with_state() {
     let ast: ast::ForAll = syn::parse2(quote! {
         for_all(field in fields with(state))
             (let Field { ty, .. } = field)
     })
     .unwrap();
-    expect![[r#""#]].assert_debug_eq(&ast);
+    expect![[r#"
+        ForAll {
+            identifier: Ident(
+                field,
+            ),
+            collection: Expr::Path {
+                attrs: [],
+                qself: None,
+                path: Path {
+                    leading_colon: None,
+                    segments: [
+                        PathSegment {
+                            ident: Ident(
+                                fields,
+                            ),
+                            arguments: PathArguments::None,
+                        },
+                    ],
+                },
+            },
+            state: [
+                Ident(
+                    state,
+                ),
+            ],
+            body: Premises {
+                premises: [
+                    Premise {
+                        kind: Let(
+                            Let {
+                                binding: Pattern {
+                                    pattern: Pat::Struct {
+                                        attrs: [],
+                                        qself: None,
+                                        path: Path {
+                                            leading_colon: None,
+                                            segments: [
+                                                PathSegment {
+                                                    ident: Ident(
+                                                        Field,
+                                                    ),
+                                                    arguments: PathArguments::None,
+                                                },
+                                            ],
+                                        },
+                                        brace_token: Brace,
+                                        fields: [
+                                            FieldPat {
+                                                attrs: [],
+                                                member: Member::Named(
+                                                    Ident(
+                                                        ty,
+                                                    ),
+                                                ),
+                                                colon_token: None,
+                                                pat: Pat::Ident {
+                                                    attrs: [],
+                                                    by_ref: None,
+                                                    mutability: None,
+                                                    ident: Ident(
+                                                        ty,
+                                                    ),
+                                                    subpat: None,
+                                                },
+                                            },
+                                            Comma,
+                                        ],
+                                        rest: Some(
+                                            PatRest {
+                                                attrs: [],
+                                                dot2_token: DotDot,
+                                            },
+                                        ),
+                                    },
+                                },
+                                expression: Expr::Path {
+                                    attrs: [],
+                                    qself: None,
+                                    path: Path {
+                                        leading_colon: None,
+                                        segments: [
+                                            PathSegment {
+                                                ident: Ident(
+                                                    field,
+                                                ),
+                                                arguments: PathArguments::None,
+                                            },
+                                        ],
+                                    },
+                                },
+                            },
+                        ),
+                        paren: Paren,
+                        commit_point: None,
+                    },
+                ],
+            },
+        }
+    "#]].assert_debug_eq(&ast);
 }
 
 #[test]
