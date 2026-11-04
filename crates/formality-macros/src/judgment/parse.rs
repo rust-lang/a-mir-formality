@@ -1,4 +1,5 @@
 use proc_macro2::TokenStream;
+use syn::parse::discouraged::Speculative;
 use syn::parse::{Parse, ParseStream, Result};
 use syn::punctuated::Punctuated;
 use syn::token::Paren;
@@ -9,9 +10,9 @@ use syn::{
 use std::collections::VecDeque;
 
 use crate::judgment::ast::{
-    Argument, Assert, Asserts, Ast, Binding, Conclusion, Debug, Fail, ForAll, If, IfLet,
-    Implication, In, Judgment, JudgmentBody, Let, LetForAll, Premise, PremiseKind, Premises, Rule,
-    Rules, Scope, Signature, Trivial, Trivials,
+    Argument, Assert, Asserts, Ast, Binding, ComprehensionBody, Conclusion, Debug, Fail, ForAll,
+    If, IfLet, Implication, In, Judgment, JudgmentBody, Let, LetForAll, Premise, PremiseKind,
+    Premises, Rule, Rules, Scope, Signature, Trivial, Trivials,
 };
 use crate::judgment::keyword;
 
@@ -223,7 +224,13 @@ impl Parse for Premise {
         } else if inner.peek(Token![if]) {
             PremiseKind::If(inner.parse()?)
         } else if inner.peek(Token![let]) {
-            parse_let(&mut &inner)?
+            let fork = inner.fork();
+            if let Ok(let_) = fork.parse::<Let>() {
+                inner.advance_to(&fork);
+                PremiseKind::Let(let_)
+            } else {
+                PremiseKind::LetForAll(inner.parse()?)
+            }
         } else if inner.peek(keyword::for_all) {
             PremiseKind::ForAll(inner.parse()?)
         } else if inner.peek(keyword::fail) {
@@ -336,6 +343,57 @@ impl Parse for Implication {
     }
 }
 
+impl Parse for Let {
+    fn parse(input: ParseStream) -> Result<Self> {
+        input.parse::<Token![let]>()?;
+        let binding: Binding = input.parse()?;
+        input.parse::<Token![=]>()?;
+        let expression: Expr = input.parse()?;
+
+        Ok(Let {
+            binding,
+            expression,
+        })
+    }
+}
+
+impl Parse for LetForAll {
+    fn parse(input: ParseStream) -> Result<Self> {
+        input.parse::<Token![let]>()?;
+        let binding: Binding = input.parse()?;
+        input.parse::<Token![=]>()?;
+
+        input.parse::<keyword::for_all>()?;
+
+        let loop_var: Ident = input.parse()?;
+        input.parse::<Token![in]>()?;
+        let expression: Expr = input.parse()?;
+        input.parse::<Token![=]>()?;
+        input.parse::<Token![>]>()?;
+
+        let body = input.parse()?;
+
+        Ok(LetForAll {
+            binding,
+            loop_var,
+            expression,
+            body,
+        })
+    }
+}
+
+impl Parse for ComprehensionBody {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let premises = input.parse()?;
+        let conclusion = input.parse()?;
+
+        Ok(ComprehensionBody {
+            premises,
+            conclusion,
+        })
+    }
+}
+
 impl Parse for In {
     fn parse(input: ParseStream) -> Result<Self> {
         let pattern = Pat::parse_multi_with_leading_vert(input)?;
@@ -423,37 +481,4 @@ impl Parse for Binding {
             }
         })
     }
-}
-
-fn parse_let(input: &mut ParseStream) -> Result<PremiseKind> {
-    input.parse::<Token![let]>()?;
-    let binding: Binding = input.parse()?;
-    input.parse::<Token![=]>()?;
-
-    Ok(if input.peek(keyword::for_all) {
-        PremiseKind::LetForAll(parse_let_forall_postfix(binding, input)?)
-    } else {
-        let expression: Expr = input.parse()?;
-        PremiseKind::Let(Let {
-            binding,
-            expression,
-        })
-    })
-}
-
-fn parse_let_forall_postfix(binding: Binding, input: &mut ParseStream) -> Result<LetForAll> {
-    input.parse::<keyword::for_all>()?;
-    let loop_var: Ident = input.parse()?;
-    input.parse::<Token![in]>()?;
-    let expression: Expr = input.parse()?;
-    input.parse::<Token![=]>()?;
-    input.parse::<Token![>]>()?;
-    let body: Premises = input.parse()?;
-
-    Ok(LetForAll {
-        binding,
-        loop_var,
-        expression,
-        body,
-    })
 }

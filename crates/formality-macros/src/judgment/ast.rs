@@ -148,12 +148,20 @@ pub struct Let {
     pub expression: Expr,
 }
 
+/// LetForAll ::= "let" Binding = "for_all" Ident "in" Expression "=>" ComprehensionBody
 #[derive(Debug, Clone)]
 pub struct LetForAll {
     pub binding: Binding,
     pub loop_var: Ident,
     pub expression: Expr,
-    pub body: Premises,
+    pub body: ComprehensionBody,
+}
+
+/// ComprehensionBody ::= Premises Expr
+#[derive(Debug, Clone)]
+pub struct ComprehensionBody {
+    pub premises: Premises,
+    pub conclusion: Expr,
 }
 
 #[derive(Debug, Clone)]
