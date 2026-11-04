@@ -964,7 +964,8 @@ fn parse_for_all_with_state() {
                 ],
             },
         }
-    "#]].assert_debug_eq(&ast);
+    "#]]
+    .assert_debug_eq(&ast);
 }
 
 #[test]

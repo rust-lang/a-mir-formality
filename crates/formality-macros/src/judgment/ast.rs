@@ -107,7 +107,6 @@ pub enum PremiseKind {
     Let(Let),
     Comprehension(Comprehesion),
     In(In),
-    // TODO: Define Pub Structure
     Scope(Scope),
 }
 

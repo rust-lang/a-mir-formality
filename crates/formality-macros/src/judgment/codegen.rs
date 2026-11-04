@@ -3,8 +3,8 @@ use quote::quote;
 use syn::{Attribute, BinOp, Expr, ExprBinary, ExprUnary, Ident, Pat, UnOp};
 
 use crate::judgment::ast::{
-    Argument, Ast, Binding, ForAll, If, Implication, In, Judgment, Let, PremiseKind, Premises,
-    Rule, Signature,
+    Argument, Ast, Binding, ForAll, If, IfLet, Implication, In, Judgment, Let, PremiseKind,
+    Premises, Rule, Signature,
 };
 
 pub type Rust = TokenStream;
@@ -322,7 +322,7 @@ fn emit_premises(
         .iter()
         .rev()
         .fold(token_stream, |acc, premise| match &premise.kind {
-            PremiseKind::IfLet(_) => todo!("if let"),
+            PremiseKind::IfLet(if_let) => emit_if_let(judgment, rule, if_let, acc),
             PremiseKind::If(if_) => emit_if(judgment, rule, if_, acc),
             PremiseKind::ForAll(for_all) => emit_for_all(judgment, rule, for_all, acc),
             PremiseKind::Fail(fail) => todo!("fail"),
@@ -334,6 +334,39 @@ fn emit_premises(
             PremiseKind::In(in_) => emit_in(judgment, rule, in_, acc),
             PremiseKind::Scope(scope) => todo!("scope"),
         })
+}
+
+fn emit_if_let(
+    judgment: &Judgment,
+    rule: &Rule,
+    if_let: &IfLet,
+    token_stream: TokenStream,
+) -> TokenStream {
+    let e = &if_let.expression;
+    let p = &if_let.pattern;
+
+    let record_failure = emit_record_failure(&rule.name);
+
+    quote! {
+        match ::formality_core::judgment::try_catch(|| Ok(#e)) {
+            Ok(value) => {
+                if let #p = &value {
+                    #token_stream
+                } else {
+                    let cause = ::formality_core::judgment::RuleFailureCause::IfLetDidNotMatch {
+                        pattern: stringify!(#p).to_string(),
+                        value: format!("{:?}", value),
+                    };
+                    #record_failure
+                }
+            }
+
+            Err(e) => {
+                let cause = e;
+                #record_failure
+            }
+        }
+    }
 }
 
 fn emit_if(judgment: &Judgment, rule: &Rule, if_: &If, token_stream: TokenStream) -> TokenStream {
