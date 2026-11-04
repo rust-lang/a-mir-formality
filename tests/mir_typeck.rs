@@ -2264,3 +2264,75 @@ fn test_div_boolean_operands() {
           condition evaluated to false: `scalar.is_int()`
             scalar = bool"#]])
 }
+
+#[test]
+fn test_comparison_lt_mismatched_int_types() {
+    FormalityTest::new(crates![crate Foo {
+        fn foo() -> () { let x: bool = 1_i32 < 2_u32; }
+    }])
+    .err(expect_test::expect![[r#"
+        crates/formality-rust/src/prove/prove_normalize.rs:22:1: no applicable rules for prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+
+        crates/formality-rust/src/prove/prove_normalize.rs:22:1: no applicable rules for prove_normalize { p: i32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }"#]]);
+}
+
+#[test]
+fn test_comparison_gt_mismatched_int_types() {
+    FormalityTest::new(crates![crate Foo {
+        fn foo() -> () { let x: bool = 2_i32 > 1_i64; }
+    }])
+    .err(expect_test::expect![[r#"
+        crates/formality-rust/src/prove/prove_normalize.rs:22:1: no applicable rules for prove_normalize { p: i64, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+
+        crates/formality-rust/src/prove/prove_normalize.rs:22:1: no applicable rules for prove_normalize { p: i32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }"#]]);
+}
+
+#[test]
+fn test_comparison_result_is_not_an_integer() {
+    FormalityTest::new(crates![crate Foo {
+        fn foo() -> () { let x: i32 = 1_i32 < 2_i32; }
+    }])
+    .err(expect_test::expect![[r#"
+        crates/formality-rust/src/prove/prove_normalize.rs:22:1: no applicable rules for prove_normalize { p: bool, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+
+        crates/formality-rust/src/prove/prove_normalize.rs:22:1: no applicable rules for prove_normalize { p: i32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }"#]]);
+}
+
+#[test]
+fn test_comparison_boolean_and_integer() {
+    FormalityTest::new(crates![crate Foo {
+        fn foo() -> () { let x: bool = false < 1_i32; }
+    }])
+    .err(expect_test::expect![[r#"
+        crates/formality-rust/src/prove/prove_normalize.rs:22:1: no applicable rules for prove_normalize { p: i32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+
+        crates/formality-rust/src/prove/prove_normalize.rs:22:1: no applicable rules for prove_normalize { p: bool, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }"#]]);
+}
+
+#[test]
+fn test_comparison_integer_and_boolean() {
+    FormalityTest::new(crates![crate Foo {
+        fn foo() -> () { let x: bool = 1_i32 > true; }
+    }])
+    .err(expect_test::expect![[r#"
+        crates/formality-rust/src/prove/prove_normalize.rs:22:1: no applicable rules for prove_normalize { p: bool, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+
+        crates/formality-rust/src/prove/prove_normalize.rs:22:1: no applicable rules for prove_normalize { p: i32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }"#]]);
+}
+
+#[test]
+fn test_comparisons_through_references() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            let x: i32 = 4_i32;
+            exists<'a> {
+                let r: &'a i32 = &'a x;
+                let less: bool = *r < 5_i32;
+                let greater: bool = *r > 3_i32;
+            }
+        }
+    }])
+    .rustc_ok()
+    .skip_execute()
+    .borrowck_ok();
+}
