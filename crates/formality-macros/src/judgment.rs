@@ -23,4 +23,5 @@ mod keyword {
     syn::custom_keyword!(for_all);
     syn::custom_keyword!(fail);
     syn::custom_keyword!(scope);
+    syn::custom_keyword!(with);
 }

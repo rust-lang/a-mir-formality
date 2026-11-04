@@ -163,7 +163,12 @@ pub struct In {
 }
 
 #[derive(Debug, Clone)]
-pub struct Scope;
+pub struct Scope {
+    pub expression: Expr,
+    pub pattern: Pat,
+    pub state: Vec<Ident>,
+    pub body: Premises,
+}
 
 #[derive(Debug, Clone)]
 pub enum Binding {

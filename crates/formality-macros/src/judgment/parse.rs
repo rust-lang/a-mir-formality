@@ -252,7 +252,16 @@ impl Parse for Premise {
 
 impl Parse for IfLet {
     fn parse(input: ParseStream) -> Result<Self> {
-        todo!("parse if let")
+        input.parse::<Token![if]>()?;
+        input.parse::<Token![let]>()?;
+        let pattern = Pat::parse_multi_with_leading_vert(input)?;
+        input.parse::<Token![=]>()?;
+        let expression: Expr = input.parse()?;
+
+        Ok(IfLet {
+            pattern,
+            expression,
+        })
     }
 }
 
@@ -342,7 +351,31 @@ impl Parse for In {
 
 impl Parse for Scope {
     fn parse(input: ParseStream) -> Result<Self> {
-        todo!()
+        input.parse::<keyword::scope>()?;
+
+        let scope;
+        parenthesized!(scope in input);
+        let expression: Expr = scope.parse()?;
+        scope.parse::<Token![=]>()?;
+        scope.parse::<Token![>]>()?;
+        let pattern = Pat::parse_multi_with_leading_vert(&scope)?;
+
+        input.parse::<keyword::with>()?;
+
+        let inner;
+        parenthesized!(inner in input);
+        let state: Punctuated<Ident, Token![,]> =
+            inner.parse_terminated(Ident::parse, Token![,])?;
+        let state = state.into_iter().collect();
+
+        let body: Premises = input.parse()?;
+
+        Ok(Scope {
+            expression,
+            pattern,
+            state,
+            body,
+        })
     }
 }
 
