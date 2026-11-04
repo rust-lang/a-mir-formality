@@ -330,7 +330,7 @@ fn emit_premises(
                 emit_implication(judgment, rule, implication, acc)
             }
             PremiseKind::Let(let_) => emit_let(judgment, rule, let_, acc),
-            PremiseKind::LetForAll(let_for_all) => todo!("let for all"),
+            PremiseKind::Comprehension(let_for_all) => todo!("let for all"),
             PremiseKind::In(in_) => emit_in(judgment, rule, in_, acc),
             PremiseKind::Scope(scope) => todo!("scope"),
         })

@@ -934,12 +934,12 @@ fn parse_if_let() {
 
 #[test]
 fn parse_let_for_all_single_expression() {
-    let ast: ast::LetForAll = syn::parse2(quote! {
+    let ast: ast::Comprehesion = syn::parse2(quote! {
         let expected_names: Set<FieldName> = for_all field in fields => field.name
     })
     .unwrap();
     expect![[r#"
-        LetForAll {
+        Comprehesion {
             binding: Identifier {
                 identifier: Ident(
                     expected_names,
@@ -1037,14 +1037,14 @@ fn parse_let_for_all_single_expression() {
 
 #[test]
 fn parse_let_for_all_with_premises() {
-    let ast: ast::LetForAll = syn::parse2(quote! {
+    let ast: ast::Comprehesion = syn::parse2(quote! {
         let expected_names: Set<u32> = for_all field in fields =>
             (expected_field_name(field) => (a, _))
             a
     })
     .unwrap();
     expect![[r#"
-        LetForAll {
+        Comprehesion {
             binding: Identifier {
                 identifier: Ident(
                     expected_names,
@@ -1198,7 +1198,7 @@ fn parse_let_for_all_with_premises() {
 
 #[test]
 fn parse_let_for_all_with_premises2() {
-    let ast: ast::LetForAll = syn::parse2(quote! {
+    let ast: ast::Comprehesion = syn::parse2(quote! {
         let expected_names: Set<u32> = for_all field in fields =>
             (expected_field_name(field) => (a, _))
             (if a == "blub")
@@ -1206,7 +1206,7 @@ fn parse_let_for_all_with_premises2() {
     })
     .unwrap();
     expect![[r#"
-        LetForAll {
+        Comprehesion {
             binding: Identifier {
                 identifier: Ident(
                     expected_names,
@@ -1389,12 +1389,13 @@ fn parse_let_for_all_with_premises2() {
                 },
             },
         }
-    "#]].assert_debug_eq(&ast);
+    "#]]
+    .assert_debug_eq(&ast);
 }
 
 #[test]
 fn parse_fail_let_for_all1() {
-    let err = syn::parse2::<ast::LetForAll>(quote! {
+    let err = syn::parse2::<ast::Comprehesion>(quote! {
         let result: Vec<u32> = for_all value in values =>
             (double(value)) * 3
     })
@@ -1409,7 +1410,7 @@ fn parse_fail_let_for_all1() {
 
 #[test]
 fn parse_fail_let_for_all2() {
-    let err = syn::parse2::<ast::LetForAll>(quote! {
+    let err = syn::parse2::<ast::Comprehesion>(quote! {
         let result: Vec<u32> = for_all value in values =>
             (if *value > 0)
     })

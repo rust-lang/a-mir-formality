@@ -105,7 +105,7 @@ pub enum PremiseKind {
     Fail(Fail),
     Implication(Implication),
     Let(Let),
-    LetForAll(LetForAll),
+    Comprehension(Comprehesion),
     In(In),
     // TODO: Define Pub Structure
     Scope(Scope),
@@ -148,9 +148,9 @@ pub struct Let {
     pub expression: Expr,
 }
 
-/// LetForAll ::= "let" Binding = "for_all" Ident "in" Expression "=>" ComprehensionBody
+/// Comprehension ::= "let" Binding = "for_all" Ident "in" Expression "=>" ComprehensionBody
 #[derive(Debug, Clone)]
-pub struct LetForAll {
+pub struct Comprehesion {
     pub binding: Binding,
     pub loop_var: Ident,
     pub expression: Expr,

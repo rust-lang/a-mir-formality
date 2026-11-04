@@ -10,8 +10,8 @@ use syn::{
 use std::collections::VecDeque;
 
 use crate::judgment::ast::{
-    Argument, Assert, Asserts, Ast, Binding, ComprehensionBody, Conclusion, Debug, Fail, ForAll,
-    If, IfLet, Implication, In, Judgment, JudgmentBody, Let, LetForAll, Premise, PremiseKind,
+    Argument, Assert, Asserts, Ast, Binding, ComprehensionBody, Comprehesion, Conclusion, Debug,
+    Fail, ForAll, If, IfLet, Implication, In, Judgment, JudgmentBody, Let, Premise, PremiseKind,
     Premises, Rule, Rules, Scope, Signature, Trivial, Trivials,
 };
 use crate::judgment::keyword;
@@ -229,7 +229,7 @@ impl Parse for Premise {
                 inner.advance_to(&fork);
                 PremiseKind::Let(let_)
             } else {
-                PremiseKind::LetForAll(inner.parse()?)
+                PremiseKind::Comprehension(inner.parse()?)
             }
         } else if inner.peek(keyword::for_all) {
             PremiseKind::ForAll(inner.parse()?)
@@ -357,7 +357,7 @@ impl Parse for Let {
     }
 }
 
-impl Parse for LetForAll {
+impl Parse for Comprehesion {
     fn parse(input: ParseStream) -> Result<Self> {
         input.parse::<Token![let]>()?;
         let binding: Binding = input.parse()?;
@@ -373,7 +373,7 @@ impl Parse for LetForAll {
 
         let body = input.parse()?;
 
-        Ok(LetForAll {
+        Ok(Comprehesion {
             binding,
             loop_var,
             expression,
