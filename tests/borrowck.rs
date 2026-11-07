@@ -2657,6 +2657,178 @@ fn drop_on_break_while_borrowed() {
               pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `v1`"#]])
 }
 
+/// Returning a reference to a local is an error.
+#[test]
+fn return_reference_to_local() {
+    FormalityTest::new(crates![crate Foo {
+        fn dangling<'a>() -> &'a u32 {
+            let x: u32 = 22_u32;
+            exists<'r0> {
+                return &'r0 x;
+            }
+        }
+    }])
+    .rustc_err(expect_test::expect![[r#"
+        error[E0515]: cannot return reference to local variable `x`
+         --> lib.rs
+          |
+        4 |         return &x;
+          |                ^^ returns a reference to data owned by the current function
+
+        For more information about this error, try `rustc --explain E0515`.
+        error: could not compile `Foo` (lib) due to 1 previous error
+    "#]])
+    .borrowck_err(
+        BorrowCheckFailure::All,
+        expect_test::expect![[r#"
+        the rule "borrow of disjoint places" at (nll.rs) failed because
+          condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
+            &loan.place = x : u32
+            &access.place = x : u32
+
+        the rule "loan_not_required_by_universal_regions" at (nll.rs) failed because
+          condition evaluated to false: `outlived_by_loan.iter().all(|p| match p
+          {
+              Parameter::Ty(_) => false, Parameter::Lt(lt) => match lt.as_ref()
+              {
+                  Lt::Static => false, Lt::Variable(Variable::UniversalVar(_)) => false,
+                  Lt::Variable(Variable::ExistentialVar(_)) => true,
+                  Lt::Variable(Variable::BoundVar(_)) =>
+                  panic!("cannot outlive a bound var"), Lt::Erased => true,
+              }, Parameter::Const(_) => panic!("cannot outlive a constant"),
+          })`
+
+        the rule "write-indirect" at (nll.rs) failed because
+          pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `x`"#]],
+    );
+}
+
+/// Returning a reference to a by-value parameter is an error.
+#[test]
+fn return_reference_to_parameter() {
+    FormalityTest::new(crates![crate Foo {
+        fn dangling<'a>(x: u32) -> &'a u32 {
+            exists<'r0> {
+                return &'r0 x;
+            }
+        }
+    }])
+    .rustc_err(expect_test::expect![[r#"
+        error[E0515]: cannot return reference to function parameter `x`
+         --> lib.rs
+          |
+        3 |         return &x;
+          |                ^^ returns a reference to data owned by the current function
+
+        For more information about this error, try `rustc --explain E0515`.
+        error: could not compile `Foo` (lib) due to 1 previous error
+    "#]])
+    .borrowck_err(
+        BorrowCheckFailure::All,
+        expect_test::expect![[r#"
+        the rule "borrow of disjoint places" at (nll.rs) failed because
+          condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
+            &loan.place = x : u32
+            &access.place = x : u32
+
+        the rule "loan_not_required_by_universal_regions" at (nll.rs) failed because
+          condition evaluated to false: `outlived_by_loan.iter().all(|p| match p
+          {
+              Parameter::Ty(_) => false, Parameter::Lt(lt) => match lt.as_ref()
+              {
+                  Lt::Static => false, Lt::Variable(Variable::UniversalVar(_)) => false,
+                  Lt::Variable(Variable::ExistentialVar(_)) => true,
+                  Lt::Variable(Variable::BoundVar(_)) =>
+                  panic!("cannot outlive a bound var"), Lt::Erased => true,
+              }, Parameter::Const(_) => panic!("cannot outlive a constant"),
+          })`
+
+        the rule "write-indirect" at (nll.rs) failed because
+          pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `x`"#]],
+    );
+}
+
+/// Parameters are dropped when the body ends, so they can't be borrowed for `'static`.
+#[test]
+fn parameter_borrowed_for_static() {
+    FormalityTest::new(crates![crate Foo {
+        fn stash(r: &'static u32) -> () { trusted }
+
+        fn store(x: u32) -> () {
+            exists<'r0> {
+                stash(&'r0 x);
+            }
+        }
+    }])
+    .rustc_err(expect_test::expect![[r#"
+        error[E0597]: `x` does not live long enough
+         --> lib.rs
+          |
+        5 | pub fn store(mut x: u32) -> () {
+          |              ----- binding `x` declared here
+        6 |     {
+        7 |         stash(&x);
+          |         ------^^-
+          |         |     |
+          |         |     borrowed value does not live long enough
+          |         argument requires that `x` is borrowed for `'static`
+        8 |     }
+        9 | }
+          |  - `x` dropped here while still borrowed
+
+        For more information about this error, try `rustc --explain E0597`.
+        error: could not compile `Foo` (lib) due to 1 previous error
+    "#]])
+    .borrowck_err(
+        BorrowCheckFailure::All,
+        expect_test::expect![[r#"
+        the rule "borrow of disjoint places" at (nll.rs) failed because
+          condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
+            &loan.place = x : u32
+            &access.place = x : u32
+
+        the rule "loan_not_required_by_universal_regions" at (nll.rs) failed because
+          condition evaluated to false: `outlived_by_loan.iter().all(|p| match p
+          {
+              Parameter::Ty(_) => false, Parameter::Lt(lt) => match lt.as_ref()
+              {
+                  Lt::Static => false, Lt::Variable(Variable::UniversalVar(_)) => false,
+                  Lt::Variable(Variable::ExistentialVar(_)) => true,
+                  Lt::Variable(Variable::BoundVar(_)) =>
+                  panic!("cannot outlive a bound var"), Lt::Erased => true,
+              }, Parameter::Const(_) => panic!("cannot outlive a constant"),
+          })`
+
+        the rule "write-indirect" at (nll.rs) failed because
+          pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `x`"#]],
+    );
+}
+
+/// Returning a reborrow of a reference parameter is fine.
+#[test]
+fn return_reborrow_of_parameter() {
+    FormalityTest::new(crates![crate Foo {
+        fn first<'a>(p: &'a u32) -> &'a u32 {
+            exists<'r0> {
+                let q: &'r0 u32 = &'r0 *p;
+                return q;
+            }
+        }
+
+        fn main() -> () {
+            let x: u32 = 22_u32;
+            exists<'r0, 'r1> {
+                let r: &'r0 u32 = &'r0 x;
+                let s: &'r1 u32 = first::<'r1>(r);
+                println!(*s);
+            }
+        }
+    }])
+    .rustc_ok()
+    .expect_output("22\n")
+    .borrowck_ok();
+}
+
 /// A variant of Problem Case #3 which actually passes NLL
 /// it doesn't exercise the interesting path.
 ///
