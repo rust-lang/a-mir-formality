@@ -1,4 +1,7 @@
+mod constrained_parameters;
+
 use anyhow::bail;
+use constrained_parameters::check_impl_parameters;
 use formality_core::Set;
 
 use crate::grammar::{
@@ -20,9 +23,10 @@ judgment_fn! {
         debug(program, trait_impl, crate_id)
         (
             (let TraitImpl { binder, safety: _ } = &trait_impl)
-            (scope(enter_universally(Env::default(), binder) => (env, TraitImplBoundData { trait_id, self_ty, trait_parameters, where_clauses, impl_items })) with()
+            (scope(enter_universally(Env::default(), &with_variables(binder)) => (env, (parameters, TraitImplBoundData { trait_id, self_ty, trait_parameters, where_clauses, impl_items }))) with()
                 (check_trait_manually_implementable(trait_id) => ())
                 (let trait_ref = trait_id.with(self_ty, trait_parameters))
+                (check_impl_parameters(parameters, trait_ref, where_clauses, impl_items) => ())
 
                 (super::where_clauses::prove_where_clauses_well_formed(program, env, where_clauses, where_clauses) => ())
                 (super::prove_goal(program, env, where_clauses, AtomicPredicate::is_implemented(trait_ref)) => ())
@@ -58,9 +62,10 @@ judgment_fn! {
         )
 
         (
-            (scope(enter_universally(Env::default(), binder) => (env, NegTraitImplBoundData { trait_id, self_ty, trait_parameters, where_clauses })) with()
+            (scope(enter_universally(Env::default(), &with_variables(binder)) => (env, (parameters, NegTraitImplBoundData { trait_id, self_ty, trait_parameters, where_clauses }))) with()
                 (check_trait_manually_implementable(trait_id) => ())
                 (let trait_ref = trait_id.with(self_ty, trait_parameters))
+                (check_impl_parameters(parameters, trait_ref, where_clauses, Vec::<ImplItem>::new()) => ())
                 (super::where_clauses::prove_where_clauses_well_formed(program, env, where_clauses, where_clauses) => ())
                 (super::prove_goal(program, env, where_clauses, AtomicPredicate::not_implemented(&trait_ref)) => ())
 
