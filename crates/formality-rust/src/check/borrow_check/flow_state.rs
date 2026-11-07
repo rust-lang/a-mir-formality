@@ -500,6 +500,15 @@ impl FlowState {
         dropped
     }
 
+    /// Returns the locals that would be dropped when the function returns.
+    pub fn locals_dropped_on_return(&self) -> Vec<TypedPlaceExpr> {
+        self.scopes
+            .iter()
+            .rev()
+            .flat_map(|scope| scope.drop_places.iter().rev().cloned())
+            .collect()
+    }
+
     /// Returns the locals that would be dropped when the innermost scope exits,
     /// in reverse declaration order (LIFO).
     pub fn locals_dropped_in_innermost_scope(&self) -> Vec<TypedPlaceExpr> {
