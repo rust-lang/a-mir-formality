@@ -5,8 +5,8 @@ a trait bound holds, without the soundness hole of trait specialization.
 
 ## The problem
 
-rustc selects impls at codegen, after erasing lifetimes, so an impl that
-applies only for some lifetimes is selected for types it does not apply to:
+Selecting impls after lifetime erasure can select an impl for types it does
+not apply to:
 
 ```rust
 trait Static {}
@@ -18,13 +18,14 @@ fn spec<'a>(x: &'a u32) {
 }
 ```
 
-Any design that *re-derives* the decision after erasure has this problem.
+Re-deriving the answer after erasure is therefore insufficient on its own.
 
 ## The design
 
 Decide during type checking, where region information is available; let
 codegen re-evaluate the bound on erased types only where type checking has
-settled the answer.
+settled the answer. The [lifetime modes](#lifetimes-the-modes) below vary
+when decisions are required and how they use region information.
 
 | Syntax | Meaning |
 |---|---|
@@ -34,10 +35,10 @@ settled the answer.
 `WC` is a trait bound; a higher-ranked one is written like any where-clause,
 `for<'a> may_spec(T: Trait<'a>)`.
 
-Every `if impls WC`, and every call to a function declaring `may_spec(WC)`,
-proves the obligation `may_spec(WC)`: "`WC` is decided". Nothing is passed
-to codegen; these obligations are what make codegen's re-evaluation agree
-(see "Deciding at codegen").
+Every call to a function declaring `may_spec(WC)` proves that obligation:
+"`WC` is decided". Every `if impls WC` does too, except in bail-on-regions
+mode. Nothing is passed to codegen; these obligations are what make
+codegen's re-evaluation agree (see "Deciding at codegen").
 
 ## Deciding a bound
 
@@ -78,8 +79,8 @@ else-branch included.
 
 {judgment}`decide_by_bound`
 
-Only the bound it names, up to unification of the parameters (`prove_via`,
-as for any where-clause in scope; the mode gates the constraints):
+Only the bound it names, up to unification of the parameters. The mode
+determines whether that unification may leave region constraints:
 
 | In scope | Goal | Decided? |
 |---|---|---|
@@ -140,7 +141,7 @@ A bound can be decided in more than one way: `&'x u32: Static` by a
 `may_spec(&'a u32: Static)` in scope, with `'x == 'a`, and by the impl for
 `&'static u32`, with `'x: 'static`. The type checker takes the answer whose
 region constraints are the weakest: those that each of the others entails,
-given what is already known (`TypeckEnv::prove_judgment`).
+given what is already known.
 
 * An answer that leaves no region constraint is always the weakest,
   wherever it comes from. This keeps commit-and-verify a superset of
@@ -154,10 +155,10 @@ given what is already known (`TypeckEnv::prove_judgment`).
 
 ## Deciding at codegen
 
-Codegen erases every lifetime (of the generic arguments, in `MonoKey`; of
-the bound, in `decide_at_codegen`) and proves the bound on the concrete
-types, a region constraint on an erased lifetime counting as satisfied.
-Sound because of the obligations type checking proved:
+Codegen erases lifetimes in both generic arguments and trait bounds.
+Except in bail-on-regions mode, it then proves the bound on the concrete
+types, treating constraints on erased lifetimes as satisfied. The
+obligations proved during type checking make this sound:
 
 | Decided at type checking as | After erasure |
 |---|---|
@@ -166,24 +167,24 @@ Sound because of the obligations type checking proved:
 | lifetime-dependent | never "no": a caller that cannot show the constraint is rejected |
 | by bound | decided by a caller further up, for the same types |
 
-So in no monomorphization type checking admits does codegen say "yes" where
-the truth is "no". The first two rows are asserted wherever `decide` gives
-those answers (`holds_after_erasure`, the evaluation codegen uses).
+Thus codegen never selects the then-branch for a bound that does not hold.
 
 ## Lifetimes: the modes
 
-`&'a u32: Static` (with `impl Static for &'static u32`) holds only under
-`'a: 'static`. The modes differ in what a decision may do with that
-constraint (`allowed_by_mode`):
+The four modes differ in when an `if impls` must be decided and whether
+its decision can impose lifetime requirements:
 
-| Mode | Feature gate | A decision may leave a region constraint? |
+| Mode | Feature gate | How `if impls` is decided |
 |---|---|---|
-| strict (default) | — | No. The bound must follow from the signature (`where 'a: 'static`). |
-| commit and verify | `spec_commit_and_verify` | Yes: registered with the borrow checker, like any goal's. |
-| always applicable | `spec_always_applicable` | No, and the bound must hold for every choice of its lifetimes (`holds_for_all_lifetimes`). Plus `always_applicable` traits, below. |
-| bail on regions | `spec_bail_on_regions` | An `if impls` needs no `may_spec`: codegen decides per monomorphization, "yes" only if the bound holds for every lifetime (`holds_for_all_lifetimes`), else the else-branch, silently. Modeled on `try_as_dyn`, whose `TypingMode::Reflection` approximates this criterion syntactically. |
+| strict (default) | — | At type checking, without leaving region constraints. Otherwise, error. |
+| commit and verify | `spec_commit_and_verify` | At type checking, allowing region constraints for borrow checking to verify. Failed verification is an error. |
+| bail on regions | `spec_bail_on_regions` | At codegen: then-branch only if the bound holds for every choice of lifetimes; else-branch otherwise. No `may_spec` obligation at the `if impls`. |
+| always applicable | `spec_always_applicable` | As strict, but a "holds" proof must also work for every choice of lifetimes. `always_applicable` traits allow decisions at codegen (see below). |
 
-`tests/may_spec.rs` runs every program under every mode; for instance:
+Bail on regions still checks explicit `may_spec` bounds at calls, using
+strict's constraint policy.
+
+Examples from `tests/may_spec.rs`, with `impl Static for Tag<'static>`:
 
 | Program | strict | commit and verify | bail on regions | always applicable |
 |---|---|---|---|---|
@@ -191,48 +192,59 @@ constraint (`allowed_by_mode`):
 | ... with `where 'a: 'static` | then | then | else-branch | error |
 | ... with `may_spec`, caller passes `'static` | then | then | else-branch | error |
 | ... with `may_spec`, caller passes a free local region | error | then (inference picks `'static`) | error | error |
+| `if impls Tag<'x>: Static`, `'x` a free local region | error | then | else-branch | error |
+| `where T: Static` in scope, `if impls T: Static` | then | then | else-branch | then |
 | `impl<'a> AnyLt for Tag<'a>`, `if impls Tag<'a>: AnyLt` | then | then | then | then |
+| `impl<'b> Tr<'b> for Tag<'b>`, `if impls Tag<'a>: Tr<'a>` | then | then | else-branch | error |
 | `if impls T: Bar`, no `may_spec` | error | error | per monomorphization | error |
+| `always_applicable trait Foo`, `if impls T: Foo` | error (the gate) | error | error | per monomorphization |
 
-### Local regions
+### Strict versus commit-and-verify
 
-Strict and commit-and-verify agree on constraints between universal
-regions (the borrow checker proves them from the same assumptions). They
-differ on regions local to the body, which region inference solves for:
+#### Local regions
+
+Signature lifetimes are universal; `exists<'x>` introduces a body-local
+inference variable. Strict rejects answers that leave a new outlives
+constraint or an equation for a body region. Commit-and-verify passes
+those constraints to borrow checking.
+
+For universal lifetimes, both modes require the same relationships to
+follow from the signature. For local lifetimes, commit-and-verify can
+infer a solution that strict rejects. With `impl Static for &'static u32`:
 
 ```rust
 fn spec<'a>(x: &'a u32) {
-    let y: &'x u32 = x;                 // 'x local, 'a: 'x
-    if impls &'x u32: Static { .. }     // needs 'x: 'static
+    exists<'x> {
+        let y: &'x u32 = x;                 // 'a: 'x
+        if impls &'x u32: Static { .. }     // needs 'x: 'static
+    }
 }
 ```
 
 | In scope | strict | commit and verify |
 |---|---|---|
-| nothing | rejected: `'x: 'static` left behind | `'x: 'static` registered; inference reduces it to `'a: 'static` on the signature; borrowck rejects |
-| `may_spec(&'a u32: Static)` | rejected: `'x == 'a` left behind | `'x == 'a` registered, discharged by `'a: 'x`; the caller's answer decides |
-| `where 'a: 'static` | rejected: `'x == 'static` left behind | `'x == 'static` registered; inference reduces it to `'a: 'static`, which the signature gives |
+| nothing | error: leaves `'x: 'static` | error: implies `'a: 'static`, which the signature does not guarantee |
+| `may_spec(&'a u32: Static)` | error: leaves `'x == 'a` | accepts: infer `'x == 'a`; use the caller's answer |
+| `where 'a: 'static` | error: leaves `'x == 'static` | accepts: infer `'x == 'static` |
 
-The type checker hands an equation of a body region variable to the borrow
-checker as two outlives constraints rather than substituting: regions are
-inference's to solve. Strict cannot be stated in rustc, where every body
-lifetime is an inference variable and even `'x == 'a` is a constraint;
-commit-and-verify is the natural mode there.
+Bail on regions accepts all three examples and takes the else-branch;
+always applicable rejects all three. Strict rejects even if other
+statements already force `'x == 'a`: its filter does not consult the
+body's accumulated constraints.
 
 ### Always applicable
 
-rustc's `min_specialization` criterion, in two forms:
+The always-applicable criterion has two forms:
 
 * At the use site: a bound is decided as holding only if it holds for
   every choice of its lifetimes: never a "yes" under region constraints.
   Neither `where 'a: 'static` nor a caller passing `'static` helps. A
   where-clause in scope that gives the bound does (`where T: Static`): its
-  callers proved it, region constraints included, as rustc exempts the
-  predicates of the base impl.
+  callers proved it, region constraints included.
   Each occurrence of a lifetime is a choice of its own, as after erasure:
   `Tag<'a>: Tr<'a>` is not decided given `impl<'b> Tr<'b> for Tag<'b>`,
-  the impl rustc's check rejects for naming a parameter twice.
-* `always_applicable trait Foo` (`#[rustc_specialization_trait]`): every
+  because that impl requires the two lifetimes to be equal.
+* `always_applicable trait Foo`: every
   impl of `Foo` must apply regardless of lifetimes, so `T: Foo` can be
   decided after erasure exactly. It needs no `may_spec`; codegen decides
   per monomorphization. An impl is checked to have:
