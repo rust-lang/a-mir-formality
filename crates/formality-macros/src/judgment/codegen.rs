@@ -94,9 +94,9 @@ fn emit_function_body(judgment: &Judgment) -> TokenStream {
 
         let mut failed_rules = ::formality_core::set![];
         let input = __JudgmentStruct(#(#input_name),*);
-        let output = ::formality_core::fixed_point::fixed_point::<
+        let output = ::formality_core::judgment::execute_judgment::<
             __JudgmentStruct,
-        ::formality_core::Map<#output, ::formality_core::judgment::ProofTree>,
+            #output,
         >(
             // Tracing span:
             |input| {
@@ -107,10 +107,10 @@ fn emit_function_body(judgment: &Judgment) -> TokenStream {
                 )
             },
 
-            // Stack:
+            // Per-judgmnet cache:
             {
                 thread_local! {
-                    static R: ::formality_core::judgment::JudgmentStack<__JudgmentStruct, #output> = Default::default()
+                    static R: ::formality_core::judgment::JudgmentCache<__JudgmentStruct, #output> = Default::default()
                 }
                 &R
             },
@@ -118,10 +118,7 @@ fn emit_function_body(judgment: &Judgment) -> TokenStream {
             // Input:
             input.clone(),
 
-            // Default value:
-            |_| Default::default(),
-
-            // Next value:
+            // Execute rules:
             |input: __JudgmentStruct| {
                 let mut output: ::formality_core::Map<#output, ::formality_core::judgment::ProofTree> = ::formality_core::Map::new();
 
