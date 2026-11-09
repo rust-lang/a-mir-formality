@@ -6,6 +6,7 @@ license = "MIT OR Apache-2.0"
 description = "Include agent skill documentation in mdBook without YAML frontmatter"
 repository = "https://github.com/rust-lang/a-mir-formality"
 readme = "README.md"
+publish = false
 
 [dependencies]
 anyhow = "1"

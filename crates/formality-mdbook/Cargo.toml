@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2024"
 license = "MIT OR Apache-2.0"
 description = "mdbook preprocessor for rendering judgment_fn! definitions and anchored code snippets"
+publish = false
 
 [[bin]]
 name = "formality-mdbook"
