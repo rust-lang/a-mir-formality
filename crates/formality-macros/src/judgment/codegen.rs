@@ -3,7 +3,7 @@ use quote::quote;
 use syn::{Attribute, BinOp, Expr, ExprBinary, ExprUnary, Ident, Pat, UnOp};
 
 use crate::judgment::ast::{
-    Argument, Ast, Binding, ForAll, If, IfLet, Implication, In, Judgment, Let, PremiseKind,
+    Argument, Ast, Binding, Fail, ForAll, If, IfLet, Implication, In, Judgment, Let, PremiseKind,
     Premises, Rule, Signature,
 };
 
@@ -222,7 +222,7 @@ fn emit_rule(judgment: &Judgment, rule: &Rule) -> TokenStream {
     let match_default = true;
 
     let collect = emit_collect(judgment, rule);
-    let premises = emit_premises(judgment, rule, &rule.premises, collect);
+    let premises = emit_premises(&rule.premises, &rule.name, collect);
 
     // TODO: Maybe move to its own function
     let rule_stream = quote! {
@@ -311,41 +311,29 @@ fn emit_match(judgment: &Judgment, rule: &Rule, rule_stream: TokenStream) -> Tok
         )
 }
 
-fn emit_premises(
-    judgment: &Judgment,
-    rule: &Rule,
-    premises: &Premises,
-    token_stream: TokenStream,
-) -> TokenStream {
+fn emit_premises(premises: &Premises, name: &str, token_stream: TokenStream) -> TokenStream {
     premises
         .premises
         .iter()
         .rev()
         .fold(token_stream, |acc, premise| match &premise.kind {
-            PremiseKind::IfLet(if_let) => emit_if_let(judgment, rule, if_let, acc),
-            PremiseKind::If(if_) => emit_if(judgment, rule, if_, acc),
-            PremiseKind::ForAll(for_all) => emit_for_all(judgment, rule, for_all, acc),
-            PremiseKind::Fail(fail) => todo!("fail"),
-            PremiseKind::Implication(implication) => {
-                emit_implication(judgment, rule, implication, acc)
-            }
-            PremiseKind::Let(let_) => emit_let(judgment, rule, let_, acc),
+            PremiseKind::IfLet(if_let) => emit_if_let(if_let, name, acc),
+            PremiseKind::If(if_) => emit_if(if_, name, acc),
+            PremiseKind::ForAll(for_all) => emit_for_all(for_all, name, acc),
+            PremiseKind::Fail(fail) => emit_fail(fail, name, acc),
+            PremiseKind::Implication(implication) => emit_implication(implication, name, acc),
+            PremiseKind::Let(let_) => emit_let(let_, name, acc),
             PremiseKind::Comprehension(let_for_all) => todo!("let for all"),
-            PremiseKind::In(in_) => emit_in(judgment, rule, in_, acc),
+            PremiseKind::In(in_) => emit_in(in_, name, acc),
             PremiseKind::Scope(scope) => todo!("scope"),
         })
 }
 
-fn emit_if_let(
-    judgment: &Judgment,
-    rule: &Rule,
-    if_let: &IfLet,
-    token_stream: TokenStream,
-) -> TokenStream {
+fn emit_if_let(if_let: &IfLet, name: &str, token_stream: TokenStream) -> TokenStream {
     let e = &if_let.expression;
     let p = &if_let.pattern;
 
-    let record_failure = emit_record_failure(&rule.name);
+    let record_failure = emit_record_failure(name);
 
     quote! {
         match ::formality_core::judgment::try_catch(|| Ok(#e)) {
@@ -369,9 +357,9 @@ fn emit_if_let(
     }
 }
 
-fn emit_if(judgment: &Judgment, rule: &Rule, if_: &If, token_stream: TokenStream) -> TokenStream {
+fn emit_if(if_: &If, name: &str, token_stream: TokenStream) -> TokenStream {
     let origcond = &if_.expression;
-    let record_failure = emit_record_failure(&rule.name);
+    let record_failure = emit_record_failure(name);
 
     let (argn, arge, cond) = if_helper(&if_.expression);
 
@@ -491,19 +479,14 @@ fn if_helper(expression: &Expr) -> (Vec<Ident>, Vec<&Expr>, TokenStream) {
     (argn, arge, cond)
 }
 
-fn emit_for_all(
-    judgment: &Judgment,
-    rule: &Rule,
-    for_all: &ForAll,
-    token_stream: TokenStream,
-) -> TokenStream {
+fn emit_for_all(for_all: &ForAll, name: &str, token_stream: TokenStream) -> TokenStream {
     let collection = &for_all.collection;
     let loop_var = &for_all.identifier;
     let with_var = &for_all.state;
 
-    let record_failure = emit_record_failure(&rule.name);
+    let record_failure = emit_record_failure(name);
     let collect = quote! { next_carried_and_proof = Some(((#(#with_var.clone(),)*), child_proof_trees.clone())); };
-    let body = emit_premises(judgment, rule, &for_all.body, collect);
+    let body = emit_premises(&for_all.body, name, collect);
 
     quote! {
         {
@@ -570,13 +553,26 @@ fn emit_for_all(
     }
 }
 
-fn emit_let(
-    judgment: &Judgment,
-    rule: &Rule,
-    let_: &Let,
-    token_stream: TokenStream,
-) -> TokenStream {
-    let record_failure = emit_record_failure(&rule.name);
+fn emit_fail(fail: &Fail, name: &str, token_stream: TokenStream) -> TokenStream {
+    let record_failure = emit_record_failure(name);
+
+    let fmt = &fail.message;
+    let arg = &fail.expressions;
+    quote! {
+        {
+            #[allow(unused_variables)]
+            let _ = &child_proof_trees;
+            let message = format!(#fmt #(, #arg)*);
+            #[allow(unused_assignments)]
+            // TODO: what should I do with this?
+            // { $match_var = true; }
+            let cause = ::formality_core::judgment::RuleFailureCause::ExplicitFailure { message };
+        }
+    }
+}
+
+fn emit_let(let_: &Let, name: &str, token_stream: TokenStream) -> TokenStream {
+    let record_failure = emit_record_failure(name);
     let expression = &let_.expression;
     let p = match &let_.binding {
         Binding::Pattern { pattern } => quote! { #pattern },
@@ -600,8 +596,8 @@ fn emit_let(
     }
 }
 
-fn emit_in(judgment: &Judgment, rule: &Rule, in_: &In, token_stream: TokenStream) -> TokenStream {
-    let record_failure = emit_record_failure(&rule.name);
+fn emit_in(in_: &In, name: &str, token_stream: TokenStream) -> TokenStream {
+    let record_failure = emit_record_failure(name);
 
     let expression = &in_.expression;
     let pattern = &in_.pattern;
@@ -634,12 +630,11 @@ fn emit_in(judgment: &Judgment, rule: &Rule, in_: &In, token_stream: TokenStream
 }
 
 fn emit_implication(
-    judgment: &Judgment,
-    rule: &Rule,
     implication: &Implication,
+    name: &str,
     token_stream: TokenStream,
 ) -> TokenStream {
-    let record_failure = emit_record_failure(&rule.name);
+    let record_failure = emit_record_failure(name);
     let i = &implication.hypothesis;
 
     quote! {
