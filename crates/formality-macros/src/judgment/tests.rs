@@ -1,9 +1,28 @@
-use crate::judgment::ast;
+use std::cell::LazyCell;
 
-use super::parse::parse;
+use crate::judgment::ast::Premises;
+use crate::judgment::{ast, codegen};
+
+use crate::judgment::parse::parse;
 
 use expect_test::expect;
 use quote::quote;
+use syn::parse::Parser;
+
+use proc_macro2::TokenStream;
+
+const DUMMY: LazyCell<TokenStream> = LazyCell::new(|| quote!({ dummy }));
+
+fn render_block(tokens: TokenStream) -> String {
+    let file: syn::File = syn::parse2(quote! {
+        fn __dummy() {
+            #tokens
+        }
+    })
+    .expect("generated code should be valid block statements");
+
+    prettyplease::unparse(&file)
+}
 
 #[test]
 fn parse_axiom() {
@@ -1831,4 +1850,487 @@ fn parse_scope_with_state() {
         }
     "#]]
     .assert_debug_eq(&ast);
+}
+
+#[test]
+fn codegen_let() {
+    let pattern = syn::Pat::parse_multi_with_leading_vert
+        .parse2(quote! {FnBoundData { input_args, output_ty, where_clauses, body }})
+        .unwrap();
+    let expression = syn::parse2(quote! {bound_data}).unwrap();
+    let let_ = ast::Let {
+        binding: ast::Binding::Pattern { pattern },
+        expression,
+    };
+    let dummy = quote!(dummy stream);
+
+    let s = render_block(codegen::emit_let(&let_, "let", DUMMY.clone()));
+    expect![[r#"
+        fn __dummy() {
+            match ::formality_core::judgment::try_catch::<_>(|| Ok(bound_data)) {
+                Ok(p) => {
+                    let proof_tree = ::formality_core::judgment::ProofTree::leaf(
+                        format!(
+                            "{} = {p:?}", stringify!(FnBoundData { input_args, output_ty,
+                            where_clauses, body })
+                        ),
+                    );
+                    let FnBoundData { input_args, output_ty, where_clauses, body } = &p;
+                    child_proof_trees.push(proof_tree);
+                    { dummy }
+                }
+                Err(e) => {
+                    let cause = e;
+                    let file = file!();
+                    let line = line!();
+                    let column = column!();
+                    if __matched {
+                        tracing::debug!(
+                            "rule {rn} failed because {cause} ({file}:{line}:{column})", rn =
+                            "let", cause = cause, file = file, line = line, column = column,
+                        );
+                        failed_rules
+                            .insert(::formality_core::judgment::FailedRule {
+                                rule_name: Some("let".to_string()),
+                                file: file.to_string(),
+                                line: line,
+                                column: column,
+                                cause,
+                            });
+                    } else {
+                        tracing::trace!(
+                            "rule {rn} failed because {cause} ({file}:{line}:{column})", rn =
+                            "let", cause = cause, file = file, line = line, column = column,
+                        );
+                    }
+                }
+            }
+        }
+    "#]]
+    .assert_eq(&s);
+}
+
+#[test]
+fn codegen_if_let() {
+    let pattern = syn::Pat::parse_multi_with_leading_vert
+        .parse2(quote! {Some(places_live_on_continue)})
+        .unwrap();
+    let expression = syn::parse2(quote! {state.live_after_continue(label)}).unwrap();
+    let if_let = ast::IfLet {
+        pattern,
+        expression,
+    };
+
+    let s = render_block(codegen::emit_if_let(&if_let, "if let", DUMMY.clone()));
+    expect![[r#"
+        fn __dummy() {
+            match ::formality_core::judgment::try_catch(|| Ok(
+                state.live_after_continue(label),
+            )) {
+                Ok(value) => {
+                    if let Some(places_live_on_continue) = &value {
+                        { dummy }
+                    } else {
+                        let cause = ::formality_core::judgment::RuleFailureCause::IfLetDidNotMatch {
+                            pattern: stringify!(Some(places_live_on_continue)).to_string(),
+                            value: format!("{:?}", value),
+                        };
+                        let file = file!();
+                        let line = line!();
+                        let column = column!();
+                        if __matched {
+                            tracing::debug!(
+                                "rule {rn} failed because {cause} ({file}:{line}:{column})", rn =
+                                "if let", cause = cause, file = file, line = line, column =
+                                column,
+                            );
+                            failed_rules
+                                .insert(::formality_core::judgment::FailedRule {
+                                    rule_name: Some("if let".to_string()),
+                                    file: file.to_string(),
+                                    line: line,
+                                    column: column,
+                                    cause,
+                                });
+                        } else {
+                            tracing::trace!(
+                                "rule {rn} failed because {cause} ({file}:{line}:{column})", rn =
+                                "if let", cause = cause, file = file, line = line, column =
+                                column,
+                            );
+                        }
+                    }
+                }
+                Err(e) => {
+                    let cause = e;
+                    let file = file!();
+                    let line = line!();
+                    let column = column!();
+                    if __matched {
+                        tracing::debug!(
+                            "rule {rn} failed because {cause} ({file}:{line}:{column})", rn =
+                            "if let", cause = cause, file = file, line = line, column = column,
+                        );
+                        failed_rules
+                            .insert(::formality_core::judgment::FailedRule {
+                                rule_name: Some("if let".to_string()),
+                                file: file.to_string(),
+                                line: line,
+                                column: column,
+                                cause,
+                            });
+                    } else {
+                        tracing::trace!(
+                            "rule {rn} failed because {cause} ({file}:{line}:{column})", rn =
+                            "if let", cause = cause, file = file, line = line, column = column,
+                        );
+                    }
+                }
+            }
+        }
+    "#]]
+    .assert_eq(&s);
+}
+
+#[test]
+fn codegen_if() {
+    let expression = syn::parse2(quote! {state.scope_has_label(label)}).unwrap();
+    let if_ = ast::If { expression };
+
+    let s = render_block(codegen::emit_if(&if_, "if", DUMMY.clone()));
+    expect![[r#"
+        fn __dummy() {
+            let arg0 = state;
+            let arg1 = label;
+            let if_then = ::formality_core::judgment::IfThen::new(
+                stringify!(state.scope_has_label(label)),
+                vec![
+                    (stringify!(state), ::formality_core::judgment::DebugString::new(arg0),),
+                    (stringify!(label), ::formality_core::judgment::DebugString::new(arg1),),
+                ],
+            );
+            if { arg0(arg1) } {
+                child_proof_trees
+                    .push(::formality_core::judgment::ProofTree::leaf(format!("{if_then:?}")));
+                { dummy }
+            } else {
+                let cause = ::formality_core::judgment::RuleFailureCause::IfFalse(if_then);
+                let file = file!();
+                let line = line!();
+                let column = column!();
+                if __matched {
+                    tracing::debug!(
+                        "rule {rn} failed because {cause} ({file}:{line}:{column})", rn = "if",
+                        cause = cause, file = file, line = line, column = column,
+                    );
+                    failed_rules
+                        .insert(::formality_core::judgment::FailedRule {
+                            rule_name: Some("if".to_string()),
+                            file: file.to_string(),
+                            line: line,
+                            column: column,
+                            cause,
+                        });
+                } else {
+                    tracing::trace!(
+                        "rule {rn} failed because {cause} ({file}:{line}:{column})", rn = "if",
+                        cause = cause, file = file, line = line, column = column,
+                    );
+                }
+            }
+        }
+    "#]]
+    .assert_eq(&s);
+}
+
+#[test]
+fn codegen_for_all() {
+    let identifier = syn::parse2(quote! {variant}).unwrap();
+    let collection = syn::parse2(quote! {variants}).unwrap();
+    let state = vec![];
+    let body = Premises {
+        premises: std::collections::VecDeque::from([ast::Premise {
+            kind: ast::PremiseKind::If(ast::If {
+                expression: syn::parse2(quote! { dummy_expression }).unwrap(),
+            }),
+            paren: syn::token::Paren::default(),
+            commit_point: None,
+        }]),
+    };
+
+    let for_all = ast::ForAll {
+        identifier,
+        collection,
+        state,
+        body,
+    };
+
+    let s = render_block(codegen::emit_for_all(&for_all, "for all", DUMMY.clone()));
+    expect![[r#"
+        fn __dummy() {
+            {
+                let collection = variants;
+                let mut errored = false;
+                let (file, line, column) = ::formality_core::respan!(
+                    variants((file!(), line!(), column!()))
+                );
+                let mut loop_carried = ();
+                let mut for_all_proof_trees = vec![];
+                for variant in collection {
+                    if errored {
+                        break;
+                    }
+                    #[allow(unused)]
+                    let () = &loop_carried.clone();
+                    let attributes = vec![("item".to_string(), format!("{:?}", variant))];
+                    let mut child_proof_trees = vec![];
+                    let mut next_carried_and_proof = None;
+                    let if_then = ::formality_core::judgment::IfThen::new(
+                        stringify!(dummy_expression),
+                        vec![],
+                    );
+                    if { dummy_expression } {
+                        child_proof_trees
+                            .push(
+                                ::formality_core::judgment::ProofTree::leaf(
+                                    format!("{if_then:?}"),
+                                ),
+                            );
+                        next_carried_and_proof = Some(((), child_proof_trees.clone()));
+                    } else {
+                        let cause = ::formality_core::judgment::RuleFailureCause::IfFalse(
+                            if_then,
+                        );
+                        let file = file!();
+                        let line = line!();
+                        let column = column!();
+                        if __matched {
+                            tracing::debug!(
+                                "rule {rn} failed because {cause} ({file}:{line}:{column})", rn =
+                                "for all", cause = cause, file = file, line = line, column =
+                                column,
+                            );
+                            failed_rules
+                                .insert(::formality_core::judgment::FailedRule {
+                                    rule_name: Some("for all".to_string()),
+                                    file: file.to_string(),
+                                    line: line,
+                                    column: column,
+                                    cause,
+                                });
+                        } else {
+                            tracing::trace!(
+                                "rule {rn} failed because {cause} ({file}:{line}:{column})", rn =
+                                "for all", cause = cause, file = file, line = line, column =
+                                column,
+                            );
+                        }
+                    }
+                    if let Some((next_carried, next_proof)) = next_carried_and_proof {
+                        for_all_proof_trees
+                            .push(
+                                ::formality_core::judgment::ProofTree::with_all(
+                                    "for_all",
+                                    attributes,
+                                    None,
+                                    &file[..],
+                                    line,
+                                    column,
+                                    next_proof,
+                                ),
+                            );
+                        loop_carried = next_carried;
+                    } else {
+                        errored = true;
+                    }
+                }
+                if !errored {
+                    #[allow(unused)]
+                    let () = &loop_carried.clone();
+                    let for_all_tree = ::formality_core::judgment::ProofTree::new(
+                        "for_all",
+                        None,
+                        for_all_proof_trees,
+                    );
+                    child_proof_trees.push(for_all_tree);
+                    { dummy }
+                }
+            }
+        }
+    "#]]
+    .assert_eq(&s);
+}
+
+#[test]
+fn codegen_fail() {
+    let expressions = vec![syn::parse2(quote! {true == false}).unwrap()];
+    let message = syn::parse2(quote! { "an error {}" }).unwrap();
+    let fail = ast::Fail {
+        message,
+        expressions,
+    };
+
+    let s = render_block(codegen::emit_fail(&fail, "fail", DUMMY.clone()));
+    expect![[r#"
+        fn __dummy() {
+            {
+                #[allow(unused_variables)]
+                let _ = &child_proof_trees;
+                let message = format!("an error {}", true == false);
+                #[allow(unused_assignments)]
+                {
+                    __matched = true;
+                }
+                let cause = ::formality_core::judgment::RuleFailureCause::ExplicitFailure {
+                    message,
+                };
+                let file = file!();
+                let line = line!();
+                let column = column!();
+                if __matched {
+                    tracing::debug!(
+                        "rule {rn} failed because {cause} ({file}:{line}:{column})", rn = "fail",
+                        cause = cause, file = file, line = line, column = column,
+                    );
+                    failed_rules
+                        .insert(::formality_core::judgment::FailedRule {
+                            rule_name: Some("fail".to_string()),
+                            file: file.to_string(),
+                            line: line,
+                            column: column,
+                            cause,
+                        });
+                } else {
+                    tracing::trace!(
+                        "rule {rn} failed because {cause} ({file}:{line}:{column})", rn = "fail",
+                        cause = cause, file = file, line = line, column = column,
+                    );
+                }
+            }
+        }
+    "#]]
+    .assert_eq(&s);
+}
+
+#[test]
+fn codegen_implication() {
+    let hypothesis = syn::parse2(quote! {check_adt_variant_names_unique(adt)}).unwrap();
+    let conclusion = syn::Pat::parse_multi_with_leading_vert
+        .parse2(quote! { () })
+        .unwrap();
+
+    let implication = ast::Implication {
+        hypothesis,
+        conclusion,
+    };
+
+    let s = render_block(codegen::emit_implication(
+        &implication,
+        "implication",
+        DUMMY.clone(),
+    ));
+    expect![[r#"
+        fn __dummy() {
+            match ::formality_core::judgment::CheckProven::check_proven(
+                check_adt_variant_names_unique(adt),
+            ) {
+                Ok(proof_tree) => {
+                    child_proof_trees.push(proof_tree);
+                    { dummy }
+                }
+                Err(e) => {
+                    let cause = e;
+                    let file = file!();
+                    let line = line!();
+                    let column = column!();
+                    if __matched {
+                        tracing::debug!(
+                            "rule {rn} failed because {cause} ({file}:{line}:{column})", rn =
+                            "implication", cause = cause, file = file, line = line, column =
+                            column,
+                        );
+                        failed_rules
+                            .insert(::formality_core::judgment::FailedRule {
+                                rule_name: Some("implication".to_string()),
+                                file: file.to_string(),
+                                line: line,
+                                column: column,
+                                cause,
+                            });
+                    } else {
+                        tracing::trace!(
+                            "rule {rn} failed because {cause} ({file}:{line}:{column})", rn =
+                            "implication", cause = cause, file = file, line = line, column =
+                            column,
+                        );
+                    }
+                }
+            }
+        }
+    "#]]
+    .assert_eq(&s);
+}
+
+#[test]
+fn codegen_in() {
+    let expression = syn::parse2(
+        quote! {a.where_clauses.iter().chain(&b.where_clauses).flat_map(|wc| wc.invert())},
+    )
+    .unwrap();
+    let pattern = syn::Pat::parse_multi_with_leading_vert
+        .parse2(quote! { wc })
+        .unwrap();
+
+    let in_ = ast::In {
+        expression,
+        pattern,
+    };
+
+    let s = render_block(codegen::emit_in(&in_, "in", DUMMY.clone()));
+    expect![[r#"
+        fn __dummy() {
+            if let Err(e) = ::formality_core::judgment::member_of(
+                a.where_clauses.iter().chain(&b.where_clauses).flat_map(|wc| wc.invert()),
+                || {
+                    stringify!(
+                        a.where_clauses.iter().chain(& b.where_clauses).flat_map(| wc | wc
+                        .invert())
+                    )
+                        .to_string()
+                },
+                |(value, proof_tree)| {
+                    let wc = &value;
+                    let len = child_proof_trees.len();
+                    child_proof_trees.push(proof_tree);
+                    { dummy }
+                    assert!(child_proof_trees.len() > len);
+                    child_proof_trees.truncate(len);
+                },
+            ) {
+                let cause = e;
+                let file = file!();
+                let line = line!();
+                let column = column!();
+                if __matched {
+                    tracing::debug!(
+                        "rule {rn} failed because {cause} ({file}:{line}:{column})", rn = "in",
+                        cause = cause, file = file, line = line, column = column,
+                    );
+                    failed_rules
+                        .insert(::formality_core::judgment::FailedRule {
+                            rule_name: Some("in".to_string()),
+                            file: file.to_string(),
+                            line: line,
+                            column: column,
+                            cause,
+                        });
+                } else {
+                    tracing::trace!(
+                        "rule {rn} failed because {cause} ({file}:{line}:{column})", rn = "in",
+                        cause = cause, file = file, line = line, column = column,
+                    );
+                }
+            }
+        }
+    "#]].assert_eq(&s);
 }

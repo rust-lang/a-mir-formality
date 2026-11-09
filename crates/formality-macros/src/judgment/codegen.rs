@@ -329,7 +329,7 @@ fn emit_premises(premises: &Premises, name: &str, token_stream: TokenStream) -> 
         })
 }
 
-fn emit_if_let(if_let: &IfLet, name: &str, token_stream: TokenStream) -> TokenStream {
+pub(crate) fn emit_if_let(if_let: &IfLet, name: &str, token_stream: TokenStream) -> TokenStream {
     let e = &if_let.expression;
     let p = &if_let.pattern;
 
@@ -357,7 +357,7 @@ fn emit_if_let(if_let: &IfLet, name: &str, token_stream: TokenStream) -> TokenSt
     }
 }
 
-fn emit_if(if_: &If, name: &str, token_stream: TokenStream) -> TokenStream {
+pub(crate) fn emit_if(if_: &If, name: &str, token_stream: TokenStream) -> TokenStream {
     let origcond = &if_.expression;
     let record_failure = emit_record_failure(name);
 
@@ -479,7 +479,7 @@ fn if_helper(expression: &Expr) -> (Vec<Ident>, Vec<&Expr>, TokenStream) {
     (argn, arge, cond)
 }
 
-fn emit_for_all(for_all: &ForAll, name: &str, token_stream: TokenStream) -> TokenStream {
+pub(crate) fn emit_for_all(for_all: &ForAll, name: &str, token_stream: TokenStream) -> TokenStream {
     let collection = &for_all.collection;
     let loop_var = &for_all.identifier;
     let with_var = &for_all.state;
@@ -553,7 +553,7 @@ fn emit_for_all(for_all: &ForAll, name: &str, token_stream: TokenStream) -> Toke
     }
 }
 
-fn emit_fail(fail: &Fail, name: &str, token_stream: TokenStream) -> TokenStream {
+pub(crate) fn emit_fail(fail: &Fail, name: &str, token_stream: TokenStream) -> TokenStream {
     let record_failure = emit_record_failure(name);
 
     let fmt = &fail.message;
@@ -564,14 +564,14 @@ fn emit_fail(fail: &Fail, name: &str, token_stream: TokenStream) -> TokenStream 
             let _ = &child_proof_trees;
             let message = format!(#fmt #(, #arg)*);
             #[allow(unused_assignments)]
-            // TODO: what should I do with this?
-            // { $match_var = true; }
+            { __matched = true; }
             let cause = ::formality_core::judgment::RuleFailureCause::ExplicitFailure { message };
+            #record_failure
         }
     }
 }
 
-fn emit_let(let_: &Let, name: &str, token_stream: TokenStream) -> TokenStream {
+pub(crate) fn emit_let(let_: &Let, name: &str, token_stream: TokenStream) -> TokenStream {
     let record_failure = emit_record_failure(name);
     let expression = &let_.expression;
     let p = match &let_.binding {
@@ -596,7 +596,7 @@ fn emit_let(let_: &Let, name: &str, token_stream: TokenStream) -> TokenStream {
     }
 }
 
-fn emit_in(in_: &In, name: &str, token_stream: TokenStream) -> TokenStream {
+pub(crate) fn emit_in(in_: &In, name: &str, token_stream: TokenStream) -> TokenStream {
     let record_failure = emit_record_failure(name);
 
     let expression = &in_.expression;
@@ -614,7 +614,7 @@ fn emit_in(in_: &In, name: &str, token_stream: TokenStream) -> TokenStream {
                 // Push this child proof tree
                 child_proof_trees.push(proof_tree);
 
-                // Recursively process successors
+                // // Recursively process successors
                 #token_stream
 
                 // Restore the original child proof tree stack; note that there may be multiple entries
@@ -629,7 +629,7 @@ fn emit_in(in_: &In, name: &str, token_stream: TokenStream) -> TokenStream {
     }
 }
 
-fn emit_implication(
+pub(crate) fn emit_implication(
     implication: &Implication,
     name: &str,
     token_stream: TokenStream,
