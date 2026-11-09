@@ -7,6 +7,7 @@ description = "Model of the Rust type system maintained by the Rust types team (
 homepage = "https://rust-lang.github.io/a-mir-formality/"
 repository = "https://github.com/rust-lang/a-mir-formality/"
 readme = "README.md"
+publish = false
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
