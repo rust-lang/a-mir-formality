@@ -225,11 +225,11 @@ impl Parse for Premise {
             PremiseKind::If(inner.parse()?)
         } else if inner.peek(Token![let]) {
             let fork = inner.fork();
-            if let Ok(let_) = fork.parse::<Let>() {
+            if let Ok(comprehension) = fork.parse::<Comprehesion>() {
                 inner.advance_to(&fork);
-                PremiseKind::Let(let_)
+                PremiseKind::Comprehension(comprehension)
             } else {
-                PremiseKind::Comprehension(inner.parse()?)
+                PremiseKind::Let(inner.parse()?)
             }
         } else if inner.peek(keyword::for_all) {
             PremiseKind::ForAll(inner.parse()?)
@@ -377,7 +377,7 @@ impl Parse for Comprehesion {
 
         let loop_var: Ident = input.parse()?;
         input.parse::<Token![in]>()?;
-        let expression: Expr = input.parse()?;
+        let collection: Expr = input.parse()?;
         input.parse::<Token![=]>()?;
         input.parse::<Token![>]>()?;
 
@@ -386,7 +386,7 @@ impl Parse for Comprehesion {
         Ok(Comprehesion {
             binding,
             loop_var,
-            expression,
+            collection,
             body,
         })
     }

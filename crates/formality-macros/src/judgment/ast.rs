@@ -1,5 +1,5 @@
 use syn::token::Paren;
-use syn::{Attribute, Expr, Ident, LitStr, Pat, Token, Type, Visibility};
+use syn::{Attribute, Expr, Ident, LitStr, Pat, Token, Type, TypeInfer, Visibility};
 
 use std::collections::VecDeque;
 
@@ -153,7 +153,7 @@ pub struct Let {
 pub struct Comprehesion {
     pub binding: Binding,
     pub loop_var: Ident,
-    pub expression: Expr,
+    pub collection: Expr,
     pub body: ComprehensionBody,
 }
 

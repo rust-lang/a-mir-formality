@@ -282,39 +282,45 @@ fn parse_trivials() {
 
 #[test]
 fn parse_if() {
-    let ast: ast::If = syn::parse2(quote! {
-        if f == "this is a function"
+    let ast: ast::Premise = syn::parse2(quote! {
+        (if f == "this is a function")
     })
     .unwrap();
     expect![[r#"
-        If {
-            expression: Expr::Binary {
-                attrs: [],
-                left: Expr::Path {
-                    attrs: [],
-                    qself: None,
-                    path: Path {
-                        leading_colon: None,
-                        segments: [
-                            PathSegment {
-                                ident: Ident(
-                                    f,
-                                ),
-                                arguments: PathArguments::None,
+        Premise {
+            kind: If(
+                If {
+                    expression: Expr::Binary {
+                        attrs: [],
+                        left: Expr::Path {
+                            attrs: [],
+                            qself: None,
+                            path: Path {
+                                leading_colon: None,
+                                segments: [
+                                    PathSegment {
+                                        ident: Ident(
+                                            f,
+                                        ),
+                                        arguments: PathArguments::None,
+                                    },
+                                ],
                             },
-                        ],
+                        },
+                        op: BinOp::Eq(
+                            EqEq,
+                        ),
+                        right: Expr::Lit {
+                            attrs: [],
+                            lit: Lit::Str {
+                                token: "this is a function",
+                            },
+                        },
                     },
                 },
-                op: BinOp::Eq(
-                    EqEq,
-                ),
-                right: Expr::Lit {
-                    attrs: [],
-                    lit: Lit::Str {
-                        token: "this is a function",
-                    },
-                },
-            },
+            ),
+            paren: Paren,
+            commit_point: None,
         }
     "#]]
     .assert_debug_eq(&ast);
@@ -322,16 +328,22 @@ fn parse_if() {
 
 #[test]
 fn parse_fail() {
-    let ast: ast::Fail = syn::parse2(quote! {
-        fail "error"
+    let ast: ast::Premise = syn::parse2(quote! {
+        (fail "error")
     })
     .unwrap();
     expect![[r#"
-        Fail {
-            message: LitStr {
-                token: "error",
-            },
-            expressions: [],
+        Premise {
+            kind: Fail(
+                Fail {
+                    message: LitStr {
+                        token: "error",
+                    },
+                    expressions: [],
+                },
+            ),
+            paren: Paren,
+            commit_point: None,
         }
     "#]]
     .assert_debug_eq(&ast);
@@ -339,32 +351,38 @@ fn parse_fail() {
 
 #[test]
 fn parse_fail_with_expr() {
-    let ast: ast::Fail = syn::parse2(quote! {
-        fail "error {}", f
+    let ast: ast::Premise = syn::parse2(quote! {
+        (fail "error {}", f)
     })
     .unwrap();
     expect![[r#"
-        Fail {
-            message: LitStr {
-                token: "error {}",
-            },
-            expressions: [
-                Expr::Path {
-                    attrs: [],
-                    qself: None,
-                    path: Path {
-                        leading_colon: None,
-                        segments: [
-                            PathSegment {
-                                ident: Ident(
-                                    f,
-                                ),
-                                arguments: PathArguments::None,
-                            },
-                        ],
+        Premise {
+            kind: Fail(
+                Fail {
+                    message: LitStr {
+                        token: "error {}",
                     },
+                    expressions: [
+                        Expr::Path {
+                            attrs: [],
+                            qself: None,
+                            path: Path {
+                                leading_colon: None,
+                                segments: [
+                                    PathSegment {
+                                        ident: Ident(
+                                            f,
+                                        ),
+                                        arguments: PathArguments::None,
+                                    },
+                                ],
+                            },
+                        },
+                    ],
                 },
-            ],
+            ),
+            paren: Paren,
+            commit_point: None,
         }
     "#]]
     .assert_debug_eq(&ast);
@@ -372,141 +390,147 @@ fn parse_fail_with_expr() {
 
 #[test]
 fn parse_implication() {
-    let ast: ast::Implication = syn::parse2(quote! {
-        check_fn(program, Env::default(), Predicates::t(), f, crate_id) => ()
+    let ast: ast::Premise = syn::parse2(quote! {
+        (check_fn(program, Env::default(), Predicates::t(), f, crate_id) => ())
     })
     .unwrap();
     expect![[r#"
-        Implication {
-            hypothesis: Expr::Call {
-                attrs: [],
-                func: Expr::Path {
-                    attrs: [],
-                    qself: None,
-                    path: Path {
-                        leading_colon: None,
-                        segments: [
-                            PathSegment {
-                                ident: Ident(
-                                    check_fn,
-                                ),
-                                arguments: PathArguments::None,
+        Premise {
+            kind: Implication(
+                Implication {
+                    hypothesis: Expr::Call {
+                        attrs: [],
+                        func: Expr::Path {
+                            attrs: [],
+                            qself: None,
+                            path: Path {
+                                leading_colon: None,
+                                segments: [
+                                    PathSegment {
+                                        ident: Ident(
+                                            check_fn,
+                                        ),
+                                        arguments: PathArguments::None,
+                                    },
+                                ],
+                            },
+                        },
+                        paren_token: Paren,
+                        args: [
+                            Expr::Path {
+                                attrs: [],
+                                qself: None,
+                                path: Path {
+                                    leading_colon: None,
+                                    segments: [
+                                        PathSegment {
+                                            ident: Ident(
+                                                program,
+                                            ),
+                                            arguments: PathArguments::None,
+                                        },
+                                    ],
+                                },
+                            },
+                            Comma,
+                            Expr::Call {
+                                attrs: [],
+                                func: Expr::Path {
+                                    attrs: [],
+                                    qself: None,
+                                    path: Path {
+                                        leading_colon: None,
+                                        segments: [
+                                            PathSegment {
+                                                ident: Ident(
+                                                    Env,
+                                                ),
+                                                arguments: PathArguments::None,
+                                            },
+                                            PathSep,
+                                            PathSegment {
+                                                ident: Ident(
+                                                    default,
+                                                ),
+                                                arguments: PathArguments::None,
+                                            },
+                                        ],
+                                    },
+                                },
+                                paren_token: Paren,
+                                args: [],
+                            },
+                            Comma,
+                            Expr::Call {
+                                attrs: [],
+                                func: Expr::Path {
+                                    attrs: [],
+                                    qself: None,
+                                    path: Path {
+                                        leading_colon: None,
+                                        segments: [
+                                            PathSegment {
+                                                ident: Ident(
+                                                    Predicates,
+                                                ),
+                                                arguments: PathArguments::None,
+                                            },
+                                            PathSep,
+                                            PathSegment {
+                                                ident: Ident(
+                                                    t,
+                                                ),
+                                                arguments: PathArguments::None,
+                                            },
+                                        ],
+                                    },
+                                },
+                                paren_token: Paren,
+                                args: [],
+                            },
+                            Comma,
+                            Expr::Path {
+                                attrs: [],
+                                qself: None,
+                                path: Path {
+                                    leading_colon: None,
+                                    segments: [
+                                        PathSegment {
+                                            ident: Ident(
+                                                f,
+                                            ),
+                                            arguments: PathArguments::None,
+                                        },
+                                    ],
+                                },
+                            },
+                            Comma,
+                            Expr::Path {
+                                attrs: [],
+                                qself: None,
+                                path: Path {
+                                    leading_colon: None,
+                                    segments: [
+                                        PathSegment {
+                                            ident: Ident(
+                                                crate_id,
+                                            ),
+                                            arguments: PathArguments::None,
+                                        },
+                                    ],
+                                },
                             },
                         ],
                     },
+                    conclusion: Pat::Tuple {
+                        attrs: [],
+                        paren_token: Paren,
+                        elems: [],
+                    },
                 },
-                paren_token: Paren,
-                args: [
-                    Expr::Path {
-                        attrs: [],
-                        qself: None,
-                        path: Path {
-                            leading_colon: None,
-                            segments: [
-                                PathSegment {
-                                    ident: Ident(
-                                        program,
-                                    ),
-                                    arguments: PathArguments::None,
-                                },
-                            ],
-                        },
-                    },
-                    Comma,
-                    Expr::Call {
-                        attrs: [],
-                        func: Expr::Path {
-                            attrs: [],
-                            qself: None,
-                            path: Path {
-                                leading_colon: None,
-                                segments: [
-                                    PathSegment {
-                                        ident: Ident(
-                                            Env,
-                                        ),
-                                        arguments: PathArguments::None,
-                                    },
-                                    PathSep,
-                                    PathSegment {
-                                        ident: Ident(
-                                            default,
-                                        ),
-                                        arguments: PathArguments::None,
-                                    },
-                                ],
-                            },
-                        },
-                        paren_token: Paren,
-                        args: [],
-                    },
-                    Comma,
-                    Expr::Call {
-                        attrs: [],
-                        func: Expr::Path {
-                            attrs: [],
-                            qself: None,
-                            path: Path {
-                                leading_colon: None,
-                                segments: [
-                                    PathSegment {
-                                        ident: Ident(
-                                            Predicates,
-                                        ),
-                                        arguments: PathArguments::None,
-                                    },
-                                    PathSep,
-                                    PathSegment {
-                                        ident: Ident(
-                                            t,
-                                        ),
-                                        arguments: PathArguments::None,
-                                    },
-                                ],
-                            },
-                        },
-                        paren_token: Paren,
-                        args: [],
-                    },
-                    Comma,
-                    Expr::Path {
-                        attrs: [],
-                        qself: None,
-                        path: Path {
-                            leading_colon: None,
-                            segments: [
-                                PathSegment {
-                                    ident: Ident(
-                                        f,
-                                    ),
-                                    arguments: PathArguments::None,
-                                },
-                            ],
-                        },
-                    },
-                    Comma,
-                    Expr::Path {
-                        attrs: [],
-                        qself: None,
-                        path: Path {
-                            leading_colon: None,
-                            segments: [
-                                PathSegment {
-                                    ident: Ident(
-                                        crate_id,
-                                    ),
-                                    arguments: PathArguments::None,
-                                },
-                            ],
-                        },
-                    },
-                ],
-            },
-            conclusion: Pat::Tuple {
-                attrs: [],
-                paren_token: Paren,
-                elems: [],
-            },
+            ),
+            paren: Paren,
+            commit_point: None,
         }
     "#]]
     .assert_debug_eq(&ast);
@@ -514,153 +538,159 @@ fn parse_implication() {
 
 #[test]
 fn parse_in() {
-    let ast: ast::In = syn::parse2(quote! {
-        wc in a.where_clauses.iter().chain(&b.where_clauses).flat_map(|wc| wc.invert())
+    let ast: ast::Premise = syn::parse2(quote! {
+        (wc in a.where_clauses.iter().chain(&b.where_clauses).flat_map(|wc| wc.invert()))
     })
     .unwrap();
     expect![[r#"
-        In {
-            pattern: Pat::Ident {
-                attrs: [],
-                by_ref: None,
-                mutability: None,
-                ident: Ident(
-                    wc,
-                ),
-                subpat: None,
-            },
-            expression: Expr::MethodCall {
-                attrs: [],
-                receiver: Expr::MethodCall {
-                    attrs: [],
-                    receiver: Expr::MethodCall {
+        Premise {
+            kind: In(
+                In {
+                    pattern: Pat::Ident {
                         attrs: [],
-                        receiver: Expr::Field {
-                            attrs: [],
-                            base: Expr::Path {
-                                attrs: [],
-                                qself: None,
-                                path: Path {
-                                    leading_colon: None,
-                                    segments: [
-                                        PathSegment {
-                                            ident: Ident(
-                                                a,
-                                            ),
-                                            arguments: PathArguments::None,
-                                        },
-                                    ],
-                                },
-                            },
-                            dot_token: Dot,
-                            member: Member::Named(
-                                Ident(
-                                    where_clauses,
-                                ),
-                            ),
-                        },
-                        dot_token: Dot,
-                        method: Ident(
-                            iter,
+                        by_ref: None,
+                        mutability: None,
+                        ident: Ident(
+                            wc,
                         ),
-                        turbofish: None,
-                        paren_token: Paren,
-                        args: [],
+                        subpat: None,
                     },
-                    dot_token: Dot,
-                    method: Ident(
-                        chain,
-                    ),
-                    turbofish: None,
-                    paren_token: Paren,
-                    args: [
-                        Expr::Reference {
+                    expression: Expr::MethodCall {
+                        attrs: [],
+                        receiver: Expr::MethodCall {
                             attrs: [],
-                            and_token: And,
-                            mutability: None,
-                            expr: Expr::Field {
+                            receiver: Expr::MethodCall {
                                 attrs: [],
-                                base: Expr::Path {
+                                receiver: Expr::Field {
                                     attrs: [],
-                                    qself: None,
-                                    path: Path {
-                                        leading_colon: None,
-                                        segments: [
-                                            PathSegment {
-                                                ident: Ident(
-                                                    b,
-                                                ),
-                                                arguments: PathArguments::None,
-                                            },
-                                        ],
+                                    base: Expr::Path {
+                                        attrs: [],
+                                        qself: None,
+                                        path: Path {
+                                            leading_colon: None,
+                                            segments: [
+                                                PathSegment {
+                                                    ident: Ident(
+                                                        a,
+                                                    ),
+                                                    arguments: PathArguments::None,
+                                                },
+                                            ],
+                                        },
                                     },
+                                    dot_token: Dot,
+                                    member: Member::Named(
+                                        Ident(
+                                            where_clauses,
+                                        ),
+                                    ),
                                 },
                                 dot_token: Dot,
-                                member: Member::Named(
-                                    Ident(
-                                        where_clauses,
-                                    ),
+                                method: Ident(
+                                    iter,
                                 ),
-                            },
-                        },
-                    ],
-                },
-                dot_token: Dot,
-                method: Ident(
-                    flat_map,
-                ),
-                turbofish: None,
-                paren_token: Paren,
-                args: [
-                    Expr::Closure {
-                        attrs: [],
-                        lifetimes: None,
-                        constness: None,
-                        movability: None,
-                        asyncness: None,
-                        capture: None,
-                        or1_token: Or,
-                        inputs: [
-                            Pat::Ident {
-                                attrs: [],
-                                by_ref: None,
-                                mutability: None,
-                                ident: Ident(
-                                    wc,
-                                ),
-                                subpat: None,
-                            },
-                        ],
-                        or2_token: Or,
-                        output: ReturnType::Default,
-                        body: Expr::MethodCall {
-                            attrs: [],
-                            receiver: Expr::Path {
-                                attrs: [],
-                                qself: None,
-                                path: Path {
-                                    leading_colon: None,
-                                    segments: [
-                                        PathSegment {
-                                            ident: Ident(
-                                                wc,
-                                            ),
-                                            arguments: PathArguments::None,
-                                        },
-                                    ],
-                                },
+                                turbofish: None,
+                                paren_token: Paren,
+                                args: [],
                             },
                             dot_token: Dot,
                             method: Ident(
-                                invert,
+                                chain,
                             ),
                             turbofish: None,
                             paren_token: Paren,
-                            args: [],
+                            args: [
+                                Expr::Reference {
+                                    attrs: [],
+                                    and_token: And,
+                                    mutability: None,
+                                    expr: Expr::Field {
+                                        attrs: [],
+                                        base: Expr::Path {
+                                            attrs: [],
+                                            qself: None,
+                                            path: Path {
+                                                leading_colon: None,
+                                                segments: [
+                                                    PathSegment {
+                                                        ident: Ident(
+                                                            b,
+                                                        ),
+                                                        arguments: PathArguments::None,
+                                                    },
+                                                ],
+                                            },
+                                        },
+                                        dot_token: Dot,
+                                        member: Member::Named(
+                                            Ident(
+                                                where_clauses,
+                                            ),
+                                        ),
+                                    },
+                                },
+                            ],
                         },
+                        dot_token: Dot,
+                        method: Ident(
+                            flat_map,
+                        ),
+                        turbofish: None,
+                        paren_token: Paren,
+                        args: [
+                            Expr::Closure {
+                                attrs: [],
+                                lifetimes: None,
+                                constness: None,
+                                movability: None,
+                                asyncness: None,
+                                capture: None,
+                                or1_token: Or,
+                                inputs: [
+                                    Pat::Ident {
+                                        attrs: [],
+                                        by_ref: None,
+                                        mutability: None,
+                                        ident: Ident(
+                                            wc,
+                                        ),
+                                        subpat: None,
+                                    },
+                                ],
+                                or2_token: Or,
+                                output: ReturnType::Default,
+                                body: Expr::MethodCall {
+                                    attrs: [],
+                                    receiver: Expr::Path {
+                                        attrs: [],
+                                        qself: None,
+                                        path: Path {
+                                            leading_colon: None,
+                                            segments: [
+                                                PathSegment {
+                                                    ident: Ident(
+                                                        wc,
+                                                    ),
+                                                    arguments: PathArguments::None,
+                                                },
+                                            ],
+                                        },
+                                    },
+                                    dot_token: Dot,
+                                    method: Ident(
+                                        invert,
+                                    ),
+                                    turbofish: None,
+                                    paren_token: Paren,
+                                    args: [],
+                                },
+                            },
+                        ],
                     },
-                ],
-            },
+                },
+            ),
+            paren: Paren,
+            commit_point: None,
         }
     "#]]
     .assert_debug_eq(&ast);
@@ -668,44 +698,132 @@ fn parse_in() {
 
 #[test]
 fn parse_let() {
-    let ast: ast::Let = syn::parse2(quote! {
-        let (env, a) = Env::default().instantiate_universally(&impl_a.binder)
+    let ast: ast::Premise = syn::parse2(quote! {
+        (let (env, a) = Env::default().instantiate_universally(&impl_a.binder))
     })
     .unwrap();
     expect![[r#"
-        Let {
-            binding: Pattern {
-                pattern: Pat::Tuple {
-                    attrs: [],
-                    paren_token: Paren,
-                    elems: [
-                        Pat::Ident {
+        Premise {
+            kind: Let(
+                Let {
+                    binding: Pattern {
+                        pattern: Pat::Tuple {
                             attrs: [],
-                            by_ref: None,
-                            mutability: None,
-                            ident: Ident(
-                                env,
-                            ),
-                            subpat: None,
+                            paren_token: Paren,
+                            elems: [
+                                Pat::Ident {
+                                    attrs: [],
+                                    by_ref: None,
+                                    mutability: None,
+                                    ident: Ident(
+                                        env,
+                                    ),
+                                    subpat: None,
+                                },
+                                Comma,
+                                Pat::Ident {
+                                    attrs: [],
+                                    by_ref: None,
+                                    mutability: None,
+                                    ident: Ident(
+                                        a,
+                                    ),
+                                    subpat: None,
+                                },
+                            ],
                         },
-                        Comma,
-                        Pat::Ident {
+                    },
+                    expression: Expr::MethodCall {
+                        attrs: [],
+                        receiver: Expr::Call {
                             attrs: [],
-                            by_ref: None,
-                            mutability: None,
-                            ident: Ident(
-                                a,
-                            ),
-                            subpat: None,
+                            func: Expr::Path {
+                                attrs: [],
+                                qself: None,
+                                path: Path {
+                                    leading_colon: None,
+                                    segments: [
+                                        PathSegment {
+                                            ident: Ident(
+                                                Env,
+                                            ),
+                                            arguments: PathArguments::None,
+                                        },
+                                        PathSep,
+                                        PathSegment {
+                                            ident: Ident(
+                                                default,
+                                            ),
+                                            arguments: PathArguments::None,
+                                        },
+                                    ],
+                                },
+                            },
+                            paren_token: Paren,
+                            args: [],
                         },
-                    ],
+                        dot_token: Dot,
+                        method: Ident(
+                            instantiate_universally,
+                        ),
+                        turbofish: None,
+                        paren_token: Paren,
+                        args: [
+                            Expr::Reference {
+                                attrs: [],
+                                and_token: And,
+                                mutability: None,
+                                expr: Expr::Field {
+                                    attrs: [],
+                                    base: Expr::Path {
+                                        attrs: [],
+                                        qself: None,
+                                        path: Path {
+                                            leading_colon: None,
+                                            segments: [
+                                                PathSegment {
+                                                    ident: Ident(
+                                                        impl_a,
+                                                    ),
+                                                    arguments: PathArguments::None,
+                                                },
+                                            ],
+                                        },
+                                    },
+                                    dot_token: Dot,
+                                    member: Member::Named(
+                                        Ident(
+                                            binder,
+                                        ),
+                                    ),
+                                },
+                            },
+                        ],
+                    },
                 },
-            },
-            expression: Expr::MethodCall {
-                attrs: [],
-                receiver: Expr::Call {
-                    attrs: [],
-                    func: Expr::Path {
+            ),
+            paren: Paren,
+            commit_point: None,
+        }
+    "#]]
+    .assert_debug_eq(&ast);
+}
+
+#[test]
+fn parse_for_all() {
+    let ast: ast::Premise = syn::parse2(quote! {
+        (for_all(field in fields)
+            (let Field { ty, .. } = field))
+    })
+    .unwrap();
+    expect![[r#"
+        Premise {
+            kind: ForAll(
+                ForAll {
+                    identifier: Ident(
+                        field,
+                    ),
+                    collection: Expr::Path {
                         attrs: [],
                         qself: None,
                         path: Path {
@@ -713,35 +831,354 @@ fn parse_let() {
                             segments: [
                                 PathSegment {
                                     ident: Ident(
-                                        Env,
-                                    ),
-                                    arguments: PathArguments::None,
-                                },
-                                PathSep,
-                                PathSegment {
-                                    ident: Ident(
-                                        default,
+                                        fields,
                                     ),
                                     arguments: PathArguments::None,
                                 },
                             ],
                         },
                     },
-                    paren_token: Paren,
-                    args: [],
+                    state: [],
+                    body: Premises {
+                        premises: [
+                            Premise {
+                                kind: Let(
+                                    Let {
+                                        binding: Pattern {
+                                            pattern: Pat::Struct {
+                                                attrs: [],
+                                                qself: None,
+                                                path: Path {
+                                                    leading_colon: None,
+                                                    segments: [
+                                                        PathSegment {
+                                                            ident: Ident(
+                                                                Field,
+                                                            ),
+                                                            arguments: PathArguments::None,
+                                                        },
+                                                    ],
+                                                },
+                                                brace_token: Brace,
+                                                fields: [
+                                                    FieldPat {
+                                                        attrs: [],
+                                                        member: Member::Named(
+                                                            Ident(
+                                                                ty,
+                                                            ),
+                                                        ),
+                                                        colon_token: None,
+                                                        pat: Pat::Ident {
+                                                            attrs: [],
+                                                            by_ref: None,
+                                                            mutability: None,
+                                                            ident: Ident(
+                                                                ty,
+                                                            ),
+                                                            subpat: None,
+                                                        },
+                                                    },
+                                                    Comma,
+                                                ],
+                                                rest: Some(
+                                                    PatRest {
+                                                        attrs: [],
+                                                        dot2_token: DotDot,
+                                                    },
+                                                ),
+                                            },
+                                        },
+                                        expression: Expr::Path {
+                                            attrs: [],
+                                            qself: None,
+                                            path: Path {
+                                                leading_colon: None,
+                                                segments: [
+                                                    PathSegment {
+                                                        ident: Ident(
+                                                            field,
+                                                        ),
+                                                        arguments: PathArguments::None,
+                                                    },
+                                                ],
+                                            },
+                                        },
+                                    },
+                                ),
+                                paren: Paren,
+                                commit_point: None,
+                            },
+                        ],
+                    },
                 },
-                dot_token: Dot,
-                method: Ident(
-                    instantiate_universally,
-                ),
-                turbofish: None,
-                paren_token: Paren,
-                args: [
-                    Expr::Reference {
+            ),
+            paren: Paren,
+            commit_point: None,
+        }
+    "#]]
+    .assert_debug_eq(&ast);
+}
+
+#[test]
+fn parse_for_all_with_state() {
+    let ast: ast::Premise = syn::parse2(quote! {
+        (for_all(field in fields with(state))
+            (let Field { ty, .. } = field))
+    })
+    .unwrap();
+    expect![[r#"
+        Premise {
+            kind: ForAll(
+                ForAll {
+                    identifier: Ident(
+                        field,
+                    ),
+                    collection: Expr::Path {
                         attrs: [],
-                        and_token: And,
-                        mutability: None,
-                        expr: Expr::Field {
+                        qself: None,
+                        path: Path {
+                            leading_colon: None,
+                            segments: [
+                                PathSegment {
+                                    ident: Ident(
+                                        fields,
+                                    ),
+                                    arguments: PathArguments::None,
+                                },
+                            ],
+                        },
+                    },
+                    state: [
+                        Ident(
+                            state,
+                        ),
+                    ],
+                    body: Premises {
+                        premises: [
+                            Premise {
+                                kind: Let(
+                                    Let {
+                                        binding: Pattern {
+                                            pattern: Pat::Struct {
+                                                attrs: [],
+                                                qself: None,
+                                                path: Path {
+                                                    leading_colon: None,
+                                                    segments: [
+                                                        PathSegment {
+                                                            ident: Ident(
+                                                                Field,
+                                                            ),
+                                                            arguments: PathArguments::None,
+                                                        },
+                                                    ],
+                                                },
+                                                brace_token: Brace,
+                                                fields: [
+                                                    FieldPat {
+                                                        attrs: [],
+                                                        member: Member::Named(
+                                                            Ident(
+                                                                ty,
+                                                            ),
+                                                        ),
+                                                        colon_token: None,
+                                                        pat: Pat::Ident {
+                                                            attrs: [],
+                                                            by_ref: None,
+                                                            mutability: None,
+                                                            ident: Ident(
+                                                                ty,
+                                                            ),
+                                                            subpat: None,
+                                                        },
+                                                    },
+                                                    Comma,
+                                                ],
+                                                rest: Some(
+                                                    PatRest {
+                                                        attrs: [],
+                                                        dot2_token: DotDot,
+                                                    },
+                                                ),
+                                            },
+                                        },
+                                        expression: Expr::Path {
+                                            attrs: [],
+                                            qself: None,
+                                            path: Path {
+                                                leading_colon: None,
+                                                segments: [
+                                                    PathSegment {
+                                                        ident: Ident(
+                                                            field,
+                                                        ),
+                                                        arguments: PathArguments::None,
+                                                    },
+                                                ],
+                                            },
+                                        },
+                                    },
+                                ),
+                                paren: Paren,
+                                commit_point: None,
+                            },
+                        ],
+                    },
+                },
+            ),
+            paren: Paren,
+            commit_point: None,
+        }
+    "#]]
+    .assert_debug_eq(&ast);
+}
+
+#[test]
+fn parse_if_let() {
+    let ast: ast::Premise = syn::parse2(quote! {
+        (if let PlaceExpr::Var(id) = place)
+    })
+    .unwrap();
+    expect![[r#"
+        Premise {
+            kind: IfLet(
+                IfLet {
+                    pattern: Pat::TupleStruct {
+                        attrs: [],
+                        qself: None,
+                        path: Path {
+                            leading_colon: None,
+                            segments: [
+                                PathSegment {
+                                    ident: Ident(
+                                        PlaceExpr,
+                                    ),
+                                    arguments: PathArguments::None,
+                                },
+                                PathSep,
+                                PathSegment {
+                                    ident: Ident(
+                                        Var,
+                                    ),
+                                    arguments: PathArguments::None,
+                                },
+                            ],
+                        },
+                        paren_token: Paren,
+                        elems: [
+                            Pat::Ident {
+                                attrs: [],
+                                by_ref: None,
+                                mutability: None,
+                                ident: Ident(
+                                    id,
+                                ),
+                                subpat: None,
+                            },
+                        ],
+                    },
+                    expression: Expr::Path {
+                        attrs: [],
+                        qself: None,
+                        path: Path {
+                            leading_colon: None,
+                            segments: [
+                                PathSegment {
+                                    ident: Ident(
+                                        place,
+                                    ),
+                                    arguments: PathArguments::None,
+                                },
+                            ],
+                        },
+                    },
+                },
+            ),
+            paren: Paren,
+            commit_point: None,
+        }
+    "#]]
+    .assert_debug_eq(&ast);
+}
+
+#[test]
+fn parse_comprehension_expression() {
+    let ast: ast::Premise = syn::parse2(quote! {
+        (let expected_names: Set<FieldName> = for_all field in fields => field.name)
+    })
+    .unwrap();
+    expect![[r#"
+        Premise {
+            kind: Comprehension(
+                Comprehesion {
+                    binding: Identifier {
+                        identifier: Ident(
+                            expected_names,
+                        ),
+                        ty: Some(
+                            Type::Path {
+                                qself: None,
+                                path: Path {
+                                    leading_colon: None,
+                                    segments: [
+                                        PathSegment {
+                                            ident: Ident(
+                                                Set,
+                                            ),
+                                            arguments: PathArguments::AngleBracketed {
+                                                colon2_token: None,
+                                                lt_token: Lt,
+                                                args: [
+                                                    GenericArgument::Type(
+                                                        Type::Path {
+                                                            qself: None,
+                                                            path: Path {
+                                                                leading_colon: None,
+                                                                segments: [
+                                                                    PathSegment {
+                                                                        ident: Ident(
+                                                                            FieldName,
+                                                                        ),
+                                                                        arguments: PathArguments::None,
+                                                                    },
+                                                                ],
+                                                            },
+                                                        },
+                                                    ),
+                                                ],
+                                                gt_token: Gt,
+                                            },
+                                        },
+                                    ],
+                                },
+                            },
+                        ),
+                    },
+                    loop_var: Ident(
+                        field,
+                    ),
+                    collection: Expr::Path {
+                        attrs: [],
+                        qself: None,
+                        path: Path {
+                            leading_colon: None,
+                            segments: [
+                                PathSegment {
+                                    ident: Ident(
+                                        fields,
+                                    ),
+                                    arguments: PathArguments::None,
+                                },
+                            ],
+                        },
+                    },
+                    body: ComprehensionBody {
+                        premises: Premises {
+                            premises: [],
+                        },
+                        conclusion: Expr::Field {
                             attrs: [],
                             base: Expr::Path {
                                 attrs: [],
@@ -751,7 +1188,7 @@ fn parse_let() {
                                     segments: [
                                         PathSegment {
                                             ident: Ident(
-                                                impl_a,
+                                                field,
                                             ),
                                             arguments: PathArguments::None,
                                         },
@@ -761,370 +1198,79 @@ fn parse_let() {
                             dot_token: Dot,
                             member: Member::Named(
                                 Ident(
-                                    binder,
+                                    name,
                                 ),
                             ),
                         },
                     },
-                ],
-            },
-        }
-    "#]]
-    .assert_debug_eq(&ast);
-}
-
-#[test]
-fn parse_for_all() {
-    let ast: ast::ForAll = syn::parse2(quote! {
-        for_all(field in fields)
-            (let Field { ty, .. } = field)
-    })
-    .unwrap();
-    expect![[r#"
-        ForAll {
-            identifier: Ident(
-                field,
+                },
             ),
-            collection: Expr::Path {
-                attrs: [],
-                qself: None,
-                path: Path {
-                    leading_colon: None,
-                    segments: [
-                        PathSegment {
-                            ident: Ident(
-                                fields,
-                            ),
-                            arguments: PathArguments::None,
-                        },
-                    ],
-                },
-            },
-            state: [],
-            body: Premises {
-                premises: [
-                    Premise {
-                        kind: Let(
-                            Let {
-                                binding: Pattern {
-                                    pattern: Pat::Struct {
-                                        attrs: [],
-                                        qself: None,
-                                        path: Path {
-                                            leading_colon: None,
-                                            segments: [
-                                                PathSegment {
-                                                    ident: Ident(
-                                                        Field,
-                                                    ),
-                                                    arguments: PathArguments::None,
-                                                },
-                                            ],
-                                        },
-                                        brace_token: Brace,
-                                        fields: [
-                                            FieldPat {
-                                                attrs: [],
-                                                member: Member::Named(
-                                                    Ident(
-                                                        ty,
-                                                    ),
-                                                ),
-                                                colon_token: None,
-                                                pat: Pat::Ident {
-                                                    attrs: [],
-                                                    by_ref: None,
-                                                    mutability: None,
-                                                    ident: Ident(
-                                                        ty,
-                                                    ),
-                                                    subpat: None,
-                                                },
-                                            },
-                                            Comma,
-                                        ],
-                                        rest: Some(
-                                            PatRest {
-                                                attrs: [],
-                                                dot2_token: DotDot,
-                                            },
-                                        ),
-                                    },
-                                },
-                                expression: Expr::Path {
-                                    attrs: [],
-                                    qself: None,
-                                    path: Path {
-                                        leading_colon: None,
-                                        segments: [
-                                            PathSegment {
-                                                ident: Ident(
-                                                    field,
-                                                ),
-                                                arguments: PathArguments::None,
-                                            },
-                                        ],
-                                    },
-                                },
-                            },
-                        ),
-                        paren: Paren,
-                        commit_point: None,
-                    },
-                ],
-            },
+            paren: Paren,
+            commit_point: None,
         }
     "#]]
     .assert_debug_eq(&ast);
 }
 
 #[test]
-fn parse_for_all_with_state() {
-    let ast: ast::ForAll = syn::parse2(quote! {
-        for_all(field in fields with(state))
-            (let Field { ty, .. } = field)
+fn parse_comprehension_with_premises() {
+    let ast: ast::Premise = syn::parse2(quote! {
+        (let expected_names: Set<u32> = for_all field in fields =>
+            (expected_field_name(field) => (a, _))
+            a)
     })
     .unwrap();
     expect![[r#"
-        ForAll {
-            identifier: Ident(
-                field,
-            ),
-            collection: Expr::Path {
-                attrs: [],
-                qself: None,
-                path: Path {
-                    leading_colon: None,
-                    segments: [
-                        PathSegment {
-                            ident: Ident(
-                                fields,
-                            ),
-                            arguments: PathArguments::None,
-                        },
-                    ],
-                },
-            },
-            state: [
-                Ident(
-                    state,
-                ),
-            ],
-            body: Premises {
-                premises: [
-                    Premise {
-                        kind: Let(
-                            Let {
-                                binding: Pattern {
-                                    pattern: Pat::Struct {
-                                        attrs: [],
-                                        qself: None,
-                                        path: Path {
-                                            leading_colon: None,
-                                            segments: [
-                                                PathSegment {
-                                                    ident: Ident(
-                                                        Field,
-                                                    ),
-                                                    arguments: PathArguments::None,
-                                                },
-                                            ],
-                                        },
-                                        brace_token: Brace,
-                                        fields: [
-                                            FieldPat {
-                                                attrs: [],
-                                                member: Member::Named(
-                                                    Ident(
-                                                        ty,
-                                                    ),
-                                                ),
-                                                colon_token: None,
-                                                pat: Pat::Ident {
-                                                    attrs: [],
-                                                    by_ref: None,
-                                                    mutability: None,
-                                                    ident: Ident(
-                                                        ty,
-                                                    ),
-                                                    subpat: None,
-                                                },
-                                            },
-                                            Comma,
-                                        ],
-                                        rest: Some(
-                                            PatRest {
-                                                attrs: [],
-                                                dot2_token: DotDot,
-                                            },
-                                        ),
-                                    },
-                                },
-                                expression: Expr::Path {
-                                    attrs: [],
-                                    qself: None,
-                                    path: Path {
-                                        leading_colon: None,
-                                        segments: [
-                                            PathSegment {
-                                                ident: Ident(
-                                                    field,
-                                                ),
-                                                arguments: PathArguments::None,
-                                            },
-                                        ],
-                                    },
-                                },
-                            },
+        Premise {
+            kind: Comprehension(
+                Comprehesion {
+                    binding: Identifier {
+                        identifier: Ident(
+                            expected_names,
                         ),
-                        paren: Paren,
-                        commit_point: None,
-                    },
-                ],
-            },
-        }
-    "#]]
-    .assert_debug_eq(&ast);
-}
-
-#[test]
-fn parse_if_let() {
-    let ast: ast::IfLet = syn::parse2(quote! {
-        if let PlaceExpr::Var(id) = place
-    })
-    .unwrap();
-    expect![[r#"
-        IfLet {
-            pattern: Pat::TupleStruct {
-                attrs: [],
-                qself: None,
-                path: Path {
-                    leading_colon: None,
-                    segments: [
-                        PathSegment {
-                            ident: Ident(
-                                PlaceExpr,
-                            ),
-                            arguments: PathArguments::None,
-                        },
-                        PathSep,
-                        PathSegment {
-                            ident: Ident(
-                                Var,
-                            ),
-                            arguments: PathArguments::None,
-                        },
-                    ],
-                },
-                paren_token: Paren,
-                elems: [
-                    Pat::Ident {
-                        attrs: [],
-                        by_ref: None,
-                        mutability: None,
-                        ident: Ident(
-                            id,
-                        ),
-                        subpat: None,
-                    },
-                ],
-            },
-            expression: Expr::Path {
-                attrs: [],
-                qself: None,
-                path: Path {
-                    leading_colon: None,
-                    segments: [
-                        PathSegment {
-                            ident: Ident(
-                                place,
-                            ),
-                            arguments: PathArguments::None,
-                        },
-                    ],
-                },
-            },
-        }
-    "#]]
-    .assert_debug_eq(&ast);
-}
-
-#[test]
-fn parse_let_for_all_single_expression() {
-    let ast: ast::Comprehesion = syn::parse2(quote! {
-        let expected_names: Set<FieldName> = for_all field in fields => field.name
-    })
-    .unwrap();
-    expect![[r#"
-        Comprehesion {
-            binding: Identifier {
-                identifier: Ident(
-                    expected_names,
-                ),
-                ty: Some(
-                    Type::Path {
-                        qself: None,
-                        path: Path {
-                            leading_colon: None,
-                            segments: [
-                                PathSegment {
-                                    ident: Ident(
-                                        Set,
-                                    ),
-                                    arguments: PathArguments::AngleBracketed {
-                                        colon2_token: None,
-                                        lt_token: Lt,
-                                        args: [
-                                            GenericArgument::Type(
-                                                Type::Path {
-                                                    qself: None,
-                                                    path: Path {
-                                                        leading_colon: None,
-                                                        segments: [
-                                                            PathSegment {
-                                                                ident: Ident(
-                                                                    FieldName,
-                                                                ),
-                                                                arguments: PathArguments::None,
-                                                            },
-                                                        ],
-                                                    },
-                                                },
+                        ty: Some(
+                            Type::Path {
+                                qself: None,
+                                path: Path {
+                                    leading_colon: None,
+                                    segments: [
+                                        PathSegment {
+                                            ident: Ident(
+                                                Set,
                                             ),
-                                        ],
-                                        gt_token: Gt,
-                                    },
+                                            arguments: PathArguments::AngleBracketed {
+                                                colon2_token: None,
+                                                lt_token: Lt,
+                                                args: [
+                                                    GenericArgument::Type(
+                                                        Type::Path {
+                                                            qself: None,
+                                                            path: Path {
+                                                                leading_colon: None,
+                                                                segments: [
+                                                                    PathSegment {
+                                                                        ident: Ident(
+                                                                            u32,
+                                                                        ),
+                                                                        arguments: PathArguments::None,
+                                                                    },
+                                                                ],
+                                                            },
+                                                        },
+                                                    ),
+                                                ],
+                                                gt_token: Gt,
+                                            },
+                                        },
+                                    ],
                                 },
-                            ],
-                        },
+                            },
+                        ),
                     },
-                ),
-            },
-            loop_var: Ident(
-                field,
-            ),
-            expression: Expr::Path {
-                attrs: [],
-                qself: None,
-                path: Path {
-                    leading_colon: None,
-                    segments: [
-                        PathSegment {
-                            ident: Ident(
-                                fields,
-                            ),
-                            arguments: PathArguments::None,
-                        },
-                    ],
-                },
-            },
-            body: ComprehensionBody {
-                premises: Premises {
-                    premises: [],
-                },
-                conclusion: Expr::Field {
-                    attrs: [],
-                    base: Expr::Path {
+                    loop_var: Ident(
+                        field,
+                    ),
+                    collection: Expr::Path {
                         attrs: [],
                         qself: None,
                         path: Path {
@@ -1132,379 +1278,305 @@ fn parse_let_for_all_single_expression() {
                             segments: [
                                 PathSegment {
                                     ident: Ident(
-                                        field,
+                                        fields,
                                     ),
                                     arguments: PathArguments::None,
                                 },
                             ],
                         },
                     },
-                    dot_token: Dot,
-                    member: Member::Named(
-                        Ident(
-                            name,
-                        ),
-                    ),
-                },
-            },
-        }
-    "#]]
-    .assert_debug_eq(&ast);
-}
-
-#[test]
-fn parse_let_for_all_with_premises() {
-    let ast: ast::Comprehesion = syn::parse2(quote! {
-        let expected_names: Set<u32> = for_all field in fields =>
-            (expected_field_name(field) => (a, _))
-            a
-    })
-    .unwrap();
-    expect![[r#"
-        Comprehesion {
-            binding: Identifier {
-                identifier: Ident(
-                    expected_names,
-                ),
-                ty: Some(
-                    Type::Path {
-                        qself: None,
-                        path: Path {
-                            leading_colon: None,
-                            segments: [
-                                PathSegment {
-                                    ident: Ident(
-                                        Set,
-                                    ),
-                                    arguments: PathArguments::AngleBracketed {
-                                        colon2_token: None,
-                                        lt_token: Lt,
-                                        args: [
-                                            GenericArgument::Type(
-                                                Type::Path {
+                    body: ComprehensionBody {
+                        premises: Premises {
+                            premises: [
+                                Premise {
+                                    kind: Implication(
+                                        Implication {
+                                            hypothesis: Expr::Call {
+                                                attrs: [],
+                                                func: Expr::Path {
+                                                    attrs: [],
                                                     qself: None,
                                                     path: Path {
                                                         leading_colon: None,
                                                         segments: [
                                                             PathSegment {
                                                                 ident: Ident(
-                                                                    u32,
+                                                                    expected_field_name,
                                                                 ),
                                                                 arguments: PathArguments::None,
                                                             },
                                                         ],
                                                     },
                                                 },
-                                            ),
-                                        ],
-                                        gt_token: Gt,
-                                    },
-                                },
-                            ],
-                        },
-                    },
-                ),
-            },
-            loop_var: Ident(
-                field,
-            ),
-            expression: Expr::Path {
-                attrs: [],
-                qself: None,
-                path: Path {
-                    leading_colon: None,
-                    segments: [
-                        PathSegment {
-                            ident: Ident(
-                                fields,
-                            ),
-                            arguments: PathArguments::None,
-                        },
-                    ],
-                },
-            },
-            body: ComprehensionBody {
-                premises: Premises {
-                    premises: [
-                        Premise {
-                            kind: Implication(
-                                Implication {
-                                    hypothesis: Expr::Call {
-                                        attrs: [],
-                                        func: Expr::Path {
-                                            attrs: [],
-                                            qself: None,
-                                            path: Path {
-                                                leading_colon: None,
-                                                segments: [
-                                                    PathSegment {
-                                                        ident: Ident(
-                                                            expected_field_name,
-                                                        ),
-                                                        arguments: PathArguments::None,
+                                                paren_token: Paren,
+                                                args: [
+                                                    Expr::Path {
+                                                        attrs: [],
+                                                        qself: None,
+                                                        path: Path {
+                                                            leading_colon: None,
+                                                            segments: [
+                                                                PathSegment {
+                                                                    ident: Ident(
+                                                                        field,
+                                                                    ),
+                                                                    arguments: PathArguments::None,
+                                                                },
+                                                            ],
+                                                        },
                                                     },
                                                 ],
                                             },
-                                        },
-                                        paren_token: Paren,
-                                        args: [
-                                            Expr::Path {
+                                            conclusion: Pat::Tuple {
                                                 attrs: [],
-                                                qself: None,
-                                                path: Path {
-                                                    leading_colon: None,
-                                                    segments: [
-                                                        PathSegment {
-                                                            ident: Ident(
-                                                                field,
-                                                            ),
-                                                            arguments: PathArguments::None,
-                                                        },
-                                                    ],
-                                                },
-                                            },
-                                        ],
-                                    },
-                                    conclusion: Pat::Tuple {
-                                        attrs: [],
-                                        paren_token: Paren,
-                                        elems: [
-                                            Pat::Ident {
-                                                attrs: [],
-                                                by_ref: None,
-                                                mutability: None,
-                                                ident: Ident(
-                                                    a,
-                                                ),
-                                                subpat: None,
-                                            },
-                                            Comma,
-                                            Pat::Wild {
-                                                attrs: [],
-                                                underscore_token: Underscore,
-                                            },
-                                        ],
-                                    },
-                                },
-                            ),
-                            paren: Paren,
-                            commit_point: None,
-                        },
-                    ],
-                },
-                conclusion: Expr::Path {
-                    attrs: [],
-                    qself: None,
-                    path: Path {
-                        leading_colon: None,
-                        segments: [
-                            PathSegment {
-                                ident: Ident(
-                                    a,
-                                ),
-                                arguments: PathArguments::None,
-                            },
-                        ],
-                    },
-                },
-            },
-        }
-    "#]]
-    .assert_debug_eq(&ast);
-}
-
-#[test]
-fn parse_let_for_all_with_premises2() {
-    let ast: ast::Comprehesion = syn::parse2(quote! {
-        let expected_names: Set<u32> = for_all field in fields =>
-            (expected_field_name(field) => (a, _))
-            (if a == "blub")
-            a
-    })
-    .unwrap();
-    expect![[r#"
-        Comprehesion {
-            binding: Identifier {
-                identifier: Ident(
-                    expected_names,
-                ),
-                ty: Some(
-                    Type::Path {
-                        qself: None,
-                        path: Path {
-                            leading_colon: None,
-                            segments: [
-                                PathSegment {
-                                    ident: Ident(
-                                        Set,
-                                    ),
-                                    arguments: PathArguments::AngleBracketed {
-                                        colon2_token: None,
-                                        lt_token: Lt,
-                                        args: [
-                                            GenericArgument::Type(
-                                                Type::Path {
-                                                    qself: None,
-                                                    path: Path {
-                                                        leading_colon: None,
-                                                        segments: [
-                                                            PathSegment {
-                                                                ident: Ident(
-                                                                    u32,
-                                                                ),
-                                                                arguments: PathArguments::None,
-                                                            },
-                                                        ],
-                                                    },
-                                                },
-                                            ),
-                                        ],
-                                        gt_token: Gt,
-                                    },
-                                },
-                            ],
-                        },
-                    },
-                ),
-            },
-            loop_var: Ident(
-                field,
-            ),
-            expression: Expr::Path {
-                attrs: [],
-                qself: None,
-                path: Path {
-                    leading_colon: None,
-                    segments: [
-                        PathSegment {
-                            ident: Ident(
-                                fields,
-                            ),
-                            arguments: PathArguments::None,
-                        },
-                    ],
-                },
-            },
-            body: ComprehensionBody {
-                premises: Premises {
-                    premises: [
-                        Premise {
-                            kind: Implication(
-                                Implication {
-                                    hypothesis: Expr::Call {
-                                        attrs: [],
-                                        func: Expr::Path {
-                                            attrs: [],
-                                            qself: None,
-                                            path: Path {
-                                                leading_colon: None,
-                                                segments: [
-                                                    PathSegment {
-                                                        ident: Ident(
-                                                            expected_field_name,
-                                                        ),
-                                                        arguments: PathArguments::None,
-                                                    },
-                                                ],
-                                            },
-                                        },
-                                        paren_token: Paren,
-                                        args: [
-                                            Expr::Path {
-                                                attrs: [],
-                                                qself: None,
-                                                path: Path {
-                                                    leading_colon: None,
-                                                    segments: [
-                                                        PathSegment {
-                                                            ident: Ident(
-                                                                field,
-                                                            ),
-                                                            arguments: PathArguments::None,
-                                                        },
-                                                    ],
-                                                },
-                                            },
-                                        ],
-                                    },
-                                    conclusion: Pat::Tuple {
-                                        attrs: [],
-                                        paren_token: Paren,
-                                        elems: [
-                                            Pat::Ident {
-                                                attrs: [],
-                                                by_ref: None,
-                                                mutability: None,
-                                                ident: Ident(
-                                                    a,
-                                                ),
-                                                subpat: None,
-                                            },
-                                            Comma,
-                                            Pat::Wild {
-                                                attrs: [],
-                                                underscore_token: Underscore,
-                                            },
-                                        ],
-                                    },
-                                },
-                            ),
-                            paren: Paren,
-                            commit_point: None,
-                        },
-                        Premise {
-                            kind: If(
-                                If {
-                                    expression: Expr::Binary {
-                                        attrs: [],
-                                        left: Expr::Path {
-                                            attrs: [],
-                                            qself: None,
-                                            path: Path {
-                                                leading_colon: None,
-                                                segments: [
-                                                    PathSegment {
+                                                paren_token: Paren,
+                                                elems: [
+                                                    Pat::Ident {
+                                                        attrs: [],
+                                                        by_ref: None,
+                                                        mutability: None,
                                                         ident: Ident(
                                                             a,
                                                         ),
-                                                        arguments: PathArguments::None,
+                                                        subpat: None,
+                                                    },
+                                                    Comma,
+                                                    Pat::Wild {
+                                                        attrs: [],
+                                                        underscore_token: Underscore,
                                                     },
                                                 ],
                                             },
                                         },
-                                        op: BinOp::Eq(
-                                            EqEq,
-                                        ),
-                                        right: Expr::Lit {
-                                            attrs: [],
-                                            lit: Lit::Str {
-                                                token: "blub",
-                                            },
-                                        },
-                                    },
+                                    ),
+                                    paren: Paren,
+                                    commit_point: None,
                                 },
-                            ),
-                            paren: Paren,
-                            commit_point: None,
+                            ],
                         },
-                    ],
-                },
-                conclusion: Expr::Path {
-                    attrs: [],
-                    qself: None,
-                    path: Path {
-                        leading_colon: None,
-                        segments: [
-                            PathSegment {
-                                ident: Ident(
-                                    a,
-                                ),
-                                arguments: PathArguments::None,
+                        conclusion: Expr::Path {
+                            attrs: [],
+                            qself: None,
+                            path: Path {
+                                leading_colon: None,
+                                segments: [
+                                    PathSegment {
+                                        ident: Ident(
+                                            a,
+                                        ),
+                                        arguments: PathArguments::None,
+                                    },
+                                ],
                             },
-                        ],
+                        },
                     },
                 },
-            },
+            ),
+            paren: Paren,
+            commit_point: None,
+        }
+    "#]]
+    .assert_debug_eq(&ast);
+}
+
+#[test]
+fn parse_comprehension_with_premises2() {
+    let ast: ast::Premise = syn::parse2(quote! {
+        (let expected_names: Set<u32> = for_all field in fields =>
+            (expected_field_name(field) => (a, _))
+            (if a == "blub")
+            a)
+    })
+    .unwrap();
+    expect![[r#"
+        Premise {
+            kind: Comprehension(
+                Comprehesion {
+                    binding: Identifier {
+                        identifier: Ident(
+                            expected_names,
+                        ),
+                        ty: Some(
+                            Type::Path {
+                                qself: None,
+                                path: Path {
+                                    leading_colon: None,
+                                    segments: [
+                                        PathSegment {
+                                            ident: Ident(
+                                                Set,
+                                            ),
+                                            arguments: PathArguments::AngleBracketed {
+                                                colon2_token: None,
+                                                lt_token: Lt,
+                                                args: [
+                                                    GenericArgument::Type(
+                                                        Type::Path {
+                                                            qself: None,
+                                                            path: Path {
+                                                                leading_colon: None,
+                                                                segments: [
+                                                                    PathSegment {
+                                                                        ident: Ident(
+                                                                            u32,
+                                                                        ),
+                                                                        arguments: PathArguments::None,
+                                                                    },
+                                                                ],
+                                                            },
+                                                        },
+                                                    ),
+                                                ],
+                                                gt_token: Gt,
+                                            },
+                                        },
+                                    ],
+                                },
+                            },
+                        ),
+                    },
+                    loop_var: Ident(
+                        field,
+                    ),
+                    collection: Expr::Path {
+                        attrs: [],
+                        qself: None,
+                        path: Path {
+                            leading_colon: None,
+                            segments: [
+                                PathSegment {
+                                    ident: Ident(
+                                        fields,
+                                    ),
+                                    arguments: PathArguments::None,
+                                },
+                            ],
+                        },
+                    },
+                    body: ComprehensionBody {
+                        premises: Premises {
+                            premises: [
+                                Premise {
+                                    kind: Implication(
+                                        Implication {
+                                            hypothesis: Expr::Call {
+                                                attrs: [],
+                                                func: Expr::Path {
+                                                    attrs: [],
+                                                    qself: None,
+                                                    path: Path {
+                                                        leading_colon: None,
+                                                        segments: [
+                                                            PathSegment {
+                                                                ident: Ident(
+                                                                    expected_field_name,
+                                                                ),
+                                                                arguments: PathArguments::None,
+                                                            },
+                                                        ],
+                                                    },
+                                                },
+                                                paren_token: Paren,
+                                                args: [
+                                                    Expr::Path {
+                                                        attrs: [],
+                                                        qself: None,
+                                                        path: Path {
+                                                            leading_colon: None,
+                                                            segments: [
+                                                                PathSegment {
+                                                                    ident: Ident(
+                                                                        field,
+                                                                    ),
+                                                                    arguments: PathArguments::None,
+                                                                },
+                                                            ],
+                                                        },
+                                                    },
+                                                ],
+                                            },
+                                            conclusion: Pat::Tuple {
+                                                attrs: [],
+                                                paren_token: Paren,
+                                                elems: [
+                                                    Pat::Ident {
+                                                        attrs: [],
+                                                        by_ref: None,
+                                                        mutability: None,
+                                                        ident: Ident(
+                                                            a,
+                                                        ),
+                                                        subpat: None,
+                                                    },
+                                                    Comma,
+                                                    Pat::Wild {
+                                                        attrs: [],
+                                                        underscore_token: Underscore,
+                                                    },
+                                                ],
+                                            },
+                                        },
+                                    ),
+                                    paren: Paren,
+                                    commit_point: None,
+                                },
+                                Premise {
+                                    kind: If(
+                                        If {
+                                            expression: Expr::Binary {
+                                                attrs: [],
+                                                left: Expr::Path {
+                                                    attrs: [],
+                                                    qself: None,
+                                                    path: Path {
+                                                        leading_colon: None,
+                                                        segments: [
+                                                            PathSegment {
+                                                                ident: Ident(
+                                                                    a,
+                                                                ),
+                                                                arguments: PathArguments::None,
+                                                            },
+                                                        ],
+                                                    },
+                                                },
+                                                op: BinOp::Eq(
+                                                    EqEq,
+                                                ),
+                                                right: Expr::Lit {
+                                                    attrs: [],
+                                                    lit: Lit::Str {
+                                                        token: "blub",
+                                                    },
+                                                },
+                                            },
+                                        },
+                                    ),
+                                    paren: Paren,
+                                    commit_point: None,
+                                },
+                            ],
+                        },
+                        conclusion: Expr::Path {
+                            attrs: [],
+                            qself: None,
+                            path: Path {
+                                leading_colon: None,
+                                segments: [
+                                    PathSegment {
+                                        ident: Ident(
+                                            a,
+                                        ),
+                                        arguments: PathArguments::None,
+                                    },
+                                ],
+                            },
+                        },
+                    },
+                },
+            ),
+            paren: Paren,
+            commit_point: None,
         }
     "#]]
     .assert_debug_eq(&ast);
@@ -1542,53 +1614,33 @@ fn parse_fail_let_for_all2() {
 
 #[test]
 fn parse_scope_with_empty_state() {
-    let ast: ast::Scope = syn::parse2(quote! {
-        scope(enter_universally(env, &binder.explicit_binder) => (env, TraitBoundData { where_clauses, trait_items })) with()
+    let ast: ast::Premise = syn::parse2(quote! {
+        (scope(enter_universally(env, &binder.explicit_binder) => (env, TraitBoundData { where_clauses, trait_items })) with())
     }).unwrap();
     expect![[r#"
-        Scope {
-            expression: Expr::Call {
-                attrs: [],
-                func: Expr::Path {
-                    attrs: [],
-                    qself: None,
-                    path: Path {
-                        leading_colon: None,
-                        segments: [
-                            PathSegment {
-                                ident: Ident(
-                                    enter_universally,
-                                ),
-                                arguments: PathArguments::None,
-                            },
-                        ],
-                    },
-                },
-                paren_token: Paren,
-                args: [
-                    Expr::Path {
+        Premise {
+            kind: Scope(
+                Scope {
+                    expression: Expr::Call {
                         attrs: [],
-                        qself: None,
-                        path: Path {
-                            leading_colon: None,
-                            segments: [
-                                PathSegment {
-                                    ident: Ident(
-                                        env,
-                                    ),
-                                    arguments: PathArguments::None,
-                                },
-                            ],
-                        },
-                    },
-                    Comma,
-                    Expr::Reference {
-                        attrs: [],
-                        and_token: And,
-                        mutability: None,
-                        expr: Expr::Field {
+                        func: Expr::Path {
                             attrs: [],
-                            base: Expr::Path {
+                            qself: None,
+                            path: Path {
+                                leading_colon: None,
+                                segments: [
+                                    PathSegment {
+                                        ident: Ident(
+                                            enter_universally,
+                                        ),
+                                        arguments: PathArguments::None,
+                                    },
+                                ],
+                            },
+                        },
+                        paren_token: Paren,
+                        args: [
+                            Expr::Path {
                                 attrs: [],
                                 qself: None,
                                 path: Path {
@@ -1596,99 +1648,125 @@ fn parse_scope_with_empty_state() {
                                     segments: [
                                         PathSegment {
                                             ident: Ident(
-                                                binder,
+                                                env,
                                             ),
                                             arguments: PathArguments::None,
                                         },
                                     ],
                                 },
                             },
-                            dot_token: Dot,
-                            member: Member::Named(
-                                Ident(
-                                    explicit_binder,
-                                ),
-                            ),
-                        },
-                    },
-                ],
-            },
-            inside: Pat::Tuple {
-                attrs: [],
-                paren_token: Paren,
-                elems: [
-                    Pat::Ident {
-                        attrs: [],
-                        by_ref: None,
-                        mutability: None,
-                        ident: Ident(
-                            env,
-                        ),
-                        subpat: None,
-                    },
-                    Comma,
-                    Pat::Struct {
-                        attrs: [],
-                        qself: None,
-                        path: Path {
-                            leading_colon: None,
-                            segments: [
-                                PathSegment {
-                                    ident: Ident(
-                                        TraitBoundData,
-                                    ),
-                                    arguments: PathArguments::None,
-                                },
-                            ],
-                        },
-                        brace_token: Brace,
-                        fields: [
-                            FieldPat {
-                                attrs: [],
-                                member: Member::Named(
-                                    Ident(
-                                        where_clauses,
-                                    ),
-                                ),
-                                colon_token: None,
-                                pat: Pat::Ident {
-                                    attrs: [],
-                                    by_ref: None,
-                                    mutability: None,
-                                    ident: Ident(
-                                        where_clauses,
-                                    ),
-                                    subpat: None,
-                                },
-                            },
                             Comma,
-                            FieldPat {
+                            Expr::Reference {
                                 attrs: [],
-                                member: Member::Named(
-                                    Ident(
-                                        trait_items,
-                                    ),
-                                ),
-                                colon_token: None,
-                                pat: Pat::Ident {
+                                and_token: And,
+                                mutability: None,
+                                expr: Expr::Field {
                                     attrs: [],
-                                    by_ref: None,
-                                    mutability: None,
-                                    ident: Ident(
-                                        trait_items,
+                                    base: Expr::Path {
+                                        attrs: [],
+                                        qself: None,
+                                        path: Path {
+                                            leading_colon: None,
+                                            segments: [
+                                                PathSegment {
+                                                    ident: Ident(
+                                                        binder,
+                                                    ),
+                                                    arguments: PathArguments::None,
+                                                },
+                                            ],
+                                        },
+                                    },
+                                    dot_token: Dot,
+                                    member: Member::Named(
+                                        Ident(
+                                            explicit_binder,
+                                        ),
                                     ),
-                                    subpat: None,
                                 },
                             },
                         ],
-                        rest: None,
                     },
-                ],
-            },
-            state: [],
-            body: Premises {
-                premises: [],
-            },
+                    inside: Pat::Tuple {
+                        attrs: [],
+                        paren_token: Paren,
+                        elems: [
+                            Pat::Ident {
+                                attrs: [],
+                                by_ref: None,
+                                mutability: None,
+                                ident: Ident(
+                                    env,
+                                ),
+                                subpat: None,
+                            },
+                            Comma,
+                            Pat::Struct {
+                                attrs: [],
+                                qself: None,
+                                path: Path {
+                                    leading_colon: None,
+                                    segments: [
+                                        PathSegment {
+                                            ident: Ident(
+                                                TraitBoundData,
+                                            ),
+                                            arguments: PathArguments::None,
+                                        },
+                                    ],
+                                },
+                                brace_token: Brace,
+                                fields: [
+                                    FieldPat {
+                                        attrs: [],
+                                        member: Member::Named(
+                                            Ident(
+                                                where_clauses,
+                                            ),
+                                        ),
+                                        colon_token: None,
+                                        pat: Pat::Ident {
+                                            attrs: [],
+                                            by_ref: None,
+                                            mutability: None,
+                                            ident: Ident(
+                                                where_clauses,
+                                            ),
+                                            subpat: None,
+                                        },
+                                    },
+                                    Comma,
+                                    FieldPat {
+                                        attrs: [],
+                                        member: Member::Named(
+                                            Ident(
+                                                trait_items,
+                                            ),
+                                        ),
+                                        colon_token: None,
+                                        pat: Pat::Ident {
+                                            attrs: [],
+                                            by_ref: None,
+                                            mutability: None,
+                                            ident: Ident(
+                                                trait_items,
+                                            ),
+                                            subpat: None,
+                                        },
+                                    },
+                                ],
+                                rest: None,
+                            },
+                        ],
+                    },
+                    state: [],
+                    body: Premises {
+                        premises: [],
+                    },
+                },
+            ),
+            paren: Paren,
+            commit_point: None,
         }
     "#]]
     .assert_debug_eq(&ast);
@@ -1696,53 +1774,33 @@ fn parse_scope_with_empty_state() {
 
 #[test]
 fn parse_scope_with_state() {
-    let ast: ast::Scope = syn::parse2(quote! {
-        scope(enter_universally(env, &binder.explicit_binder) => (env, TraitBoundData { where_clauses, trait_items })) with(a_vec)
+    let ast: ast::Premise = syn::parse2(quote! {
+        (scope(enter_universally(env, &binder.explicit_binder) => (env, TraitBoundData { where_clauses, trait_items })) with(a_vec))
     }).unwrap();
     expect![[r#"
-        Scope {
-            expression: Expr::Call {
-                attrs: [],
-                func: Expr::Path {
-                    attrs: [],
-                    qself: None,
-                    path: Path {
-                        leading_colon: None,
-                        segments: [
-                            PathSegment {
-                                ident: Ident(
-                                    enter_universally,
-                                ),
-                                arguments: PathArguments::None,
-                            },
-                        ],
-                    },
-                },
-                paren_token: Paren,
-                args: [
-                    Expr::Path {
+        Premise {
+            kind: Scope(
+                Scope {
+                    expression: Expr::Call {
                         attrs: [],
-                        qself: None,
-                        path: Path {
-                            leading_colon: None,
-                            segments: [
-                                PathSegment {
-                                    ident: Ident(
-                                        env,
-                                    ),
-                                    arguments: PathArguments::None,
-                                },
-                            ],
-                        },
-                    },
-                    Comma,
-                    Expr::Reference {
-                        attrs: [],
-                        and_token: And,
-                        mutability: None,
-                        expr: Expr::Field {
+                        func: Expr::Path {
                             attrs: [],
-                            base: Expr::Path {
+                            qself: None,
+                            path: Path {
+                                leading_colon: None,
+                                segments: [
+                                    PathSegment {
+                                        ident: Ident(
+                                            enter_universally,
+                                        ),
+                                        arguments: PathArguments::None,
+                                    },
+                                ],
+                            },
+                        },
+                        paren_token: Paren,
+                        args: [
+                            Expr::Path {
                                 attrs: [],
                                 qself: None,
                                 path: Path {
@@ -1750,103 +1808,129 @@ fn parse_scope_with_state() {
                                     segments: [
                                         PathSegment {
                                             ident: Ident(
-                                                binder,
+                                                env,
                                             ),
                                             arguments: PathArguments::None,
                                         },
                                     ],
                                 },
                             },
-                            dot_token: Dot,
-                            member: Member::Named(
-                                Ident(
-                                    explicit_binder,
-                                ),
-                            ),
-                        },
-                    },
-                ],
-            },
-            inside: Pat::Tuple {
-                attrs: [],
-                paren_token: Paren,
-                elems: [
-                    Pat::Ident {
-                        attrs: [],
-                        by_ref: None,
-                        mutability: None,
-                        ident: Ident(
-                            env,
-                        ),
-                        subpat: None,
-                    },
-                    Comma,
-                    Pat::Struct {
-                        attrs: [],
-                        qself: None,
-                        path: Path {
-                            leading_colon: None,
-                            segments: [
-                                PathSegment {
-                                    ident: Ident(
-                                        TraitBoundData,
-                                    ),
-                                    arguments: PathArguments::None,
-                                },
-                            ],
-                        },
-                        brace_token: Brace,
-                        fields: [
-                            FieldPat {
-                                attrs: [],
-                                member: Member::Named(
-                                    Ident(
-                                        where_clauses,
-                                    ),
-                                ),
-                                colon_token: None,
-                                pat: Pat::Ident {
-                                    attrs: [],
-                                    by_ref: None,
-                                    mutability: None,
-                                    ident: Ident(
-                                        where_clauses,
-                                    ),
-                                    subpat: None,
-                                },
-                            },
                             Comma,
-                            FieldPat {
+                            Expr::Reference {
                                 attrs: [],
-                                member: Member::Named(
-                                    Ident(
-                                        trait_items,
-                                    ),
-                                ),
-                                colon_token: None,
-                                pat: Pat::Ident {
+                                and_token: And,
+                                mutability: None,
+                                expr: Expr::Field {
                                     attrs: [],
-                                    by_ref: None,
-                                    mutability: None,
-                                    ident: Ident(
-                                        trait_items,
+                                    base: Expr::Path {
+                                        attrs: [],
+                                        qself: None,
+                                        path: Path {
+                                            leading_colon: None,
+                                            segments: [
+                                                PathSegment {
+                                                    ident: Ident(
+                                                        binder,
+                                                    ),
+                                                    arguments: PathArguments::None,
+                                                },
+                                            ],
+                                        },
+                                    },
+                                    dot_token: Dot,
+                                    member: Member::Named(
+                                        Ident(
+                                            explicit_binder,
+                                        ),
                                     ),
-                                    subpat: None,
                                 },
                             },
                         ],
-                        rest: None,
                     },
-                ],
-            },
-            state: [
-                Ident(
-                    a_vec,
-                ),
-            ],
-            body: Premises {
-                premises: [],
-            },
+                    inside: Pat::Tuple {
+                        attrs: [],
+                        paren_token: Paren,
+                        elems: [
+                            Pat::Ident {
+                                attrs: [],
+                                by_ref: None,
+                                mutability: None,
+                                ident: Ident(
+                                    env,
+                                ),
+                                subpat: None,
+                            },
+                            Comma,
+                            Pat::Struct {
+                                attrs: [],
+                                qself: None,
+                                path: Path {
+                                    leading_colon: None,
+                                    segments: [
+                                        PathSegment {
+                                            ident: Ident(
+                                                TraitBoundData,
+                                            ),
+                                            arguments: PathArguments::None,
+                                        },
+                                    ],
+                                },
+                                brace_token: Brace,
+                                fields: [
+                                    FieldPat {
+                                        attrs: [],
+                                        member: Member::Named(
+                                            Ident(
+                                                where_clauses,
+                                            ),
+                                        ),
+                                        colon_token: None,
+                                        pat: Pat::Ident {
+                                            attrs: [],
+                                            by_ref: None,
+                                            mutability: None,
+                                            ident: Ident(
+                                                where_clauses,
+                                            ),
+                                            subpat: None,
+                                        },
+                                    },
+                                    Comma,
+                                    FieldPat {
+                                        attrs: [],
+                                        member: Member::Named(
+                                            Ident(
+                                                trait_items,
+                                            ),
+                                        ),
+                                        colon_token: None,
+                                        pat: Pat::Ident {
+                                            attrs: [],
+                                            by_ref: None,
+                                            mutability: None,
+                                            ident: Ident(
+                                                trait_items,
+                                            ),
+                                            subpat: None,
+                                        },
+                                    },
+                                ],
+                                rest: None,
+                            },
+                        ],
+                    },
+                    state: [
+                        Ident(
+                            a_vec,
+                        ),
+                    ],
+                    body: Premises {
+                        premises: [],
+                    },
+                },
+            ),
+            paren: Paren,
+            commit_point: None,
         }
     "#]]
     .assert_debug_eq(&ast);
