@@ -2332,5 +2332,167 @@ fn codegen_in() {
                 }
             }
         }
+    "#]]
+    .assert_eq(&s);
+}
+
+#[test]
+fn codegen_scope() {
+    let expression =
+        syn::parse2(quote! { enter_universally(env, &binder.explicit_binder) }).unwrap();
+    let pattern = syn::Pat::parse_multi_with_leading_vert
+        .parse2(quote! { (env, TraitBoundData { where_clauses, trait_items }) })
+        .unwrap();
+
+    let state = vec![];
+    let body = Premises {
+        premises: std::collections::VecDeque::from([ast::Premise {
+            kind: ast::PremiseKind::If(ast::If {
+                expression: syn::parse2(quote! { dummy_expression }).unwrap(),
+            }),
+            paren: syn::token::Paren::default(),
+            commit_point: None,
+        }]),
+    };
+
+    let scope = ast::Scope {
+        expression,
+        pattern,
+        state,
+        body,
+    };
+
+    let s = render_block(codegen::emit_scope(&scope, "scope", DUMMY.clone()));
+    expect![[r#"
+        fn __dummy() {
+            match ::formality_core::judgment::try_catch(|| Ok(
+                enter_universally(env, &binder.explicit_binder),
+            )) {
+                Err(e) => {
+                    let cause = e;
+                    let file = file!();
+                    let line = line!();
+                    let column = column!();
+                    if __matched {
+                        tracing::debug!(
+                            "rule {rn} failed because {cause} ({file}:{line}:{column})", rn =
+                            "scope", cause = cause, file = file, line = line, column = column,
+                        );
+                        failed_rules
+                            .insert(::formality_core::judgment::FailedRule {
+                                rule_name: Some("scope".to_string()),
+                                file: file.to_string(),
+                                line: line,
+                                column: column,
+                                cause,
+                            });
+                    } else {
+                        tracing::trace!(
+                            "rule {rn} failed because {cause} ({file}:{line}:{column})", rn =
+                            "scope", cause = cause, file = file, line = line, column = column,
+                        );
+                    }
+                }
+                Ok((scope, inside)) => {
+                    let mut scope_proofs = vec![];
+                    {
+                        #[allow(unused_variables)]
+                        let (env, TraitBoundData { where_clauses, trait_items }) = &inside;
+                        #[allow(unused_mut)]
+                        let mut child_proof_trees: Vec<::formality_core::judgment::ProofTree> = Vec::new();
+                        let if_then = ::formality_core::judgment::IfThen::new(
+                            stringify!(dummy_expression),
+                            vec![],
+                        );
+                        if { dummy_expression } {
+                            child_proof_trees
+                                .push(
+                                    ::formality_core::judgment::ProofTree::leaf(
+                                        format!("{if_then:?}"),
+                                    ),
+                                );
+                            scope_proofs.push(((), child_proof_trees.clone()));
+                        } else {
+                            let cause = ::formality_core::judgment::RuleFailureCause::IfFalse(
+                                if_then,
+                            );
+                            let file = file!();
+                            let line = line!();
+                            let column = column!();
+                            if __matched {
+                                tracing::debug!(
+                                    "rule {rn} failed because {cause} ({file}:{line}:{column})",
+                                    rn = "scope", cause = cause, file = file, line = line, column
+                                    = column,
+                                );
+                                failed_rules
+                                    .insert(::formality_core::judgment::FailedRule {
+                                        rule_name: Some("scope".to_string()),
+                                        file: file.to_string(),
+                                        line: line,
+                                        column: column,
+                                        cause,
+                                    });
+                            } else {
+                                tracing::trace!(
+                                    "rule {rn} failed because {cause} ({file}:{line}:{column})",
+                                    rn = "scope", cause = cause, file = file, line = line, column
+                                    = column,
+                                );
+                            }
+                        }
+                    }
+                    for (values, inner_proof_trees) in scope_proofs {
+                        if let Err(e) = ::formality_core::judgment::EachProof::each_proof(
+                            ::formality_core::judgment::Scope::leave(&scope, values),
+                            |(values, leave_proof_tree)| {
+                                #[allow(unused_variables)]
+                                let () = &values;
+                                let len = child_proof_trees.len();
+                                let mut scope_proof_trees = inner_proof_trees.clone();
+                                scope_proof_trees.push(leave_proof_tree);
+                                child_proof_trees
+                                    .push(
+                                        ::formality_core::judgment::ProofTree::new(
+                                            "scope",
+                                            None,
+                                            scope_proof_trees,
+                                        ),
+                                    );
+                                { dummy }
+                                assert!(child_proof_trees.len() > len);
+                                child_proof_trees.truncate(len);
+                            },
+                        ) {
+                            let cause = e;
+                            let file = file!();
+                            let line = line!();
+                            let column = column!();
+                            if __matched {
+                                tracing::debug!(
+                                    "rule {rn} failed because {cause} ({file}:{line}:{column})",
+                                    rn = "scope", cause = cause, file = file, line = line, column
+                                    = column,
+                                );
+                                failed_rules
+                                    .insert(::formality_core::judgment::FailedRule {
+                                        rule_name: Some("scope".to_string()),
+                                        file: file.to_string(),
+                                        line: line,
+                                        column: column,
+                                        cause,
+                                    });
+                            } else {
+                                tracing::trace!(
+                                    "rule {rn} failed because {cause} ({file}:{line}:{column})",
+                                    rn = "scope", cause = cause, file = file, line = line, column
+                                    = column,
+                                );
+                            }
+                        }
+                    }
+                }
+            }
+        }
     "#]].assert_eq(&s);
 }

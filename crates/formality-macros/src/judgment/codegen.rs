@@ -3,8 +3,8 @@ use quote::quote;
 use syn::{Attribute, BinOp, Expr, ExprBinary, ExprUnary, Ident, Pat, UnOp};
 
 use crate::judgment::ast::{
-    Argument, Ast, Binding, Fail, ForAll, If, IfLet, Implication, In, Judgment, Let, PremiseKind,
-    Premises, Rule, Signature,
+    Argument, Ast, Binding, Comprehesion, Fail, ForAll, If, IfLet, Implication, In, Judgment, Let,
+    PremiseKind, Premises, Rule, Scope, Signature,
 };
 
 pub type Rust = TokenStream;
@@ -320,9 +320,11 @@ fn emit_premises(premises: &Premises, name: &str, token_stream: TokenStream) -> 
             PremiseKind::Fail(fail) => emit_fail(fail, name, acc),
             PremiseKind::Implication(implication) => emit_implication(implication, name, acc),
             PremiseKind::Let(let_) => emit_let(let_, name, acc),
-            PremiseKind::Comprehension(let_for_all) => todo!("let for all"),
+            PremiseKind::Comprehension(comprehension) => {
+                emit_comprehension(comprehension, name, acc)
+            }
             PremiseKind::In(in_) => emit_in(in_, name, acc),
-            PremiseKind::Scope(scope) => todo!("scope"),
+            PremiseKind::Scope(scope) => emit_scope(scope, name, acc),
         })
 }
 
@@ -626,6 +628,14 @@ pub(crate) fn emit_in(in_: &In, name: &str, token_stream: TokenStream) -> TokenS
     }
 }
 
+pub(crate) fn emit_comprehension(
+    comprehension: &Comprehesion,
+    name: &str,
+    token_stream: TokenStream,
+) -> TokenStream {
+    todo!()
+}
+
 pub(crate) fn emit_implication(
     implication: &Implication,
     name: &str,
@@ -647,6 +657,71 @@ pub(crate) fn emit_implication(
                 #record_failure
             }
         }
+    }
+}
+
+pub(crate) fn emit_scope(scope: &Scope, name: &str, token_stream: TokenStream) -> TokenStream {
+    let record_failure = emit_record_failure(name);
+
+    let expression = &scope.expression;
+    let inside = &scope.pattern;
+    let with_var = &scope.state;
+
+    let collect =
+        quote! { scope_proofs.push(((#(#with_var.clone(),)*), child_proof_trees.clone())); };
+
+    let body = emit_premises(&scope.body, name, collect);
+    quote! {
+        match ::formality_core::judgment::try_catch(|| Ok(#expression)) {
+            Err(e) => {
+                let cause = e;
+                #record_failure
+            }
+
+            Ok((scope, inside)) => {
+                // Prove the nested conditions. They see what is inside the scope
+                // (and, being in a block, what they bind ends with it). Collect
+                // each proof's values for the `with` variables.
+                let mut scope_proofs = vec![];
+                {
+                    #[allow(unused_variables)]
+                    let #inside = &inside;
+                    #[allow(unused_mut)]
+                    let mut child_proof_trees: Vec<::formality_core::judgment::ProofTree> = Vec::new();
+                    #body
+                }
+
+                // Leave the scope with each, and continue with what comes out.
+                for (values, inner_proof_trees) in scope_proofs {
+                    if let Err(e) = ::formality_core::judgment::EachProof::each_proof(
+                        ::formality_core::judgment::Scope::leave(&scope, values),
+                        |(values, leave_proof_tree)| {
+                            #[allow(unused_variables)]
+                            let (#(#with_var,)*) = &values;
+
+                            let len = child_proof_trees.len();
+
+                            let mut scope_proof_trees = inner_proof_trees.clone();
+                            scope_proof_trees.push(leave_proof_tree);
+                            child_proof_trees.push(::formality_core::judgment::ProofTree::new(
+                                "scope",
+                                None,
+                                scope_proof_trees,
+                            ));
+
+                            #token_stream
+
+                            assert!(child_proof_trees.len() > len);
+                            child_proof_trees.truncate(len);
+                        },
+                    ) {
+                        let cause = e;
+                        #record_failure
+                    }
+                }
+            }
+        }
+
     }
 }
 
