@@ -92,3 +92,68 @@ fn book_count_example_reaches_its_least_fixed_point() {
         );
     });
 }
+
+// A graph with a three-node cycle and a tail: 3 -> 0 -> 1 -> 2 -> 0.
+// Every node of the cycle depends on the others, so the solver must iterate to a
+// fixed point, and nothing reaches the tail node except itself.
+judgment_fn! {
+    fn cycle_edge(a: u32) => u32 {
+        debug(a)
+
+        (
+            (if *a == 3)
+            --- ("3 -> 0")
+            (cycle_edge(a) => 0)
+        )
+
+        (
+            (if *a == 0)
+            --- ("0 -> 1")
+            (cycle_edge(a) => 1)
+        )
+
+        (
+            (if *a == 1)
+            --- ("1 -> 2")
+            (cycle_edge(a) => 2)
+        )
+
+        (
+            (if *a == 2)
+            --- ("2 -> 0")
+            (cycle_edge(a) => 0)
+        )
+    }
+}
+
+judgment_fn! {
+    fn cycle_reachable(a: u32) => u32 {
+        debug(a)
+
+        (
+            --- ("self")
+            (cycle_reachable(a) => a)
+        )
+
+        (
+            (cycle_edge(a) => b)
+            (cycle_reachable(b) => c)
+            --- ("successor")
+            (cycle_reachable(a) => c)
+        )
+    }
+}
+
+#[test]
+fn every_node_of_a_cycle_reaches_the_whole_cycle() {
+    for start in [0_u32, 1, 2] {
+        let values = cycle_reachable(start).proven_results().unwrap();
+        assert_eq!(values, crate::set![0, 1, 2], "from {start}");
+    }
+}
+
+#[test]
+fn a_tail_node_reaches_the_cycle_but_is_not_reached_by_it() {
+    let values = cycle_reachable(3_u32).proven_results().unwrap();
+    assert_eq!(values, crate::set![0, 1, 2, 3]);
+}
