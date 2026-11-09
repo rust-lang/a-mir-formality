@@ -291,11 +291,12 @@ impl Parse for ForAll {
         inner.parse::<Token![in]>()?;
         let collection: Expr = inner.parse()?;
 
-        let state = if inner.peek(keyword::with) {
-            inner.parse::<keyword::with>()?;
+        let state = if input.peek(keyword::with) {
+            input.parse::<keyword::with>()?;
 
             let with;
-            parenthesized!(with in inner);
+            parenthesized!(with in input);
+
             let state: Punctuated<Ident, Token![,]> =
                 with.parse_terminated(Ident::parse, Token![,])?;
             state.into_iter().collect()
@@ -394,6 +395,9 @@ impl Parse for Comprehesion {
 
 impl Parse for ComprehensionBody {
     fn parse(input: ParseStream) -> Result<Self> {
+        // TODO: is this really correct?
+        // As far as I understand this, the body are premises, but the last premise must be an implication or a value.
+        // Everything else is an error, and should be reported.
         let premises = input.parse()?;
         let conclusion = input.parse()?;
 

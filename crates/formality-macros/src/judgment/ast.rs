@@ -5,6 +5,25 @@ use std::collections::VecDeque;
 
 pub type Ast = Judgment;
 
+#[derive(Debug, Eq, PartialEq)]
+pub enum JudgmentError {
+    ParseError,
+    CodegenError,
+}
+
+impl std::fmt::Display for JudgmentError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let out = match self {
+            JudgmentError::ParseError => "Error during parsing",
+            JudgmentError::CodegenError => "Error during code generation",
+        };
+
+        write!(f, "{out}")
+    }
+}
+
+impl std::error::Error for JudgmentError {}
+
 /// Judgment ::= Signature Body
 #[derive(Debug, Clone)]
 pub struct Judgment {
@@ -260,5 +279,32 @@ impl Judgment {
 
     pub fn rules(&self) -> Vec<&Rule> {
         self.body.rules.rules.iter().collect()
+    }
+}
+
+impl Binding {
+    pub fn identifier(&self) -> Result<Ident, JudgmentError> {
+        Ok(match self {
+            Binding::Pattern {
+                pattern: Pat::Ident(i),
+            } => &i.ident,
+            Binding::Identifier { identifier, ty } => identifier,
+            _ => {
+                return Err(JudgmentError::CodegenError);
+            }
+        }
+        .clone())
+    }
+
+    pub fn ty(&self) -> Type {
+        match self {
+            Binding::Identifier {
+                identifier,
+                ty: Some(ty),
+            } => ty.clone(),
+            _ => Type::Infer(TypeInfer {
+                underscore_token: Default::default(),
+            }),
+        }
     }
 }

@@ -1,6 +1,7 @@
 use std::cell::LazyCell;
 
-use crate::judgment::ast::Premises;
+use crate::judgment::ast::{Premise, PremiseKind, Premises};
+use crate::judgment::codegen::emit;
 use crate::judgment::{ast, codegen};
 
 use crate::judgment::parse::parse;
@@ -18,6 +19,15 @@ fn render_block(tokens: TokenStream) -> String {
         fn __dummy() {
             #tokens
         }
+    })
+    .expect("generated code should be valid block statements");
+
+    prettyplease::unparse(&file)
+}
+
+fn render_function(tokens: TokenStream) -> String {
+    let file: syn::File = syn::parse2(quote! {
+        #tokens
     })
     .expect("generated code should be valid block statements");
 
@@ -923,7 +933,7 @@ fn parse_for_all() {
 #[test]
 fn parse_for_all_with_state() {
     let ast: ast::Premise = syn::parse2(quote! {
-        (for_all(field in fields with(state))
+        (for_all(field in fields) with(state)
             (let Field { ty, .. } = field))
     })
     .unwrap();
@@ -2154,90 +2164,100 @@ fn codegen_for_all() {
         fn __dummy() {
             {
                 let collection = variants;
-                let mut errored = false;
-                let (file, line, column) = ::formality_core::respan!(
-                    variants((file!(), line!(), column!()))
+                let (file, line, column) = (file!(), line!(), column!());
+                let mut alternatives = ::formality_core::Map::new();
+                ::formality_core::judgment::insert_smallest_proof(
+                    &mut alternatives,
+                    (),
+                    ::formality_core::judgment::ProofTree::new("for_all", None, vec![]),
                 );
-                let mut loop_carried = ();
-                let mut for_all_proof_trees = vec![];
                 for variant in collection {
-                    if errored {
-                        break;
-                    }
-                    #[allow(unused)]
-                    let () = &loop_carried.clone();
-                    let attributes = vec![("item".to_string(), format!("{:?}", variant))];
-                    let mut child_proof_trees = vec![];
-                    let mut next_carried_and_proof = None;
-                    let if_then = ::formality_core::judgment::IfThen::new(
-                        stringify!(dummy_expression),
-                        vec![],
-                    );
-                    if { dummy_expression } {
-                        child_proof_trees
-                            .push(
-                                ::formality_core::judgment::ProofTree::leaf(
-                                    format!("{if_then:?}"),
-                                ),
-                            );
-                        next_carried_and_proof = Some(((), child_proof_trees.clone()));
-                    } else {
-                        let cause = ::formality_core::judgment::RuleFailureCause::IfFalse(
-                            if_then,
+                    let mut next_alternatives = ::formality_core::Map::new();
+                    for (loop_carried, for_all_proof_trees) in alternatives {
+                        let variant = Clone::clone(&variant);
+                        #[allow(unused)]
+                        let () = &loop_carried;
+                        let attributes = vec![("item".to_string(), format!("{:?}", variant))];
+                        let mut child_proof_trees = vec![];
+                        let mut next_carried_and_proof = vec![];
+                        let if_then = ::formality_core::judgment::IfThen::new(
+                            stringify!(dummy_expression),
+                            vec![],
                         );
-                        let file = file!();
-                        let line = line!();
-                        let column = column!();
-                        if __matched {
-                            tracing::debug!(
-                                "rule {rn} failed because {cause} ({file}:{line}:{column})", rn =
-                                "for all", cause = cause, file = file, line = line, column =
-                                column,
-                            );
-                            failed_rules
-                                .insert(::formality_core::judgment::FailedRule {
-                                    rule_name: Some("for all".to_string()),
-                                    file: file.to_string(),
-                                    line: line,
-                                    column: column,
-                                    cause,
-                                });
+                        if { dummy_expression } {
+                            child_proof_trees
+                                .push(
+                                    ::formality_core::judgment::ProofTree::leaf(
+                                        format!("{if_then:?}"),
+                                    ),
+                                );
+                            next_carried_and_proof.push(((), child_proof_trees.clone()));
                         } else {
-                            tracing::trace!(
-                                "rule {rn} failed because {cause} ({file}:{line}:{column})", rn =
-                                "for all", cause = cause, file = file, line = line, column =
-                                column,
+                            let cause = ::formality_core::judgment::RuleFailureCause::IfFalse(
+                                if_then,
+                            );
+                            let file = file!();
+                            let line = line!();
+                            let column = column!();
+                            if __matched {
+                                tracing::debug!(
+                                    "rule {rn} failed because {cause} ({file}:{line}:{column})",
+                                    rn = "for all", cause = cause, file = file, line = line,
+                                    column = column,
+                                );
+                                failed_rules
+                                    .insert(::formality_core::judgment::FailedRule {
+                                        rule_name: Some("for all".to_string()),
+                                        file: file.to_string(),
+                                        line: line,
+                                        column: column,
+                                        cause,
+                                    });
+                            } else {
+                                tracing::trace!(
+                                    "rule {rn} failed because {cause} ({file}:{line}:{column})",
+                                    rn = "for all", cause = cause, file = file, line = line,
+                                    column = column,
+                                );
+                            }
+                        }
+                        for (next_carried, next_proof) in next_carried_and_proof {
+                            let mut proofs = for_all_proof_trees.children.clone();
+                            proofs
+                                .push(
+                                    ::formality_core::judgment::ProofTree::with_all(
+                                        "for_all",
+                                        attributes.clone(),
+                                        None,
+                                        &file[..],
+                                        line,
+                                        column,
+                                        next_proof,
+                                    ),
+                                );
+                            ::formality_core::judgment::insert_smallest_proof(
+                                &mut next_alternatives,
+                                next_carried,
+                                ::formality_core::judgment::ProofTree::new(
+                                    "for_all",
+                                    None,
+                                    proofs,
+                                ),
                             );
                         }
                     }
-                    if let Some((next_carried, next_proof)) = next_carried_and_proof {
-                        for_all_proof_trees
-                            .push(
-                                ::formality_core::judgment::ProofTree::with_all(
-                                    "for_all",
-                                    attributes,
-                                    None,
-                                    &file[..],
-                                    line,
-                                    column,
-                                    next_proof,
-                                ),
-                            );
-                        loop_carried = next_carried;
-                    } else {
-                        errored = true;
+                    alternatives = next_alternatives;
+                    if alternatives.is_empty() {
+                        break;
                     }
                 }
-                if !errored {
+                for (loop_carried, for_all_proof_trees) in alternatives {
                     #[allow(unused)]
-                    let () = &loop_carried.clone();
-                    let for_all_tree = ::formality_core::judgment::ProofTree::new(
-                        "for_all",
-                        None,
-                        for_all_proof_trees,
-                    );
-                    child_proof_trees.push(for_all_tree);
+                    let () = &loop_carried;
+                    let len = child_proof_trees.len();
+                    child_proof_trees.push(for_all_proof_trees);
                     { dummy }
+                    child_proof_trees.truncate(len);
                 }
             }
         }

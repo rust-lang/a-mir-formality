@@ -4,7 +4,7 @@ use syn::{Attribute, BinOp, Expr, ExprBinary, ExprUnary, Ident, Pat, UnOp};
 
 use crate::judgment::ast::{
     Argument, Ast, Binding, Comprehesion, Fail, ForAll, If, IfLet, Implication, In, Judgment, Let,
-    PremiseKind, Premises, Rule, Scope, Signature,
+    Premise, PremiseKind, Premises, Rule, Scope, Signature,
 };
 
 pub type Rust = TokenStream;
@@ -278,7 +278,11 @@ fn emit_match(judgment: &Judgment, rule: &Rule, rule_stream: TokenStream) -> Tok
                         }
                     }
                 }
-                Pat::Struct(pat_struct) => todo!(),
+                Pat::Struct(pat_struct) => quote! {
+                    if let Some(#pattern) = &::formality_core::Downcast::downcast(#name) {
+                        #acc
+                    }
+                },
                 Pat::Tuple(pat_tuple) => todo!(),
                 Pat::TupleStruct(pat_tuple_struct) => {
                     quote! {
@@ -484,69 +488,67 @@ pub(crate) fn emit_for_all(for_all: &ForAll, name: &str, token_stream: TokenStre
     let with_var = &for_all.state;
 
     let record_failure = emit_record_failure(name);
-    let collect = quote! { next_carried_and_proof = Some(((#(#with_var.clone(),)*), child_proof_trees.clone())); };
+    let collect = quote! { next_carried_and_proof.push(((#(#with_var.clone(),)*), child_proof_trees.clone())); };
     let body = emit_premises(&for_all.body, name, collect);
 
     quote! {
         {
             let collection = #collection;
-            let mut errored = false;
+            let (file, line, column) = (file!(), line!(), column!());
+            // TODO: This respan makes problem
+            // let (file, line, column) = ::formality_core::respan!(#collection ((file!(), line!(), column!())));
 
-            let (file, line, column) = ::formality_core::respan!(#collection ((file!(), line!(), column!())));
-
-            let mut loop_carried = (#(#with_var.clone(),)*);
-
-            let mut for_all_proof_trees = vec![];
+            let mut alternatives = ::formality_core::Map::new();
+            ::formality_core::judgment::insert_smallest_proof(
+                &mut alternatives,
+                (#(#with_var.clone(),)*),
+                ::formality_core::judgment::ProofTree::new("for_all", None, vec![]),
+            );
             for #loop_var in collection {
-                if errored {
-                    break;
+                let mut next_alternatives = ::formality_core::Map::new();
+                for (loop_carried, for_all_proof_trees) in alternatives {
+                    let #loop_var = Clone::clone(&#loop_var);
+                    #[allow(unused)]
+                    let (#(#with_var,)*) = &loop_carried;
+
+                    let attributes = vec![("item".to_string(), format!("{:?}", #loop_var))];
+                    // I shadown the outer `child_proof_trees` delibertly, such that the generated code for the premises still uses the correct vector.
+                    let mut child_proof_trees = vec![];
+                    let mut next_carried_and_proof = vec![];
+                    #body
+
+                    for (next_carried, next_proof) in next_carried_and_proof {
+                        let mut proofs = for_all_proof_trees.children.clone();
+                        proofs.push(::formality_core::judgment::ProofTree::with_all(
+                            "for_all",
+                            attributes.clone(),
+                            None,
+                            &file[..],
+                            line,
+                            column,
+                            next_proof,
+                        ));
+                        ::formality_core::judgment::insert_smallest_proof(
+                            &mut next_alternatives,
+                            next_carried,
+                            ::formality_core::judgment::ProofTree::new("for_all", None, proofs),
+                        );
+                    }
                 }
-
-                #[allow(unused)]
-                let (#(#with_var,)*) = &loop_carried.clone();
-
-                let attributes = vec![("item".to_string(), format!("{:?}", #loop_var))];
-                // let mut item_proof_trees = vec![];
-                // I shadown the outer `child_proof_trees` delibertly, such that the generated code for the premises still uses the correct vector.
-                let mut child_proof_trees = vec![];
-
-                // Collect the proof tree from each iteration together with the
-                // next values of any loop-carried variables, so the `for_all`
-                // proof tree reflects all iterations (not just the last one).
-                let mut next_carried_and_proof = None;
-                // TODO: here is something missing
-                // $crate::push_rules!(@body (loop(next_carried_and_proof, ($($with_var,)*))); $inputs; item_proof_trees; $($inner_step)*);
-                #body
-
-                if let Some((next_carried, next_proof)) = next_carried_and_proof {
-                    for_all_proof_trees.push(::formality_core::judgment::ProofTree::with_all(
-                        "for_all",
-                        attributes,
-                        None,
-                        &file[..],
-                        line,
-                        column,
-                        next_proof,
-                    ));
-
-                    loop_carried = next_carried;
-                } else {
-                    errored = true;
+                alternatives = next_alternatives;
+                if alternatives.is_empty() {
+                    break;
                 }
             }
 
-            if !errored {
+            for (loop_carried, for_all_proof_trees) in alternatives {
                 #[allow(unused)]
-                let (#(#with_var,)*) = &loop_carried.clone();
+                let (#(#with_var,)*) = &loop_carried;
 
-                // All iterations succeeded
-                let for_all_tree = ::formality_core::judgment::ProofTree::new(
-                    "for_all",
-                    None,
-                    for_all_proof_trees,
-                );
-                child_proof_trees.push(for_all_tree);
+                let len = child_proof_trees.len();
+                child_proof_trees.push(for_all_proof_trees);
                 #token_stream
+                child_proof_trees.truncate(len);
             }
         }
     }
@@ -573,13 +575,14 @@ pub(crate) fn emit_fail(fail: &Fail, name: &str, token_stream: TokenStream) -> T
 pub(crate) fn emit_let(let_: &Let, name: &str, token_stream: TokenStream) -> TokenStream {
     let record_failure = emit_record_failure(name);
     let expression = &let_.expression;
+    let t = &let_.binding.ty();
     let p = match &let_.binding {
         Binding::Pattern { pattern } => quote! { #pattern },
         Binding::Identifier { identifier, ty } => quote! { #identifier},
     };
 
     quote! {
-        match ::formality_core::judgment::try_catch::<_>(|| Ok(#expression)) {
+        match ::formality_core::judgment::try_catch::<#t>(|| Ok(#expression)) {
             Ok(p) => {
                 let proof_tree = ::formality_core::judgment::ProofTree::leaf(format!("{} = {p:?}", stringify!(#p)));
                 let #p = &p;
@@ -633,7 +636,49 @@ pub(crate) fn emit_comprehension(
     name: &str,
     token_stream: TokenStream,
 ) -> TokenStream {
-    todo!()
+    let p = comprehension
+        .binding
+        .identifier()
+        .expect("should alway be a valid identifier");
+    let t = comprehension.binding.ty();
+    let value = &comprehension.loop_var;
+
+    let collected_ident = Ident::new("collected", Span::call_site());
+
+    let def_collected: Let =
+        syn::parse2(quote! {let #collected_ident: Vec<_> = Vec::new() }).expect("is always valid");
+
+    let col: Let = syn::parse2(quote! {
+        let collected = {
+            let mut next = collected.clone();
+            next.push(::formality_core::Upcast::upcast(&#value));
+            next
+        }
+    })
+    .expect("is always valid");
+
+    let mut for_all = ForAll {
+        identifier: comprehension.loop_var.clone(),
+        collection: comprehension.collection.clone(),
+        state: vec![collected_ident],
+        body: comprehension.body.premises.clone(),
+    };
+    for_all.body.premises.push_back(Premise {
+        kind: PremiseKind::Let(col),
+        paren: Default::default(),
+        commit_point: None,
+    });
+
+    let conclusion: Let = syn::parse2(quote! {
+    let #p = {
+        let result: #t = collected.iter().cloned().collect();
+        result
+    }})
+    .expect("is always valid");
+
+    let token_stream = emit_let(&conclusion, name, token_stream);
+    let token_stream = emit_for_all(&for_all, name, token_stream);
+    emit_let(&def_collected, name, token_stream)
 }
 
 pub(crate) fn emit_implication(
@@ -641,6 +686,7 @@ pub(crate) fn emit_implication(
     name: &str,
     token_stream: TokenStream,
 ) -> TokenStream {
+    // TODO: Add normal case, where the pattern is not ().
     let record_failure = emit_record_failure(name);
     let i = &implication.hypothesis;
 
