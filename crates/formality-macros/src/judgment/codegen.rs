@@ -664,7 +664,7 @@ pub(crate) fn emit_scope(scope: &Scope, name: &str, token_stream: TokenStream) -
     let record_failure = emit_record_failure(name);
 
     let expression = &scope.expression;
-    let inside = &scope.pattern;
+    let inside = &scope.inside;
     let with_var = &scope.state;
 
     let collect =

@@ -440,7 +440,7 @@ impl Parse for Scope {
 
         Ok(Scope {
             expression,
-            pattern,
+            inside: pattern,
             state,
             body,
         })

@@ -1613,7 +1613,7 @@ fn parse_scope_with_empty_state() {
                     },
                 ],
             },
-            pattern: Pat::Tuple {
+            inside: Pat::Tuple {
                 attrs: [],
                 paren_token: Paren,
                 elems: [
@@ -1767,7 +1767,7 @@ fn parse_scope_with_state() {
                     },
                 ],
             },
-            pattern: Pat::Tuple {
+            inside: Pat::Tuple {
                 attrs: [],
                 paren_token: Paren,
                 elems: [
@@ -2357,7 +2357,7 @@ fn codegen_scope() {
 
     let scope = ast::Scope {
         expression,
-        pattern,
+        inside: pattern,
         state,
         body,
     };
