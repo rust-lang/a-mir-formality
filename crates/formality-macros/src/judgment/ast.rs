@@ -308,3 +308,10 @@ impl Binding {
         }
     }
 }
+
+pub fn is_unit_pattern(pat: &syn::Pat) -> bool {
+    match pat {
+        Pat::Tuple(pat_tuple) => pat_tuple.elems.len() == 0,
+        _ => false,
+    }
+}

@@ -1,7 +1,6 @@
 use std::cell::LazyCell;
 
-use crate::judgment::ast::{Premise, PremiseKind, Premises};
-use crate::judgment::codegen::emit;
+use crate::judgment::ast::Premises;
 use crate::judgment::{ast, codegen};
 
 use crate::judgment::parse::parse;
@@ -2317,7 +2316,7 @@ fn codegen_fail() {
 }
 
 #[test]
-fn codegen_implication() {
+fn codegen_implication_unit() {
     let hypothesis = syn::parse2(quote! {check_adt_variant_names_unique(adt)}).unwrap();
     let conclusion = syn::Pat::parse_multi_with_leading_vert
         .parse2(quote! { () })
@@ -2373,6 +2372,97 @@ fn codegen_implication() {
         }
     "#]]
     .assert_eq(&s);
+}
+
+#[test]
+fn codegen_implication_general() {
+    let hypothesis = syn::parse2(quote! {check_adt_variant_names_unique(adt)}).unwrap();
+    let conclusion = syn::Pat::parse_multi_with_leading_vert
+        .parse2(quote! { MyStruct { adt, flow } })
+        .unwrap();
+
+    let implication = ast::Implication {
+        hypothesis,
+        conclusion,
+    };
+
+    let s = render_block(codegen::emit_implication(
+        &implication,
+        "implication general",
+        DUMMY.clone(),
+    ));
+    expect![[r#"
+        fn __dummy() {
+            if let Err(e) = ::formality_core::judgment::EachProof::each_proof(
+                check_adt_variant_names_unique(adt),
+                |(value, proof_tree)| {
+                    #[allow(irrefutable_let_patterns)]
+                    if let MyStruct { adt, flow } = &value {
+                        let len = child_proof_trees.len();
+                        child_proof_trees.push(proof_tree);
+                        { dummy }
+                        assert!(child_proof_trees.len() > len);
+                        child_proof_trees.truncate(len);
+                    } else {
+                        let cause = ::formality_core::judgment::RuleFailureCause::IfLetDidNotMatch {
+                            pattern: stringify!(MyStruct { adt, flow }).to_string(),
+                            value: format!("{:?}", value),
+                        };
+                        let file = file!();
+                        let line = line!();
+                        let column = column!();
+                        if __matched {
+                            tracing::debug!(
+                                "rule {rn} failed because {cause} ({file}:{line}:{column})", rn =
+                                "implication general", cause = cause, file = file, line = line,
+                                column = column,
+                            );
+                            failed_rules
+                                .insert(::formality_core::judgment::FailedRule {
+                                    rule_name: Some("implication general".to_string()),
+                                    file: file.to_string(),
+                                    line: line,
+                                    column: column,
+                                    cause,
+                                });
+                        } else {
+                            tracing::trace!(
+                                "rule {rn} failed because {cause} ({file}:{line}:{column})", rn =
+                                "implication general", cause = cause, file = file, line = line,
+                                column = column,
+                            );
+                        }
+                    }
+                },
+            ) {
+                let cause = e;
+                let file = file!();
+                let line = line!();
+                let column = column!();
+                if __matched {
+                    tracing::debug!(
+                        "rule {rn} failed because {cause} ({file}:{line}:{column})", rn =
+                        "implication general", cause = cause, file = file, line = line, column =
+                        column,
+                    );
+                    failed_rules
+                        .insert(::formality_core::judgment::FailedRule {
+                            rule_name: Some("implication general".to_string()),
+                            file: file.to_string(),
+                            line: line,
+                            column: column,
+                            cause,
+                        });
+                } else {
+                    tracing::trace!(
+                        "rule {rn} failed because {cause} ({file}:{line}:{column})", rn =
+                        "implication general", cause = cause, file = file, line = line, column =
+                        column,
+                    );
+                }
+            }
+        }
+    "#]].assert_eq(&s);
 }
 
 #[test]

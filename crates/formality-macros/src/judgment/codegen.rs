@@ -3,8 +3,8 @@ use quote::quote;
 use syn::{Attribute, BinOp, Expr, ExprBinary, ExprUnary, Ident, Pat, UnOp};
 
 use crate::judgment::ast::{
-    Argument, Ast, Binding, Comprehesion, Fail, ForAll, If, IfLet, Implication, In, Judgment, Let,
-    Premise, PremiseKind, Premises, Rule, Scope, Signature,
+    self, Argument, Ast, Binding, Comprehesion, Fail, ForAll, If, IfLet, Implication, In, Judgment,
+    Let, Premise, PremiseKind, Premises, Rule, Scope, Signature,
 };
 
 pub type Rust = TokenStream;
@@ -283,7 +283,6 @@ fn emit_match(judgment: &Judgment, rule: &Rule, rule_stream: TokenStream) -> Tok
                         #acc
                     }
                 },
-                Pat::Tuple(pat_tuple) => todo!(),
                 Pat::TupleStruct(pat_tuple_struct) => {
                     quote! {
                         if let Some(#pattern) = &::formality_core::Downcast::downcast(#name) {
@@ -295,19 +294,7 @@ fn emit_match(judgment: &Judgment, rule: &Rule, rule_stream: TokenStream) -> Tok
                 Pat::Ident(pat_ident) => {
                     quote! { { let #pat_ident = #name; #acc}}
                 }
-                Pat::Const(expr_const) => todo!(),
-                Pat::Lit(expr_lit) => todo!(),
-                Pat::Macro(expr_macro) => todo!(),
-                Pat::Or(pat_or) => todo!(),
-                Pat::Paren(pat_paren) => todo!(),
-                Pat::Range(expr_range) => todo!(),
-                Pat::Reference(pat_reference) => todo!(),
-                Pat::Rest(pat_rest) => todo!(),
-                Pat::Slice(pat_slice) => todo!(),
-                Pat::Type(pat_type) => todo!(),
-                Pat::Verbatim(token_stream) => todo!(),
-                Pat::Wild(pat_wild) => todo!(),
-                _ => todo!(),
+                pat => todo!("emit match not implemented for {pat:#?}"),
             },
         )
 }
@@ -686,7 +673,18 @@ pub(crate) fn emit_implication(
     name: &str,
     token_stream: TokenStream,
 ) -> TokenStream {
-    // TODO: Add normal case, where the pattern is not ().
+    if ast::is_unit_pattern(&implication.conclusion) {
+        emit_implication_unit(implication, name, token_stream)
+    } else {
+        emit_implication_general(implication, name, token_stream)
+    }
+}
+
+fn emit_implication_unit(
+    implication: &Implication,
+    name: &str,
+    token_stream: TokenStream,
+) -> TokenStream {
     let record_failure = emit_record_failure(name);
     let i = &implication.hypothesis;
 
@@ -703,6 +701,51 @@ pub(crate) fn emit_implication(
                 #record_failure
             }
         }
+    }
+}
+
+fn emit_implication_general(
+    implication: &Implication,
+    name: &str,
+    token_stream: TokenStream,
+) -> TokenStream {
+    let record_failure = emit_record_failure(name);
+    let record_failure = emit_record_failure(name);
+    let i = &implication.hypothesis;
+    let p = &implication.conclusion;
+
+    quote! {
+        if let Err(e) = ::formality_core::judgment::EachProof::each_proof(
+            #i,
+            |(value, proof_tree)| {
+                #[allow(irrefutable_let_patterns)]
+                if let #p = &value {
+                    // Remember the size of the child proof tree stack
+                    let len = child_proof_trees.len();
+
+                    // Push this child proof tree
+                    child_proof_trees.push(proof_tree);
+
+                    // Recursively process successors
+                    #token_stream
+
+                    // Restore the original child proof tree stack; note that there may be multiple entries
+                    // in case "non-iterative" steps like `(let ...)` and `(if ...)` are interspersed.
+                    assert!(child_proof_trees.len() > len);
+                    child_proof_trees.truncate(len);
+                } else {
+                    let cause = ::formality_core::judgment::RuleFailureCause::IfLetDidNotMatch {
+                        pattern: stringify!(#p).to_string(),
+                        value: format!("{:?}", value),
+                    };
+                    #record_failure
+                }
+            },
+        ) {
+            let cause = e;
+            #record_failure
+        }
+
     }
 }
 
