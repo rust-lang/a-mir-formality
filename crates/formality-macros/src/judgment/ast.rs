@@ -309,6 +309,18 @@ impl Binding {
     }
 }
 
+impl Rule {
+    pub fn has_commit_point(&self) -> bool {
+        self.premises.premises.iter().any(|p| p.has_commit_point())
+    }
+}
+
+impl Premise {
+    pub fn has_commit_point(&self) -> bool {
+        self.commit_point.is_some()
+    }
+}
+
 pub fn is_unit_pattern(pat: &syn::Pat) -> bool {
     match pat {
         Pat::Tuple(pat_tuple) => pat_tuple.elems.len() == 0,

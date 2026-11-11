@@ -1995,7 +1995,7 @@ fn codegen_let() {
                             "rule {rn} failed because {cause} ({file}:{line}:{column})", rn =
                             "let", cause = cause, file = file, line = line, column = column,
                         );
-                    }
+                    };
                 }
             }
         }
@@ -2051,7 +2051,7 @@ fn codegen_if_let() {
                                 "if let", cause = cause, file = file, line = line, column =
                                 column,
                             );
-                        }
+                        };
                     }
                 }
                 Err(e) => {
@@ -2077,7 +2077,7 @@ fn codegen_if_let() {
                             "rule {rn} failed because {cause} ({file}:{line}:{column})", rn =
                             "if let", cause = cause, file = file, line = line, column = column,
                         );
-                    }
+                    };
                 }
             }
         }
@@ -2093,16 +2093,11 @@ fn codegen_if() {
     let s = render_block(codegen::emit_if(&if_, "if", DUMMY.clone()));
     expect![[r#"
         fn __dummy() {
-            let arg0 = state;
-            let arg1 = label;
             let if_then = ::formality_core::judgment::IfThen::new(
                 stringify!(state.scope_has_label(label)),
-                vec![
-                    (stringify!(state), ::formality_core::judgment::DebugString::new(arg0),),
-                    (stringify!(label), ::formality_core::judgment::DebugString::new(arg1),),
-                ],
+                vec![],
             );
-            if { arg0(arg1) } {
+            if { state.scope_has_label(label) } {
                 child_proof_trees
                     .push(::formality_core::judgment::ProofTree::leaf(format!("{if_then:?}")));
                 { dummy }
@@ -2129,8 +2124,8 @@ fn codegen_if() {
                         "rule {rn} failed because {cause} ({file}:{line}:{column})", rn = "if",
                         cause = cause, file = file, line = line, column = column,
                     );
-                }
-            }
+                };
+            };
         }
     "#]]
     .assert_eq(&s);
@@ -2218,8 +2213,8 @@ fn codegen_for_all() {
                                     rn = "for all", cause = cause, file = file, line = line,
                                     column = column,
                                 );
-                            }
-                        }
+                            };
+                        };
                         for (next_carried, next_proof) in next_carried_and_proof {
                             let mut proofs = for_all_proof_trees.children.clone();
                             proofs
@@ -2258,7 +2253,7 @@ fn codegen_for_all() {
                     { dummy }
                     child_proof_trees.truncate(len);
                 }
-            }
+            };
         }
     "#]]
     .assert_eq(&s);
@@ -2308,7 +2303,7 @@ fn codegen_fail() {
                         "rule {rn} failed because {cause} ({file}:{line}:{column})", rn = "fail",
                         cause = cause, file = file, line = line, column = column,
                     );
-                }
+                };
             }
         }
     "#]]
@@ -2366,7 +2361,7 @@ fn codegen_implication_unit() {
                             "implication", cause = cause, file = file, line = line, column =
                             column,
                         );
-                    }
+                    };
                 }
             }
         }
@@ -2431,7 +2426,7 @@ fn codegen_implication_general() {
                                 "implication general", cause = cause, file = file, line = line,
                                 column = column,
                             );
-                        }
+                        };
                     }
                 },
             ) {
@@ -2459,10 +2454,11 @@ fn codegen_implication_general() {
                         "implication general", cause = cause, file = file, line = line, column =
                         column,
                     );
-                }
+                };
             }
         }
-    "#]].assert_eq(&s);
+    "#]]
+    .assert_eq(&s);
 }
 
 #[test]
@@ -2523,7 +2519,7 @@ fn codegen_in() {
                         "rule {rn} failed because {cause} ({file}:{line}:{column})", rn = "in",
                         cause = cause, file = file, line = line, column = column,
                     );
-                }
+                };
             }
         }
     "#]]
@@ -2585,7 +2581,7 @@ fn codegen_scope() {
                             "rule {rn} failed because {cause} ({file}:{line}:{column})", rn =
                             "scope", cause = cause, file = file, line = line, column = column,
                         );
-                    }
+                    };
                 }
                 Ok((scope, inside)) => {
                     let mut scope_proofs = vec![];
@@ -2633,8 +2629,8 @@ fn codegen_scope() {
                                     rn = "scope", cause = cause, file = file, line = line, column
                                     = column,
                                 );
-                            }
-                        }
+                            };
+                        };
                     }
                     for (values, inner_proof_trees) in scope_proofs {
                         if let Err(e) = ::formality_core::judgment::EachProof::each_proof(
@@ -2682,10 +2678,342 @@ fn codegen_scope() {
                                     rn = "scope", cause = cause, file = file, line = line, column
                                     = column,
                                 );
-                            }
+                            };
                         }
                     }
                 }
+            };
+        }
+    "#]].assert_eq(&s);
+}
+
+#[test]
+fn codegen_commit_point() {
+    let ast = parse(quote! {
+        fn check_place_move(place: Place) => () {
+            debug(place)
+
+                (
+                    (if let Place::Local(_) = place)!
+                        --------------------------------------- ("local-ok")
+                        (check_place_move(place) => ())
+                )
+
+                (
+                    (if let Place::Deref(_) = place)!
+                        (fail "cannot move out of `{:?}`, as it is behind a reference", place)
+                        --------------------------------------- ("deref-fail")
+                        (check_place_move(place) => ())
+                )
+        }
+    });
+
+    let s = render_function(codegen::emit(ast));
+    expect![[r#"
+        fn check_place_move(
+            place: impl ::formality_core::Upcast<Place>,
+        ) -> ::formality_core::ProvenSet<()> {
+            #[derive(Ord, PartialOrd, Eq, PartialEq, Hash, Clone)]
+            struct __JudgmentStruct(Place);
+            ::formality_core::cast_impl!(__JudgmentStruct);
+            impl std::fmt::Debug for __JudgmentStruct {
+                fn fmt(&self, fmt: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                    let mut f = fmt.debug_struct(stringify!(check_place_move));
+                    let __JudgmentStruct(place) = self;
+                    f.field(stringify!(place), place);
+                    f.finish()
+                }
+            }
+            let place: Place = ::formality_core::Upcast::upcast(place);
+            {
+                #[allow(unused_variables)]
+                let place = &place;
+            }
+            let mut failed_rules = ::formality_core::set![];
+            let input = __JudgmentStruct(place);
+            let output = ::formality_core::judgment::execute_judgment::<
+                __JudgmentStruct,
+                (),
+            >(
+                |input| {
+                    let __JudgmentStruct(place) = input;
+                    tracing::debug_span!(stringify!(check_place_move), ? place)
+                },
+                {
+                    thread_local! {
+                        static R : ::formality_core::judgment::JudgmentCache < __JudgmentStruct,
+                        () > = Default::default()
+                    }
+                    &R
+                },
+                input.clone(),
+                |input: __JudgmentStruct| {
+                    let mut output: ::formality_core::Map<
+                        (),
+                        ::formality_core::judgment::ProofTree,
+                    > = ::formality_core::Map::new();
+                    failed_rules.clear();
+                    #[allow(unused)]
+                    let input_string = format!("{:?}", input);
+                    {
+                        ::formality_macros::respan!(
+                            check_place_move(#[allow(dead_code)] struct
+                            WrongJudgmentNameInConclusion; const _ :
+                            WrongJudgmentNameInConclusion = { let check_place_move =
+                            WrongJudgmentNameInConclusion; check_place_move };)
+                        );
+                        if let Some(__JudgmentStruct(place)) = Some(&input) {
+                            let __judgment_name = stringify!(check_place_move);
+                            let __attributes: Vec<(String, String)> = vec![
+                                (stringify!(place) .to_string(), format!("{:?}", place))
+                            ];
+                            let mut __matched = false;
+                            {
+                                let place = place;
+                                tracing::trace_span!(
+                                    "matched rule", rule = "local-ok", judgment =
+                                    stringify!(check_place_move)
+                                )
+                                    .in_scope(|| {
+                                        tracing::debug!("matched rule {:?}", "local-ok");
+                                        #[allow(unused_mut)]
+                                        let mut child_proof_trees: Vec<
+                                            ::formality_core::judgment::ProofTree,
+                                        > = Vec::new();
+                                        match ::formality_core::judgment::try_catch(|| Ok(place)) {
+                                            Ok(value) => {
+                                                if let Place::Local(_) = &value {
+                                                    {
+                                                        let result = ::formality_core::Upcast::upcast(());
+                                                        let mut attributes = __attributes.clone();
+                                                        attributes
+                                                            .push(("result".to_string(), format!("{:?}", result)));
+                                                        let (file, line, column) = ::formality_core::respan!(
+                                                            "local-ok"((file!(), line!(), column!()))
+                                                        );
+                                                        let proof_tree = ::formality_core::judgment::ProofTree::with_all(
+                                                            __judgment_name,
+                                                            attributes,
+                                                            Some("local-ok"),
+                                                            file,
+                                                            line,
+                                                            column,
+                                                            child_proof_trees.clone(),
+                                                        );
+                                                        tracing::debug!(
+                                                            "produced {:?} from rule {:?} in judgment {:?}", result,
+                                                            "local-ok", stringify!(check_place_move)
+                                                        );
+                                                        ::formality_core::judgment::insert_smallest_proof(
+                                                            &mut output,
+                                                            result,
+                                                            proof_tree,
+                                                        );
+                                                    };
+                                                } else {
+                                                    let cause = ::formality_core::judgment::RuleFailureCause::IfLetDidNotMatch {
+                                                        pattern: stringify!(Place::Local(_)).to_string(),
+                                                        value: format!("{:?}", value),
+                                                    };
+                                                    let file = file!();
+                                                    let line = line!();
+                                                    let column = column!();
+                                                    if __matched {
+                                                        tracing::debug!(
+                                                            "rule {rn} failed because {cause} ({file}:{line}:{column})",
+                                                            rn = "local-ok", cause = cause, file = file, line = line,
+                                                            column = column,
+                                                        );
+                                                        failed_rules
+                                                            .insert(::formality_core::judgment::FailedRule {
+                                                                rule_name: Some("local-ok".to_string()),
+                                                                file: file.to_string(),
+                                                                line: line,
+                                                                column: column,
+                                                                cause,
+                                                            });
+                                                    } else {
+                                                        tracing::trace!(
+                                                            "rule {rn} failed because {cause} ({file}:{line}:{column})",
+                                                            rn = "local-ok", cause = cause, file = file, line = line,
+                                                            column = column,
+                                                        );
+                                                    };
+                                                }
+                                            }
+                                            Err(e) => {
+                                                let cause = e;
+                                                let file = file!();
+                                                let line = line!();
+                                                let column = column!();
+                                                if __matched {
+                                                    tracing::debug!(
+                                                        "rule {rn} failed because {cause} ({file}:{line}:{column})",
+                                                        rn = "local-ok", cause = cause, file = file, line = line,
+                                                        column = column,
+                                                    );
+                                                    failed_rules
+                                                        .insert(::formality_core::judgment::FailedRule {
+                                                            rule_name: Some("local-ok".to_string()),
+                                                            file: file.to_string(),
+                                                            line: line,
+                                                            column: column,
+                                                            cause,
+                                                        });
+                                                } else {
+                                                    tracing::trace!(
+                                                        "rule {rn} failed because {cause} ({file}:{line}:{column})",
+                                                        rn = "local-ok", cause = cause, file = file, line = line,
+                                                        column = column,
+                                                    );
+                                                };
+                                            }
+                                        }
+                                    });
+                            };
+                        }
+                    };
+                    {
+                        ::formality_macros::respan!(
+                            check_place_move(#[allow(dead_code)] struct
+                            WrongJudgmentNameInConclusion; const _ :
+                            WrongJudgmentNameInConclusion = { let check_place_move =
+                            WrongJudgmentNameInConclusion; check_place_move };)
+                        );
+                        if let Some(__JudgmentStruct(place)) = Some(&input) {
+                            let __judgment_name = stringify!(check_place_move);
+                            let __attributes: Vec<(String, String)> = vec![
+                                (stringify!(place) .to_string(), format!("{:?}", place))
+                            ];
+                            let mut __matched = false;
+                            {
+                                let place = place;
+                                tracing::trace_span!(
+                                    "matched rule", rule = "deref-fail", judgment =
+                                    stringify!(check_place_move)
+                                )
+                                    .in_scope(|| {
+                                        tracing::debug!("matched rule {:?}", "deref-fail");
+                                        #[allow(unused_mut)]
+                                        let mut child_proof_trees: Vec<
+                                            ::formality_core::judgment::ProofTree,
+                                        > = Vec::new();
+                                        match ::formality_core::judgment::try_catch(|| Ok(place)) {
+                                            Ok(value) => {
+                                                if let Place::Deref(_) = &value {
+                                                    {
+                                                        #[allow(unused_variables)]
+                                                        let _ = &child_proof_trees;
+                                                        let message = format!(
+                                                            "cannot move out of `{:?}`, as it is behind a reference",
+                                                            place
+                                                        );
+                                                        #[allow(unused_assignments)]
+                                                        {
+                                                            __matched = true;
+                                                        }
+                                                        let cause = ::formality_core::judgment::RuleFailureCause::ExplicitFailure {
+                                                            message,
+                                                        };
+                                                        let file = file!();
+                                                        let line = line!();
+                                                        let column = column!();
+                                                        if __matched {
+                                                            tracing::debug!(
+                                                                "rule {rn} failed because {cause} ({file}:{line}:{column})",
+                                                                rn = "deref-fail", cause = cause, file = file, line = line,
+                                                                column = column,
+                                                            );
+                                                            failed_rules
+                                                                .insert(::formality_core::judgment::FailedRule {
+                                                                    rule_name: Some("deref-fail".to_string()),
+                                                                    file: file.to_string(),
+                                                                    line: line,
+                                                                    column: column,
+                                                                    cause,
+                                                                });
+                                                        } else {
+                                                            tracing::trace!(
+                                                                "rule {rn} failed because {cause} ({file}:{line}:{column})",
+                                                                rn = "deref-fail", cause = cause, file = file, line = line,
+                                                                column = column,
+                                                            );
+                                                        };
+                                                    }
+                                                } else {
+                                                    let cause = ::formality_core::judgment::RuleFailureCause::IfLetDidNotMatch {
+                                                        pattern: stringify!(Place::Deref(_)).to_string(),
+                                                        value: format!("{:?}", value),
+                                                    };
+                                                    let file = file!();
+                                                    let line = line!();
+                                                    let column = column!();
+                                                    if __matched {
+                                                        tracing::debug!(
+                                                            "rule {rn} failed because {cause} ({file}:{line}:{column})",
+                                                            rn = "deref-fail", cause = cause, file = file, line = line,
+                                                            column = column,
+                                                        );
+                                                        failed_rules
+                                                            .insert(::formality_core::judgment::FailedRule {
+                                                                rule_name: Some("deref-fail".to_string()),
+                                                                file: file.to_string(),
+                                                                line: line,
+                                                                column: column,
+                                                                cause,
+                                                            });
+                                                    } else {
+                                                        tracing::trace!(
+                                                            "rule {rn} failed because {cause} ({file}:{line}:{column})",
+                                                            rn = "deref-fail", cause = cause, file = file, line = line,
+                                                            column = column,
+                                                        );
+                                                    };
+                                                }
+                                            }
+                                            Err(e) => {
+                                                let cause = e;
+                                                let file = file!();
+                                                let line = line!();
+                                                let column = column!();
+                                                if __matched {
+                                                    tracing::debug!(
+                                                        "rule {rn} failed because {cause} ({file}:{line}:{column})",
+                                                        rn = "deref-fail", cause = cause, file = file, line = line,
+                                                        column = column,
+                                                    );
+                                                    failed_rules
+                                                        .insert(::formality_core::judgment::FailedRule {
+                                                            rule_name: Some("deref-fail".to_string()),
+                                                            file: file.to_string(),
+                                                            line: line,
+                                                            column: column,
+                                                            cause,
+                                                        });
+                                                } else {
+                                                    tracing::trace!(
+                                                        "rule {rn} failed because {cause} ({file}:{line}:{column})",
+                                                        rn = "deref-fail", cause = cause, file = file, line = line,
+                                                        column = column,
+                                                    );
+                                                };
+                                            }
+                                        }
+                                    });
+                            };
+                        }
+                    };
+                    output
+                },
+            );
+            if !output.is_empty() {
+                ::formality_core::ProvenSet::proven(output)
+            } else {
+                ::formality_core::ProvenSet::failed_rules(
+                    &input,
+                    ::formality_core::judgment::FailureLocation::caller(),
+                    failed_rules,
+                )
             }
         }
     "#]].assert_eq(&s);

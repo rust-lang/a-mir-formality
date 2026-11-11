@@ -146,6 +146,7 @@ fn emit_function_body(judgment: &Judgment) -> TokenStream {
 fn emit_assertions(judgment: &Judgment) -> TokenStream {
     let input_name: Vec<_> = judgment.input_names();
     let assert_expr: Vec<_> = judgment.assertions();
+
     quote! {
         {
             #(
@@ -153,12 +154,8 @@ fn emit_assertions(judgment: &Judgment) -> TokenStream {
                 let #input_name = &#input_name;
             )*
             #(
-                ::formality_core::respan!(
-                    #assert_expr
-                    (
-                        ::formality_core::judgment::JudgmentAssertion::assert(#assert_expr, stringify!(#assert_expr));
-                    )
-                )
+                // TODO: Respan with #assert_expr
+                ::formality_core::judgment::JudgmentAssertion::assert(#assert_expr, stringify!(#assert_expr));
             )*
         }
     }
@@ -212,11 +209,7 @@ fn emit_rule(judgment: &Judgment, rule: &Rule) -> TokenStream {
     let judgment_name = judgment.name();
     let conclusion_name = rule.conclusion.name.clone();
     let rule_name = rule.name.clone();
-
-    // TODO: For the moment always true.
-    // Must think about when working with the commit points
-    // __matched is updated, from true to false, if a commit point (!) is found.
-    let match_default = true;
+    let match_default = !rule.has_commit_point();
 
     let collect = emit_collect(judgment, rule);
     let premises = emit_premises(&rule.premises, &rule.name, collect);
@@ -258,7 +251,7 @@ fn emit_rule(judgment: &Judgment, rule: &Rule) -> TokenStream {
                 let mut __matched = #match_default;
                 #match_and_rule
             }
-        }
+        };
     }
 }
 
@@ -271,28 +264,15 @@ fn emit_match(judgment: &Judgment, rule: &Rule, rule_stream: TokenStream) -> Tok
         .fold(
             rule_stream,
             |acc, (pattern, Argument { name, ty })| match pattern {
-                Pat::Path(expr_path) => {
-                    quote! {
-                        if let Some(#pattern) = &::formality_core::Downcast::downcast(#name) {
-                            #acc
-                        }
-                    }
-                }
-                Pat::Struct(pat_struct) => quote! {
-                    if let Some(#pattern) = &::formality_core::Downcast::downcast(#name) {
-                        #acc
-                    }
-                },
-                Pat::TupleStruct(pat_tuple_struct) => {
-                    quote! {
-                        if let Some(#pattern) = &::formality_core::Downcast::downcast(#name) {
-                            #acc
-                        }
-                    }
-                }
-
                 Pat::Ident(pat_ident) => {
-                    quote! { { let #pat_ident = #name; #acc}}
+                    quote! { { let #pat_ident = #name; #acc}; }
+                }
+                Pat::Lit(_) | Pat::TupleStruct(_) | Pat::Struct(_) | Pat::Path(_) => {
+                    quote! {
+                        if let Some(#pattern) = &::formality_core::Downcast::downcast(#name) {
+                            #acc
+                        };
+                    }
                 }
                 pat => todo!("emit match not implemented for {pat:#?}"),
             },
@@ -377,7 +357,7 @@ pub(crate) fn emit_if(if_: &If, name: &str, token_stream: TokenStream) -> TokenS
         } else {
             let cause = ::formality_core::judgment::RuleFailureCause::IfFalse(if_then);
             #record_failure
-        }
+        };
     }
 }
 
@@ -433,26 +413,26 @@ fn if_helper(expression: &Expr) -> (Vec<Ident>, Vec<&Expr>, TokenStream) {
             }
             _ => {}
         },
-        Expr::MethodCall(expr_method_call) => {
-            let arg0e = &expr_method_call.receiver;
-            argn.push(arg0n.clone());
-            arge.push(arg0e);
+        // Expr::MethodCall(expr_method_call) => {
+        //     let arg0e = &expr_method_call.receiver;
+        //     argn.push(arg0n.clone());
+        //     arge.push(arg0e);
 
-            if expr_method_call.args.len() == 2 {
-                let arg1e = &expr_method_call.args[0];
-                let arg2e = &expr_method_call.args[1];
-                argn.push(arg1n);
-                argn.push(arg2n);
-                arge.push(arg1e);
-                arge.push(arg2e);
-                cond = quote! { arg0(arg1, arg2) };
-            } else if expr_method_call.args.len() == 1 {
-                let arg1e = &expr_method_call.args[0];
-                argn.push(arg1n);
-                arge.push(arg1e);
-                cond = quote! { arg0(arg1) };
-            }
-        }
+        //     if expr_method_call.args.len() == 2 {
+        //         let arg1e = &expr_method_call.args[0];
+        //         let arg2e = &expr_method_call.args[1];
+        //         argn.push(arg1n);
+        //         argn.push(arg2n);
+        //         arge.push(arg1e);
+        //         arge.push(arg2e);
+        //         cond = quote! { arg0(arg1, arg2) };
+        //     } else if expr_method_call.args.len() == 1 {
+        //         let arg1e = &expr_method_call.args[0];
+        //         argn.push(arg1n);
+        //         arge.push(arg1e);
+        //         cond = quote! { arg0(arg1) };
+        //     }
+        // }
         Expr::Unary(ExprUnary {
             attrs,
             op: UnOp::Not(_),
@@ -537,7 +517,7 @@ pub(crate) fn emit_for_all(for_all: &ForAll, name: &str, token_stream: TokenStre
                 #token_stream
                 child_proof_trees.truncate(len);
             }
-        }
+        };
     }
 }
 
@@ -809,8 +789,7 @@ pub(crate) fn emit_scope(scope: &Scope, name: &str, token_stream: TokenStream) -
                     }
                 }
             }
-        }
-
+        };
     }
 }
 
@@ -855,7 +834,7 @@ fn emit_record_failure(rule_name: &str) -> TokenStream {
                 line = line,
                 column = column,
             );
-        }
+        };
     }
 }
 
@@ -881,6 +860,6 @@ fn emit_collect(judgment: &Judgment, rule: &Rule) -> TokenStream {
             );
             tracing::debug!("produced {:?} from rule {:?} in judgment {:?}", result, #rule_name, stringify!(#judgment_name));
             ::formality_core::judgment::insert_smallest_proof(&mut output, result, proof_tree);
-        }
+        };
     }
 }
