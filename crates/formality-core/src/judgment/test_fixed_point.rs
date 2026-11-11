@@ -126,6 +126,10 @@ judgment_fn! {
     }
 }
 
+thread_local! {
+    static VISIT_ORDER: std::cell::RefCell<Vec<u32>> = const { std::cell::RefCell::new(Vec::new()) };
+}
+
 judgment_fn! {
     fn cycle_reachable(a: u32) => u32 {
         debug(a)
@@ -140,6 +144,14 @@ judgment_fn! {
             (cycle_reachable(b) => c)
             --- ("successor")
             (cycle_reachable(a) => c)
+        )
+
+        // Records each visit and never produces a result of its own.
+        (
+            (let () = VISIT_ORDER.with(|order| order.borrow_mut().push(*a)))
+            (if false)
+            --- ("record visit")
+            (cycle_reachable(a) => 0)
         )
     }
 }
@@ -156,4 +168,53 @@ fn every_node_of_a_cycle_reaches_the_whole_cycle() {
 fn a_tail_node_reaches_the_cycle_but_is_not_reached_by_it() {
     let values = cycle_reachable(3_u32).proven_results().unwrap();
     assert_eq!(values, crate::set![0, 1, 2, 3]);
+}
+
+/// Runs `cycle_reachable(start)` and returns its result together with the order in which
+/// calls finished a pass (the order in which the "record visit" rule ran).
+fn run_cycle_reachable(start: u32) -> (crate::Set<u32>, Vec<u32>) {
+    VISIT_ORDER.with(|order| order.borrow_mut().clear());
+    let values = cycle_reachable(start).proven_results().unwrap();
+    let order = VISIT_ORDER.with(|order| order.borrow().clone());
+    (values, order)
+}
+
+// These orders pin down the current solver. If they change, check that the new order
+// is still a valid way to reach the same fixed point.
+//
+// Entering the cycle at 0: 0 calls 1, 1 calls 2, and 2 calls back into 0, which is
+// already in progress and has no answers yet. So 2 finishes its first pass first, then
+// 1, then 0. Their answers grew during that pass, so the group runs a second pass in
+// the same order, and nothing changes: that is the fixed point.
+#[test]
+fn cycle_entered_at_0_finishes_the_node_before_it_first() {
+    let (values, order) = run_cycle_reachable(0);
+    assert_eq!(values, crate::set![0, 1, 2]);
+    assert_eq!(order, vec![2, 1, 0, 2, 1, 0]);
+}
+
+// Entering at 1 rotates the same cycle: 0 is the node that calls back into 1.
+#[test]
+fn cycle_entered_at_1_finishes_the_node_before_it_first() {
+    let (values, order) = run_cycle_reachable(1);
+    assert_eq!(values, crate::set![0, 1, 2]);
+    assert_eq!(order, vec![0, 2, 1, 0, 2, 1]);
+}
+
+// Entering at 2: 1 is the node that calls back into 2.
+#[test]
+fn cycle_entered_at_2_finishes_the_node_before_it_first() {
+    let (values, order) = run_cycle_reachable(2);
+    assert_eq!(values, crate::set![0, 1, 2]);
+    assert_eq!(order, vec![1, 0, 2, 1, 0, 2]);
+}
+
+// The tail node 3 only feeds into the cycle. The cycle is solved completely first, and 3
+// finishes last, after a single pass of its own, because nothing in the cycle depends
+// on it.
+#[test]
+fn tail_node_finishes_after_the_whole_cycle() {
+    let (values, order) = run_cycle_reachable(3);
+    assert_eq!(values, crate::set![0, 1, 2, 3]);
+    assert_eq!(order, vec![2, 1, 0, 2, 1, 0, 3]);
 }
