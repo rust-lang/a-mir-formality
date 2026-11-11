@@ -1,11 +1,8 @@
 use proc_macro2::TokenStream;
 use syn::parse::discouraged::Speculative;
 use syn::parse::{Parse, ParseStream, Result};
-use syn::punctuated::Punctuated;
 use syn::token::Paren;
-use syn::{
-    braced, parenthesized, parse2, Attribute, Expr, Ident, LitStr, Pat, Token, Type, Visibility,
-};
+use syn::{braced, parenthesized, parse2, Attribute, Expr, Ident, LitStr, Pat, Token};
 
 use std::collections::VecDeque;
 
@@ -27,11 +24,13 @@ impl Parse for Judgment {
     fn parse(input: ParseStream) -> Result<Self> {
         let attributes = input.call(Attribute::parse_outer)?;
 
-        let signature: Signature = input.parse()?;
+        let signature = input.parse()?;
 
-        let content;
-        braced!(content in input);
-        let body: JudgmentBody = content.parse()?;
+        let body = {
+            let content;
+            braced!(content in input);
+            content.parse()?
+        };
 
         Ok(Judgment {
             attributes,
@@ -43,20 +42,21 @@ impl Parse for Judgment {
 
 impl Parse for Signature {
     fn parse(input: ParseStream) -> Result<Self> {
-        let visibility: Visibility = input.parse()?;
+        let visibility = input.parse()?;
         input.parse::<Token![fn]>()?;
-        let name: Ident = input.parse()?;
+        let name = input.parse()?;
 
-        // TODO: Can this be improved?
-        let content;
-        parenthesized!(content in input);
-        let arguments: Punctuated<Argument, Token![,]> =
-            content.parse_terminated(Argument::parse, Token![,])?;
-        let arguments: Vec<Argument> = arguments.into_iter().collect();
+        let arguments = {
+            let content;
+            parenthesized!(content in input);
+            content
+                .parse_terminated(Argument::parse, Token![,])?
+                .into_iter()
+                .collect()
+        };
 
-        input.parse::<Token![=]>()?;
-        input.parse::<Token![>]>()?;
-        let return_: Type = input.parse()?;
+        input.parse::<Token![=>]>()?;
+        let return_ = input.parse()?;
 
         Ok(Signature {
             visibility,
@@ -69,9 +69,9 @@ impl Parse for Signature {
 
 impl Parse for Argument {
     fn parse(input: ParseStream) -> Result<Self> {
-        let name: Ident = input.parse()?;
+        let name = input.parse()?;
         input.parse::<Token![:]>()?;
-        let ty: Type = input.parse()?;
+        let ty = input.parse()?;
 
         Ok(Argument { name, ty })
     }
@@ -79,10 +79,10 @@ impl Parse for Argument {
 
 impl Parse for JudgmentBody {
     fn parse(input: ParseStream) -> Result<Self> {
-        let debug: Debug = input.parse()?;
-        let asserts: Asserts = input.parse()?;
-        let trivials: Trivials = input.parse()?;
-        let rules: Rules = input.parse()?;
+        let debug = input.parse()?;
+        let asserts = input.parse()?;
+        let trivials = input.parse()?;
+        let rules = input.parse()?;
 
         Ok(JudgmentBody {
             debug,
@@ -97,14 +97,16 @@ impl Parse for Debug {
     fn parse(input: ParseStream) -> Result<Self> {
         input.parse::<keyword::debug>()?;
 
-        let content;
-        parenthesized!(content in input);
-        let idents: Punctuated<Ident, Token![,]> =
-            content.parse_terminated(Ident::parse, Token![,])?;
+        let idents = {
+            let content;
+            parenthesized!(content in input);
+            content
+                .parse_terminated(Ident::parse, Token![,])?
+                .into_iter()
+                .collect()
+        };
 
-        Ok(Debug {
-            idents: idents.into_iter().collect(),
-        })
+        Ok(Debug { idents })
     }
 }
 
@@ -124,9 +126,11 @@ impl Parse for Assert {
     fn parse(input: ParseStream) -> Result<Self> {
         input.parse::<keyword::assert>()?;
 
-        let content;
-        parenthesized!(content in input);
-        let assertion: Expr = content.parse()?;
+        let assertion = {
+            let content;
+            parenthesized!(content in input);
+            content.parse()?
+        };
 
         Ok(Assert { assertion })
     }
@@ -148,12 +152,16 @@ impl Parse for Trivial {
     fn parse(input: ParseStream) -> Result<Self> {
         input.parse::<keyword::trivial>()?;
 
-        let content;
-        parenthesized!(content in input);
-        let hypothesis: Expr = content.parse()?;
-        content.parse::<Token![=]>()?;
-        content.parse::<Token![>]>()?;
-        let conclusion: Expr = content.parse()?;
+        let hypothesis;
+        let conclusion;
+        {
+            let content;
+            parenthesized!(content in input);
+
+            hypothesis = content.parse()?;
+            content.parse::<Token![=>]>()?;
+            conclusion = content.parse()?;
+        };
 
         Ok(Trivial {
             hypothesis,
@@ -188,11 +196,12 @@ impl Parse for Rule {
             input.parse::<Token![-]>()?;
         }
 
-        let named;
-        parenthesized!(named in input);
+        let name = {
+            let named;
+            parenthesized!(named in input);
+            named.parse::<LitStr>()?.value()
+        };
 
-        let name: LitStr = named.parse()?;
-        let name = name.value();
         let conclusion: Conclusion = input.parse()?;
 
         Ok(Rule {
@@ -216,31 +225,34 @@ impl Parse for Premises {
 
 impl Parse for Premise {
     fn parse(input: ParseStream) -> Result<Self> {
-        let inner;
-        let paren = parenthesized!(inner in input);
+        let paren;
+        let kind = {
+            let inner;
+            paren = parenthesized!(inner in input);
 
-        let kind = if inner.peek(Token![if]) && inner.peek2(Token![let]) {
-            PremiseKind::IfLet(inner.parse()?)
-        } else if inner.peek(Token![if]) {
-            PremiseKind::If(inner.parse()?)
-        } else if inner.peek(Token![let]) {
-            let fork = inner.fork();
-            if let Ok(comprehension) = fork.parse::<Comprehesion>() {
-                inner.advance_to(&fork);
-                PremiseKind::Comprehension(comprehension)
+            if inner.peek(Token![if]) && inner.peek2(Token![let]) {
+                PremiseKind::IfLet(inner.parse()?)
+            } else if inner.peek(Token![if]) {
+                PremiseKind::If(inner.parse()?)
+            } else if inner.peek(Token![let]) {
+                let fork = inner.fork();
+                if let Ok(comprehension) = fork.parse::<Comprehesion>() {
+                    inner.advance_to(&fork);
+                    PremiseKind::Comprehension(comprehension)
+                } else {
+                    PremiseKind::Let(inner.parse()?)
+                }
+            } else if inner.peek(keyword::for_all) {
+                PremiseKind::ForAll(inner.parse()?)
+            } else if inner.peek(keyword::fail) {
+                PremiseKind::Fail(inner.parse()?)
+            } else if inner.peek(keyword::scope) {
+                PremiseKind::Scope(inner.parse()?)
+            } else if inner.peek2(Token![in]) {
+                PremiseKind::In(inner.parse()?)
             } else {
-                PremiseKind::Let(inner.parse()?)
+                PremiseKind::Implication(inner.parse()?)
             }
-        } else if inner.peek(keyword::for_all) {
-            PremiseKind::ForAll(inner.parse()?)
-        } else if inner.peek(keyword::fail) {
-            PremiseKind::Fail(inner.parse()?)
-        } else if inner.peek(keyword::scope) {
-            PremiseKind::Scope(inner.parse()?)
-        } else if inner.peek2(Token![in]) {
-            PremiseKind::In(inner.parse()?)
-        } else {
-            PremiseKind::Implication(inner.parse()?)
         };
 
         let commit_point = if input.peek(Token![!]) {
@@ -263,7 +275,7 @@ impl Parse for IfLet {
         input.parse::<Token![let]>()?;
         let pattern = Pat::parse_multi_with_leading_vert(input)?;
         input.parse::<Token![=]>()?;
-        let expression: Expr = input.parse()?;
+        let expression = input.parse()?;
 
         Ok(IfLet {
             pattern,
@@ -275,7 +287,7 @@ impl Parse for IfLet {
 impl Parse for If {
     fn parse(input: ParseStream) -> Result<Self> {
         input.parse::<Token![if]>()?;
-        let expression: Expr = input.parse()?;
+        let expression = input.parse()?;
 
         Ok(If { expression })
     }
@@ -285,24 +297,31 @@ impl Parse for ForAll {
     fn parse(input: ParseStream) -> Result<Self> {
         input.parse::<keyword::for_all>()?;
 
-        let inner;
-        parenthesized!(inner in input);
-        let identifier: Ident = inner.parse()?;
-        inner.parse::<Token![in]>()?;
-        let collection: Expr = inner.parse()?;
+        let identifier;
+        let collection;
+        let state;
+        {
+            let inner;
+            parenthesized!(inner in input);
+            identifier = inner.parse()?;
+            inner.parse::<Token![in]>()?;
+            collection = inner.parse()?;
 
-        let state = if input.peek(keyword::with) {
-            input.parse::<keyword::with>()?;
+            state = if input.peek(keyword::with) {
+                input.parse::<keyword::with>()?;
 
-            let with;
-            parenthesized!(with in input);
+                {
+                    let with;
+                    parenthesized!(with in input);
 
-            let state: Punctuated<Ident, Token![,]> =
-                with.parse_terminated(Ident::parse, Token![,])?;
-            state.into_iter().collect()
-        } else {
-            vec![]
-        };
+                    with.parse_terminated(Ident::parse, Token![,])?
+                        .into_iter()
+                        .collect()
+                }
+            } else {
+                vec![]
+            };
+        }
 
         let body: Premises = input.parse()?;
 
@@ -320,7 +339,7 @@ impl Parse for Fail {
         let mut expressions = vec![];
 
         input.parse::<keyword::fail>()?;
-        let message: LitStr = input.parse()?;
+        let message = input.parse()?;
 
         if input.peek(Token![,]) {
             input.parse::<Token![,]>()?;
@@ -342,10 +361,10 @@ impl Parse for Fail {
 
 impl Parse for Implication {
     fn parse(input: ParseStream) -> Result<Self> {
-        let hypothesis: Expr = input.parse()?;
+        let hypothesis = input.parse()?;
         input.parse::<Token![=]>()?;
         input.parse::<Token![>]>()?;
-        let conclusion: Pat = Pat::parse_multi_with_leading_vert(input)?;
+        let conclusion = Pat::parse_multi_with_leading_vert(input)?;
 
         Ok(Implication {
             hypothesis,
@@ -357,9 +376,9 @@ impl Parse for Implication {
 impl Parse for Let {
     fn parse(input: ParseStream) -> Result<Self> {
         input.parse::<Token![let]>()?;
-        let binding: Binding = input.parse()?;
+        let binding = input.parse()?;
         input.parse::<Token![=]>()?;
-        let expression: Expr = input.parse()?;
+        let expression = input.parse()?;
 
         Ok(Let {
             binding,
@@ -371,14 +390,14 @@ impl Parse for Let {
 impl Parse for Comprehesion {
     fn parse(input: ParseStream) -> Result<Self> {
         input.parse::<Token![let]>()?;
-        let binding: Binding = input.parse()?;
+        let binding = input.parse()?;
         input.parse::<Token![=]>()?;
 
         input.parse::<keyword::for_all>()?;
 
-        let loop_var: Ident = input.parse()?;
+        let loop_var = input.parse()?;
         input.parse::<Token![in]>()?;
-        let collection: Expr = input.parse()?;
+        let collection = input.parse()?;
         input.parse::<Token![=]>()?;
         input.parse::<Token![>]>()?;
 
@@ -412,7 +431,7 @@ impl Parse for In {
     fn parse(input: ParseStream) -> Result<Self> {
         let pattern = Pat::parse_multi_with_leading_vert(input)?;
         input.parse::<Token![in]>()?;
-        let expression: Expr = input.parse()?;
+        let expression = input.parse()?;
 
         Ok(In {
             pattern,
@@ -425,20 +444,27 @@ impl Parse for Scope {
     fn parse(input: ParseStream) -> Result<Self> {
         input.parse::<keyword::scope>()?;
 
-        let scope;
-        parenthesized!(scope in input);
-        let expression: Expr = scope.parse()?;
-        scope.parse::<Token![=]>()?;
-        scope.parse::<Token![>]>()?;
-        let pattern = Pat::parse_multi_with_leading_vert(&scope)?;
+        let expression;
+        let pattern;
+        {
+            let scope;
+            parenthesized!(scope in input);
+            expression = scope.parse()?;
+            scope.parse::<Token![=]>()?;
+            scope.parse::<Token![>]>()?;
+            pattern = Pat::parse_multi_with_leading_vert(&scope)?;
+        }
 
         input.parse::<keyword::with>()?;
 
-        let inner;
-        parenthesized!(inner in input);
-        let state: Punctuated<Ident, Token![,]> =
-            inner.parse_terminated(Ident::parse, Token![,])?;
-        let state = state.into_iter().collect();
+        let state = {
+            let inner;
+            parenthesized!(inner in input);
+            inner
+                .parse_terminated(Ident::parse, Token![,])?
+                .into_iter()
+                .collect()
+        };
 
         let body: Premises = input.parse()?;
 
@@ -458,11 +484,14 @@ impl Parse for Conclusion {
 
         let name: Ident = content.parse()?;
 
-        let inner;
-        parenthesized!(inner in content);
-        let patterns: Punctuated<Pat, Token![,]> =
-            inner.parse_terminated(Pat::parse_multi_with_leading_vert, Token![,])?;
-        let patterns = patterns.into_iter().collect();
+        let patterns = {
+            let inner;
+            parenthesized!(inner in content);
+            inner
+                .parse_terminated(Pat::parse_multi_with_leading_vert, Token![,])?
+                .into_iter()
+                .collect()
+        };
 
         content.parse::<Token![=]>()?;
         content.parse::<Token![>]>()?;
@@ -480,10 +509,10 @@ impl Parse for Conclusion {
 impl Parse for Binding {
     fn parse(input: ParseStream) -> Result<Self> {
         Ok(if input.peek2(Token![:]) {
-            let identifier: Ident = input.parse()?;
+            let identifier = input.parse()?;
             let ty = if input.peek(Token![:]) {
                 input.parse::<Token![:]>()?;
-                let ty: Type = input.parse()?;
+                let ty = input.parse()?;
                 Some(ty)
             } else {
                 None
