@@ -6,6 +6,7 @@ license = "MIT OR Apache-2.0"
 description = "Coverage report generator for a-mir-formality judgment rules"
 homepage = "https://rust-lang.github.io/a-mir-formality/"
 repository = "https://github.com/rust-lang/a-mir-formality/"
+publish = false
 
 [dependencies]
 anyhow = "1"
