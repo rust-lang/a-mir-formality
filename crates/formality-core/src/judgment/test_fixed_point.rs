@@ -101,27 +101,23 @@ judgment_fn! {
         debug(a)
 
         (
-            (if *a == 3)
             --- ("3 -> 0")
-            (cycle_edge(a) => 0)
+            (cycle_edge(3_u32) => 0)
         )
 
         (
-            (if *a == 0)
             --- ("0 -> 1")
-            (cycle_edge(a) => 1)
+            (cycle_edge(0_u32) => 1)
         )
 
         (
-            (if *a == 1)
             --- ("1 -> 2")
-            (cycle_edge(a) => 2)
+            (cycle_edge(1_u32) => 2)
         )
 
         (
-            (if *a == 2)
             --- ("2 -> 0")
-            (cycle_edge(a) => 0)
+            (cycle_edge(2_u32) => 0)
         )
     }
 }
