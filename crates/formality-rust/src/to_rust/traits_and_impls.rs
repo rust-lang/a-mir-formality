@@ -245,7 +245,7 @@ pub trait Write {
             expect_test::expect![[r#"
                 pub trait Baz { }
 
-                pub trait Bar<T01> where T01: Baz { }"#]]
+                pub trait Bar<T01: ?Sized> where T01: Baz { }"#]]
 
         );
     }
@@ -260,9 +260,9 @@ pub trait Write {
                 }
             ],
             expect_test::expect![[r#"
-                pub trait Baz<T01, T02> { }
+                pub trait Baz<T01: ?Sized, T02: ?Sized> { }
 
-                pub trait Bar<T01> where T01: Baz<i32, u8> { }"#]]
+                pub trait Bar<T01: ?Sized> where T01: Baz<i32, u8> { }"#]]
 
         );
     }
@@ -282,7 +282,7 @@ pub trait Write {
             expect_test::expect![[r#"
                 pub trait Baz { }
 
-                pub trait Bar<T01> where T01: Baz {
+                pub trait Bar<T01: ?Sized> where T01: Baz {
                     type Error;
                     fn test() -> T01;
                 }"#]]
@@ -318,7 +318,7 @@ pub trait Write {
                 }
             ],
             expect_test::expect![[r#"
-                pub trait Bar<T01> {
+                pub trait Bar<T01: ?Sized> {
                     fn run() -> T01;
                 }
 
@@ -390,7 +390,7 @@ impl !Bar for Baz {}"#]]
                     trait Foo<T> where T: Bar<Self> {}
                 }
             ],
-            expect_test::expect!["pub trait Foo<T01> where T01: Bar<Self> { }"]
+            expect_test::expect!["pub trait Foo<T01: ?Sized> where T01: Bar<Self> { }"]
 
         );
     }
