@@ -430,6 +430,13 @@ judgment_fn! {
             ))
         )
         (
+            (let expr = Expr::bin_op(lhs, op, rhs))
+            (codegen_expr_into(global, cfn, scope, target, expr) => (code, global, cfn))
+            ---- ("comparison")
+            (codegen_expr_into(global, cfn, scope, target, Expr::Compare { lhs, op, rhs }) => (code, global, cfn))
+        )
+
+        (
             (type_expr(cfn, scope, lhs) => lhs_ty)
             (let (lhs_temp, cfn) = cfn.alloc_temp(&lhs_ty)?)
             (codegen_expr_into(global, cfn, scope, lhs_temp, lhs) => (code, global, cfn))

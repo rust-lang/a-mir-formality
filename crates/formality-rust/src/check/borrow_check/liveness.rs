@@ -402,6 +402,7 @@ impl LiveBefore for Expr {
                 place_expr.live_before(env, scopes, places_live)
             }
             Expr::BinOp { lhs, op: _, rhs }
+            | Expr::Compare { lhs, op: _, rhs }
             | Expr::Mul { lhs, rhs }
             | Expr::Div { lhs, rhs }
             | Expr::Rem { lhs, rhs }

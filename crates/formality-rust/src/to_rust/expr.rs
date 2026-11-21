@@ -196,7 +196,7 @@ pub fn lower_expr(ctx: &mut Context, expr: &Expr) -> Fallible<syntax::Expr> {
             op: "&".to_string(),
             rhs: Box::new(lower_expr(ctx, rhs)?),
         }),
-        Expr::BinOp { lhs, op, rhs } => {
+        Expr::BinOp { lhs, op, rhs } | Expr::Compare { lhs, op, rhs } => {
             let lhs = Box::new(lower_expr(ctx, lhs)?);
             let rhs = Box::new(lower_expr(ctx, rhs)?);
             Ok(syntax::Expr::BinOp {

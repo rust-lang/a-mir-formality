@@ -2055,3 +2055,208 @@ fn division_in_call_arguments() {
     .expect_output("9\n")
     .ok();
 }
+
+#[test]
+fn integer_comparisons() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(3_i32 < 4_i32);
+            println!(4_i32 < 3_i32);
+            println!(3_i32 < 3_i32);
+            println!(4_i32 > 3_i32);
+            println!(3_i32 > 4_i32);
+            println!(3_i32 > 3_i32);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("true\nfalse\nfalse\ntrue\nfalse\nfalse\n")
+    .ok();
+}
+
+#[test]
+fn integer_comparisons_with_negative_values() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(-4_i32 < -3_i32);
+            println!(-3_i32 > -4_i32);
+            println!(-1_i32 < 0_i32);
+            println!(0_i32 > -1_i32);
+            println!(-1_i32 > 0_i32);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("true\ntrue\ntrue\ntrue\nfalse\n")
+    .ok();
+}
+
+#[test]
+fn integer_comparisons_unsigned() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(0_u32 < 3_u32);
+            println!(3_u32 > 0_u32);
+            println!(3_u32 < 3_u32);
+            println!(3_u32 > 3_u32);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("true\ntrue\nfalse\nfalse\n")
+    .ok();
+}
+
+#[test]
+fn integer_comparisons_at_type_limits() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(-128_i8 < 127_i8);
+            println!(255_u8 > 0_u8);
+            println!(-170141183460469231731687303715884105728_i128 < 170141183460469231731687303715884105727_i128);
+            println!(340282366920938463463374607431768211455_u128 > 0_u128);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("true\ntrue\ntrue\ntrue\n")
+    .ok();
+}
+
+#[test]
+fn arithmetic_before_comparisons() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(2_i32 + 3_i32 < 6_i32);
+            println!(2_i32 * 3_i32 > 5_i32);
+            println!(10_i32 - 3_i32 > 6_i32);
+            println!(4_i32 < 2_i32 + 3_i32);
+            println!(5_i32 < 2_i32 * 3_i32);
+            println!(5_i32 < 10_i32 - 3_i32);
+            println!(12_i32 / 3_i32 > 3_i32);
+            println!(3_i32 < 12_i32 / 3_i32);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("true\ntrue\ntrue\ntrue\ntrue\ntrue\ntrue\ntrue\n")
+    .ok();
+}
+
+#[test]
+fn integer_comparisons_with_parentheses() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!((1_i32 + 2_i32) * 3_i32 > 8_i32);
+            println!(10_i32 > (2_i32 + 3_i32) * 1_i32);
+            let result: bool = (2_i32 < 3_i32);
+            println!(result);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("true\ntrue\ntrue\n")
+    .ok();
+}
+
+#[test]
+fn comparisons_run_calls_left_to_right() {
+    FormalityTest::new(crates![crate Foo {
+        fn left() -> i32 { println!(1_i32); return 3_i32; }
+        fn right() -> i32 { println!(2_i32); return 4_i32; }
+        fn main() -> () {
+            println!(left() < right());
+            println!(left() > right());
+        }
+    }])
+    .rustc_ok()
+    .expect_output("1\n2\ntrue\n1\n2\nfalse\n")
+    .ok();
+}
+
+#[test]
+fn comparisons_in_conditions_and_assignments() {
+    FormalityTest::new(crates![crate Foo {
+        fn smaller(a: i32, b: i32) -> bool { return a < b; }
+        fn show(value: bool) -> () { println!(value); }
+        fn main() -> () {
+            let result: bool = 2_i32 < 3_i32;
+            println!(result);
+            result = 2_i32 > 3_i32;
+            println!(result);
+            show(3_i32 > 2_i32);
+            println!(smaller(2_i32, 3_i32));
+            if 2_i32 < 3_i32 { println!(1_i32); } else { println!(0_i32); }
+            if 2_i32 > 3_i32 { println!(0_i32); } else { println!(2_i32); }
+        }
+    }])
+    .rustc_ok()
+    .expect_output("true\nfalse\ntrue\ntrue\n1\n2\n")
+    .ok();
+}
+
+#[test]
+fn comparisons_with_generic_calls() {
+    FormalityTest::new(crates![crate Foo {
+        fn identity<T>(x: T) -> T { return x; }
+        fn main() -> () {
+            println!(identity::<i32>(1_i32) < identity::<i32>(2_i32));
+            println!(identity::<u32>(3_u32) > identity::<u32>(2_u32));
+        }
+    }])
+    .rustc_ok()
+    .expect_output("true\ntrue\n")
+    .ok();
+}
+
+#[test]
+fn boolean_comparisons() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(false < false);
+            println!(false < true);
+            println!(true < false);
+            println!(true < true);
+            println!(false > false);
+            println!(false > true);
+            println!(true > false);
+            println!(true > true);
+            println!((1_i32 < 2_i32) > false);
+            println!(false < (2_i32 > 1_i32));
+        }
+    }])
+    .rustc_ok()
+    .expect_output("false\ntrue\nfalse\nfalse\nfalse\nfalse\ntrue\nfalse\ntrue\ntrue\n")
+    .ok();
+}
+
+#[test]
+fn boolean_comparisons_run_calls_left_to_right() {
+    FormalityTest::new(crates![crate Foo {
+        fn left() -> bool { println!(1_i32); return false; }
+        fn right() -> bool { println!(2_i32); return true; }
+        fn main() -> () {
+            let result: bool = left() < right();
+            println!(result);
+            result = left() > right();
+            println!(result);
+            if false < true { println!(3_i32); } else { println!(0_i32); }
+        }
+    }])
+    .rustc_ok()
+    .expect_output("1\n2\ntrue\n1\n2\nfalse\n3\n")
+    .ok();
+}
+
+#[test]
+fn bitwise_and_remainder_before_comparisons() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(1_u32 | 2_u32 < 4_u32);
+            println!(0_u32 < 1_u32 | 2_u32);
+            println!(7_u32 ^ 3_u32 > 3_u32);
+            println!(3_u32 < 7_u32 ^ 3_u32);
+            println!(6_u32 & 3_u32 < 3_u32);
+            println!(1_u32 < 6_u32 & 3_u32);
+            println!(7_u32 % 3_u32 < 2_u32);
+            println!(0_u32 < 7_u32 % 3_u32);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("true\ntrue\ntrue\ntrue\ntrue\ntrue\ntrue\ntrue\n")
+    .ok();
+}

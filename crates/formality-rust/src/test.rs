@@ -628,3 +628,60 @@ fn test_parse_assign_op() {
     "#]]
     .assert_debug_eq(&expr);
 }
+
+#[test]
+fn test_parse_comparisons_after_arithmetic() {
+    use crate::grammar::expr::BinOpKind;
+
+    let expr: Expr = term("a + b < c * d");
+    let Expr::Compare {
+        lhs,
+        op: BinOpKind::Lt,
+        rhs,
+    } = expr
+    else {
+        panic!("expected a less than comparison");
+    };
+    assert!(matches!(
+        &*lhs,
+        Expr::BinOp {
+            op: BinOpKind::Add,
+            ..
+        }
+    ));
+    assert!(matches!(&*rhs, Expr::Mul { .. }));
+
+    let expr: Expr = term("a * b > c - d");
+    let Expr::Compare {
+        lhs,
+        op: BinOpKind::Gt,
+        rhs,
+    } = expr
+    else {
+        panic!("expected a greater than comparison");
+    };
+    assert!(matches!(&*lhs, Expr::Mul { .. }));
+    assert!(matches!(
+        &*rhs,
+        Expr::BinOp {
+            op: BinOpKind::Sub,
+            ..
+        }
+    ));
+}
+
+#[test]
+fn test_parse_comparisons_cannot_be_chained() {
+    for input in ["a < b < c", "a > b > c", "a < b > c", "a > b < c"] {
+        assert!(try_term::<Expr>(input).is_err(), "accepted {input}");
+    }
+    assert!(try_term::<Expr>("(a < b) < c").is_ok());
+    assert!(try_term::<Expr>("a > (b > c)").is_ok());
+}
+
+#[test]
+fn test_parse_comparisons_cannot_be_assignment_operators() {
+    for input in ["x <= y", "x >= y", "x < = y", "x > = y"] {
+        assert!(try_term::<Expr>(input).is_err(), "accepted {input}");
+    }
+}
