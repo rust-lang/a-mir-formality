@@ -50,7 +50,7 @@ fn lifetime_param() {
 
         struct S1 {}
 
-        struct S2<'a> where S1: Trait1<'a> {}
+        struct S2<'a> where S1: Trait1<'a> { value: &'a u32 }
     }])
     .skip_execute()
     .ok()
