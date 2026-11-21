@@ -2055,3 +2055,95 @@ fn division_in_call_arguments() {
     .expect_output("9\n")
     .ok();
 }
+
+#[test]
+fn integer_equality() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(3_i32 == 3_i32);
+            println!(3_i32 == 4_i32);
+            println!(-3_i32 == 3_i32);
+            println!(7_u32 == 7_u32);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("true\nfalse\nfalse\ntrue\n")
+    .ok();
+}
+
+#[test]
+fn boolean_equality() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(true == true);
+            println!(true == false);
+            println!((1_u32 == 1_u32) == true);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("true\nfalse\ntrue\n")
+    .ok();
+}
+
+#[test]
+fn equality_binds_looser_than_arithmetic_and_bitwise() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(2_i32 + 3_i32 == 5_i32);
+            println!(2_i32 * 3_i32 == 2_i32 + 4_i32);
+            println!(6_i32 ^ 3_i32 == 5_i32);
+            println!(4_i32 | 1_i32 == 5_i32);
+            println!(6_i32 & 3_i32 == 2_i32);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("true\ntrue\ntrue\ntrue\ntrue\n")
+    .ok();
+}
+
+#[test]
+fn equality_evaluates_calls_left_to_right() {
+    FormalityTest::new(crates![crate Foo {
+        fn left() -> i32 { println!(1_i32); return 10_i32; }
+        fn right() -> i32 { println!(2_i32); return 10_i32; }
+        fn main() -> () { println!(left() == right()); }
+    }])
+    .rustc_ok()
+    .expect_output("1\n2\ntrue\n")
+    .ok();
+}
+
+#[test]
+fn equality_of_struct_fields() {
+    FormalityTest::new(crates![crate Foo {
+        struct Pair { a: u32, b: u32 }
+        fn main() -> () {
+            let p: Pair = Pair { a: 1_u32, b: 1_u32 };
+            let same: bool = p.a == p.b;
+            println!(same);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("true\n")
+    .ok();
+}
+
+/// The loop exit depends on a value computed at runtime.
+#[test]
+fn equality_ends_counting_loop() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            let i: u32 = 0_u32;
+            'a: loop {
+                if i == 3_u32 {
+                    break 'a;
+                }
+                println!(i);
+                i += 1_u32;
+            }
+        }
+    }])
+    .rustc_ok()
+    .expect_output("0\n1\n2\n")
+    .ok();
+}

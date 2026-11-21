@@ -2264,3 +2264,100 @@ fn test_div_boolean_operands() {
           condition evaluated to false: `scalar.is_int()`
             scalar = bool"#]])
 }
+
+/// Comparing integers of different types should fail.
+#[test]
+fn test_eq_mismatched_int_types() {
+    FormalityTest::new(crates![crate Foo {
+        fn foo() -> () {
+            let x: bool = 1_i32 == 2_u32;
+        }
+    }])
+    .rustc_err(expect_test::expect![[r#"
+        error[E0308]: mismatched types
+         --> lib.rs
+          |
+        2 |     let mut x: bool = 1_i32 == 2_u32;
+          |                       -----    ^^^^^ expected `i32`, found `u32`
+          |                       |
+          |                       expected because this is `i32`
+          |
+        help: change the type of the numeric literal from `u32` to `i32`
+          |
+        2 -     let mut x: bool = 1_i32 == 2_u32;
+        2 +     let mut x: bool = 1_i32 == 2_i32;
+          |
+
+        For more information about this error, try `rustc --explain E0308`.
+        error: could not compile `Foo` (lib) due to 1 previous error
+    "#]])
+    .err(expect_test::expect![[r#"
+        crates/formality-rust/src/prove/prove_normalize.rs:22:1: no applicable rules for prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+
+        crates/formality-rust/src/prove/prove_normalize.rs:22:1: no applicable rules for prove_normalize { p: i32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }"#]])
+}
+
+/// `==` evaluates to `bool`, not to the type of its operands.
+#[test]
+fn test_eq_result_is_bool() {
+    FormalityTest::new(crates![crate Foo {
+        fn foo() -> () {
+            let x: u32 = 1_u32 == 1_u32;
+        }
+    }])
+    .rustc_err(expect_test::expect![[r#"
+        error[E0308]: mismatched types
+         --> lib.rs
+          |
+        2 |     let mut x: u32 = 1_u32 == 1_u32;
+          |                ---   ^^^^^^^^^^^^^^ expected `u32`, found `bool`
+          |                |
+          |                expected due to this
+
+        For more information about this error, try `rustc --explain E0308`.
+        error: could not compile `Foo` (lib) due to 1 previous error
+    "#]])
+    .err(expect_test::expect![[r#"
+        crates/formality-rust/src/prove/prove_normalize.rs:22:1: no applicable rules for prove_normalize { p: bool, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+
+        crates/formality-rust/src/prove/prove_normalize.rs:22:1: no applicable rules for prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }"#]])
+}
+
+/// Only scalars can be compared. In Rust, `S` would need a `PartialEq` impl.
+#[test]
+fn test_eq_struct_operands() {
+    FormalityTest::new(crates![crate Foo {
+        struct S {}
+        fn foo() -> () {
+            let a: S = S {};
+            let b: S = S {};
+            let x: bool = a == b;
+        }
+    }])
+    .rustc_err(expect_test::expect![[r#"
+        error[E0369]: binary operation `==` cannot be applied to type `S`
+         --> lib.rs
+          |
+        6 |     let mut x: bool = a == b;
+          |                       - ^^ - S
+          |                       |
+          |                       S
+          |
+        note: an implementation of `PartialEq` might be missing for `S`
+         --> lib.rs
+          |
+        1 | pub struct S {}
+          | ^^^^^^^^^^^^ must implement `PartialEq`
+        help: consider annotating `S` with `#[derive(PartialEq)]`
+          |
+        1 + #[derive(PartialEq)]
+        2 | pub struct S {}
+          |
+
+        For more information about this error, try `rustc --explain E0369`.
+        error: could not compile `Foo` (lib) due to 1 previous error
+    "#]])
+    .err(expect_test::expect![[r#"
+        the rule "comparison" at (nll.rs) failed because
+          pattern `(RigidTy {name: RigidName::ScalarId(_), parameters: _}, state)` did not match value `(S, flow_state([scope(none, None, {}, None, [], []), scope(none, None, {}, None, [(a, S), (b, S)], [a : S, b : S])], point_flow_state({}, {}, {a}), {}, {}, {}))`"#]])
+}

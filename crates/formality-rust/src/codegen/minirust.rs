@@ -1,7 +1,7 @@
 //! Newtypes wrapping MiniRust types, plus value/terminator constructors
 //! and type translation from formality-rust types to MiniRust types.
 
-use crate::grammar::expr::{BinOpKind, Literal};
+use crate::grammar::expr::{BinOpKind, CmpOpKind, Literal};
 use crate::grammar::{Crates, Fallible, Parameter, RigidName, ScalarId, Ty};
 use formality_core::Upcast;
 use libspecr::hidden::GcCow;
@@ -399,6 +399,21 @@ pub(super) fn binop(op: &BinOpKind, left: MiniRustValue, right: MiniRustValue) -
         BinOpKind::BitOr => lang::BinOp::Int(lang::IntBinOp::BitOr),
         BinOpKind::BitXor => lang::BinOp::Int(lang::IntBinOp::BitXor),
         BinOpKind::BitAnd => lang::BinOp::Int(lang::IntBinOp::BitAnd),
+    };
+    MiniRustValue(lang::ValueExpr::BinOp {
+        operator,
+        left: GcCow::new(left.into()),
+        right: GcCow::new(right.into()),
+    })
+}
+
+pub(super) fn comparison(
+    op: &CmpOpKind,
+    left: MiniRustValue,
+    right: MiniRustValue,
+) -> MiniRustValue {
+    let operator = match op {
+        CmpOpKind::Eq => lang::BinOp::Rel(lang::RelOp::Eq),
     };
     MiniRustValue(lang::ValueExpr::BinOp {
         operator,

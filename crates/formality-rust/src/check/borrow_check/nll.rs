@@ -529,6 +529,15 @@ judgment_fn! {
         )
 
         (
+            // Both sides must have the same scalar type. Unlike arithmetic, `bool` is allowed.
+            (borrow_check_expr(env, assumptions, state, lhs, rhs.live_before(env, &state, places_live_on_exit)) => (lhs_ty, state))
+            (prove_ty_is_rigid(env, assumptions, state, lhs_ty) => (RigidTy {name: RigidName::ScalarId(_), parameters: _}, state))
+            (borrow_check_expr_has_ty(env, assumptions, state, rhs, lhs_ty, places_live_on_exit) => state)
+            ------------("comparison")
+            (borrow_check_expr(env, assumptions, state, Expr::Cmp{lhs, op: _, rhs}, places_live_on_exit) => (Ty::bool(), state))
+        )
+
+        (
             ------------------------------------------------------------ ("literal")
             (borrow_check_expr(_env, _assumptions, state, Literal { value: _, ty }, _places_live_on_exit) => (ty, state))
         )

@@ -628,3 +628,64 @@ fn test_parse_assign_op() {
     "#]]
     .assert_debug_eq(&expr);
 }
+
+#[test]
+fn test_parse_eq() {
+    // Calls and arithmetic bind tighter than `==`, which binds tighter than `=`.
+    let expr: Expr = term("x = a + b == f(c) * d");
+    expect_test::expect![[r#"
+        Assign {
+            place: Var(
+                x,
+            ),
+            expr: Cmp {
+                lhs: BinOp {
+                    lhs: Place(
+                        Var(
+                            a,
+                        ),
+                    ),
+                    op: Add,
+                    rhs: Place(
+                        Var(
+                            b,
+                        ),
+                    ),
+                },
+                op: Eq,
+                rhs: Mul {
+                    lhs: Call {
+                        callee: Place(
+                            Var(
+                                f,
+                            ),
+                        ),
+                        args: [
+                            Place(
+                                Var(
+                                    c,
+                                ),
+                            ),
+                        ],
+                    },
+                    rhs: Place(
+                        Var(
+                            d,
+                        ),
+                    ),
+                },
+            },
+        }
+    "#]]
+    .assert_debug_eq(&expr);
+}
+
+#[test]
+fn test_parse_eq_does_not_chain() {
+    // As in Rust, chained comparisons need parentheses.
+    let expr: Fallible<Expr> = try_term("a == b == c");
+    assert!(expr.is_err());
+
+    let expr: Expr = term("(a == b) == c");
+    assert!(matches!(expr, Expr::Cmp { .. }));
+}

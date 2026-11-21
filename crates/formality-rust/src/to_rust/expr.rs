@@ -205,6 +205,11 @@ pub fn lower_expr(ctx: &mut Context, expr: &Expr) -> Fallible<syntax::Expr> {
                 rhs,
             })
         }
+        Expr::Cmp { lhs, op, rhs } => Ok(syntax::Expr::BinOp {
+            lhs: Box::new(lower_expr(ctx, lhs)?),
+            op: op.as_str().to_string(),
+            rhs: Box::new(lower_expr(ctx, rhs)?),
+        }),
     }
 }
 
