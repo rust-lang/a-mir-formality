@@ -1772,10 +1772,23 @@ fn remainder_runs_calls_left_to_right() {
     .ok();
 }
 
-// Rust panics on these; MiniRust reports them as undefined behavior.
-// FIXME #543: assert a defined abort instead of accepting the MiniRust UB diagnostic.
 #[test]
-#[should_panic(expected = "modulus of remainder is zero")]
+fn remainder_near_overflow_does_not_abort() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(7_i32 % -1_i32);
+            println!(-2147483647_i32 % -1_i32);
+            println!(-2147483648_i32 % 1_i32);
+            println!(-2147483648_i32 % 2147483647_i32);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("0\n0\n0\n-1\n")
+    .ok();
+}
+
+#[test]
+#[should_panic(expected = "execution error: Abort")]
 fn integer_remainder_by_zero() {
     FormalityTest::new(crates![crate Foo {
         fn main() -> () {
@@ -1785,9 +1798,8 @@ fn integer_remainder_by_zero() {
     .ok();
 }
 
-// FIXME #543: assert a defined abort instead of accepting the MiniRust UB diagnostic.
 #[test]
-#[should_panic(expected = "overflow in remainder")]
+#[should_panic(expected = "execution error: Abort")]
 fn integer_remainder_overflow() {
     FormalityTest::new(crates![crate Foo {
         fn main() -> () {
@@ -1962,10 +1974,23 @@ fn division_runs_calls_left_to_right() {
     .ok();
 }
 
-// MiniRust reports invalid division as an execution error.
-// FIXME #543: assert a defined abort instead of accepting the MiniRust UB diagnostic.
 #[test]
-#[should_panic(expected = "division by zero")]
+fn division_near_overflow_does_not_abort() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(7_i32 / -1_i32);
+            println!(-2147483647_i32 / -1_i32);
+            println!(-2147483648_i32 / 1_i32);
+            println!(-2147483648_i32 / 2147483647_i32);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("-7\n2147483647\n-2147483648\n-1\n")
+    .ok();
+}
+
+#[test]
+#[should_panic(expected = "execution error: Abort")]
 fn integer_division_by_zero() {
     FormalityTest::new(crates![crate Foo {
         fn main() -> () {
@@ -1975,9 +2000,8 @@ fn integer_division_by_zero() {
     .ok();
 }
 
-// FIXME #543: assert a defined abort instead of accepting the MiniRust UB diagnostic.
 #[test]
-#[should_panic(expected = "overflow in division")]
+#[should_panic(expected = "execution error: Abort")]
 fn integer_division_overflow() {
     FormalityTest::new(crates![crate Foo {
         fn main() -> () {

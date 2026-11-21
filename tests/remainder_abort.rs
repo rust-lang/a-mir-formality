@@ -29,9 +29,7 @@ fn assert_aborts(program: &str) {
     panic!("program did not terminate within 1000 steps");
 }
 
-// FIXME #543: remove should_panic when remainder takes a defined abort path.
 #[test]
-#[should_panic(expected = "expected abort, got Ub(String(\"modulus of remainder is zero\"))")]
 fn runtime_remainder_zero_aborts() {
     assert_aborts(&crates![crate Foo {
         fn rem(x: i32, y: i32) -> i32 { return x % y; }
@@ -39,9 +37,7 @@ fn runtime_remainder_zero_aborts() {
     }]);
 }
 
-// FIXME #543: remove should_panic when remainder takes a defined abort path.
 #[test]
-#[should_panic(expected = "expected abort, got Ub(String(\"overflow in remainder\"))")]
 fn runtime_remainder_overflow_aborts() {
     assert_aborts(&crates![crate Foo {
         fn rem(x: i32, y: i32) -> i32 { return x % y; }
@@ -49,9 +45,7 @@ fn runtime_remainder_overflow_aborts() {
     }]);
 }
 
-// FIXME #543: remove should_panic when remainder takes a defined abort path.
 #[test]
-#[should_panic(expected = "expected abort, got Ub(String(\"modulus of remainder is zero\"))")]
 fn runtime_compound_remainder_zero_aborts() {
     assert_aborts(&crates![crate Foo {
         fn rem(x: i32, y: i32) -> i32 { x %= y; return x; }
@@ -59,13 +53,47 @@ fn runtime_compound_remainder_zero_aborts() {
     }]);
 }
 
-// FIXME #543: remove should_panic when remainder takes a defined abort path.
 #[test]
-#[should_panic(expected = "expected abort, got Ub(String(\"overflow in remainder\"))")]
 fn runtime_compound_remainder_overflow_aborts() {
     assert_aborts(&crates![crate Foo {
         fn rem(x: i32, y: i32) -> i32 { x %= y; return x; }
         fn main() -> () { println!(rem(-2147483648_i32, -1_i32)); }
+    }]);
+}
+
+#[test]
+fn runtime_unsigned_remainder_zero_aborts() {
+    assert_aborts(&crates![crate Foo {
+        fn rem(x: u8, y: u8) -> u8 { return x % y; }
+        fn main() -> () { println!(rem(7_u8, 0_u8)); }
+    }]);
+}
+
+#[test]
+fn runtime_i8_remainder_overflow_aborts() {
+    assert_aborts(&crates![crate Foo {
+        fn rem(x: i8, y: i8) -> i8 { return x % y; }
+        fn main() -> () { println!(rem(-128_i8, -1_i8)); }
+    }]);
+}
+
+#[test]
+fn runtime_compound_remainder_checks_destination_after_rhs() {
+    assert_aborts(&crates![crate Foo {
+        struct Pair { left: i32, right: i32 }
+        fn update<'a>(p: &'a mut Pair) -> i32 {
+            (*p).left = -2147483648_i32;
+            return -1_i32;
+        }
+        fn main() -> () {
+            let p: Pair = Pair { left: 7_i32, right: 16_i32 };
+            exists<'a> {
+                let r: &'a mut Pair = &'a mut p;
+                p.left %= update::<'a>(r);
+            }
+            println!(p.left);
+            println!(p.right);
+        }
     }]);
 }
 

@@ -33,9 +33,7 @@ fn assert_aborts(input: &str) {
 
 // Use function parameters so rustc checks a runtime division rather than
 // rejecting a constant expression with the unconditional_panic lint.
-// FIXME #543: remove should_panic when division takes a defined abort path.
 #[test]
-#[should_panic(expected = "expected a defined abort, got Ub(String(\"division by zero\"))")]
 fn division_by_zero_aborts() {
     assert_aborts(crates![crate Foo {
         fn divide(lhs: u32, rhs: u32) -> u32 { return lhs / rhs; }
@@ -43,9 +41,7 @@ fn division_by_zero_aborts() {
     }]);
 }
 
-// FIXME #543: remove should_panic when division takes a defined abort path.
 #[test]
-#[should_panic(expected = "expected a defined abort, got Ub(String(\"overflow in division\"))")]
 fn signed_division_overflow_aborts() {
     assert_aborts(crates![crate Foo {
         fn divide(lhs: i32, rhs: i32) -> i32 { return lhs / rhs; }
@@ -53,9 +49,7 @@ fn signed_division_overflow_aborts() {
     }]);
 }
 
-// FIXME #543: remove should_panic when division takes a defined abort path.
 #[test]
-#[should_panic(expected = "expected a defined abort, got Ub(String(\"division by zero\"))")]
 fn compound_division_by_zero_aborts() {
     assert_aborts(crates![crate Foo {
         fn divide(lhs: u32, rhs: u32) -> u32 {
@@ -66,9 +60,7 @@ fn compound_division_by_zero_aborts() {
     }]);
 }
 
-// FIXME #543: remove should_panic when division takes a defined abort path.
 #[test]
-#[should_panic(expected = "expected a defined abort, got Ub(String(\"overflow in division\"))")]
 fn signed_compound_division_overflow_aborts() {
     assert_aborts(crates![crate Foo {
         fn divide(lhs: i32, rhs: i32) -> i32 {
