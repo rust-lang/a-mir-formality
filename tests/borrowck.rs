@@ -2829,6 +2829,31 @@ fn return_reborrow_of_parameter() {
     .borrowck_ok();
 }
 
+/// FIXME #552: loans created after an unconditional return must not affect drops.
+/// Rust accepts this program, but all formality borrow-check modes reject it.
+#[test]
+#[ignore = "FIXME #552: unreachable loans affect function-exit drop checks"]
+fn unreachable_static_borrow_of_parameter_after_return() {
+    // Keep `exit` outside MiniRust's reachable call graph to isolate borrow
+    // checking from a separate codegen assertion on unreachable loans.
+    // Both formality and generated Rust still check the helper's body.
+    FormalityTest::new(crates![crate Foo {
+        fn stash(p: &'static u32) -> () { trusted }
+
+        fn exit(x: u32) -> u32 {
+            return 0_u32;
+            stash(&'static x);
+        }
+
+        fn main() -> () {
+            println!(0_u32);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("0\n")
+    .borrowck_ok();
+}
+
 /// A variant of Problem Case #3 which actually passes NLL
 /// it doesn't exercise the interesting path.
 ///
