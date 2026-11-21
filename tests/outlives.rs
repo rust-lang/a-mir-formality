@@ -84,10 +84,7 @@ fn call_uses_projection_outlives_bound() {
 }
 
 // Removing only the caller's outlives assumption must make the same call fail.
-// FIXME: https://github.com/rust-lang/a-mir-formality/issues/530
-// Remove should_panic once formality rejects the missing bound.
 #[test]
-#[should_panic(expected = "a call without the required projection outlives bound must be rejected")]
 fn call_requires_projection_outlives_bound() {
     let program = crates![crate Foo {
         trait A { type Item: []; }
