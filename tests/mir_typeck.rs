@@ -1193,10 +1193,10 @@ fn test_add_mismatched_int_types() {
         help: the following other types implement trait `Add<Rhs>`
            --> arith.rs
             |
-         99 |         impl const Add for $t {
+         98 |         impl const Add for $t {
             |         ^^^^^^^^^^^^^^^^^^^^^ `i32` implements `Add`
         ...
-        114 | add_impl! { usize u8 u16 u32 u64 u128 isize i8 i16 i32 i64 i128 f16 f32 f64 f128 }
+        113 | add_impl! { usize u8 u16 u32 u64 u128 isize i8 i16 i32 i64 i128 f16 f32 f64 f128 }
             | ---------------------------------------------------------------------------------- in this macro invocation
             |
            ::: internal_macros.rs
@@ -1245,10 +1245,10 @@ fn test_sub_mismatched_int_types() {
         help: the following other types implement trait `Sub<Rhs>`
            --> arith.rs
             |
-        212 |         impl const Sub for $t {
+        210 |         impl const Sub for $t {
             |         ^^^^^^^^^^^^^^^^^^^^^ `i32` implements `Sub`
         ...
-        227 | sub_impl! { usize u8 u16 u32 u64 u128 isize i8 i16 i32 i64 i128 f16 f32 f64 f128 }
+        225 | sub_impl! { usize u8 u16 u32 u64 u128 isize i8 i16 i32 i64 i128 f16 f32 f64 f128 }
             | ---------------------------------------------------------------------------------- in this macro invocation
             |
            ::: internal_macros.rs
@@ -1298,10 +1298,10 @@ fn test_mul_mismatched_int_types() {
         help: the following other types implement trait `Mul<Rhs>`
            --> arith.rs
             |
-        346 |         impl const Mul for $t {
+        344 |         impl const Mul for $t {
             |         ^^^^^^^^^^^^^^^^^^^^^ `i32` implements `Mul`
         ...
-        361 | mul_impl! { usize u8 u16 u32 u64 u128 isize i8 i16 i32 i64 i128 f16 f32 f64 f128 }
+        359 | mul_impl! { usize u8 u16 u32 u64 u128 isize i8 i16 i32 i64 i128 f16 f32 f64 f128 }
             | ---------------------------------------------------------------------------------- in this macro invocation
             |
            ::: internal_macros.rs
@@ -1970,10 +1970,10 @@ fn test_compound_add_mismatched_int_types() {
         help: `u32` implements trait `AddAssign<Rhs>`
            --> arith.rs
             |
-        788 |         impl const AddAssign for $t {
+        786 |         impl const AddAssign for $t {
             |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^ `AddAssign`
         ...
-        801 | add_assign_impl! { usize u8 u16 u32 u64 u128 isize i8 i16 i32 i64 i128 f16 f32 f64 f128 }
+        799 | add_assign_impl! { usize u8 u16 u32 u64 u128 isize i8 i16 i32 i64 i128 f16 f32 f64 f128 }
             | ----------------------------------------------------------------------------------------- in this macro invocation
             |
            ::: internal_macros.rs
