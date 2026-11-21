@@ -76,6 +76,17 @@ Inspect the termination reason when that distinction is the regression.
 
 ## Exercise every applicable test layer
 
+Prefer integration regressions grounded in real formality programs. Minimize
+the program while preserving the behavior that exposes the bug, rather than
+calling private helpers or constructing internal solver/borrow-checker state.
+In particular, manually inserting a constraint and asserting that a helper
+panics does not establish that the constraint is impossible during normal
+checking. Trace how a real program produces it and test that program through
+the harness. Flag tests that merely restate an implementation assertion, and
+replace them with behavioral examples where practical. Use internal unit tests
+only when they provide coverage that a program-level test cannot meaningfully
+express, and explain that limitation.
+
 Inspect the current test harness before choosing assertions. Maximize coverage
 of each test program through the available layers:
 
