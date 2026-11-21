@@ -1,8 +1,8 @@
 use crate::grammar::{
-    AdtId, AliasName, AliasTy, AssociatedTyValue, AssociatedTyValueBoundData, AtomicPredicate,
-    Binder, Crate, CrateId, CrateItem, Crates, ImplItem, NegTraitImpl, NegTraitImplBoundData,
-    Parameter, Predicate, Predicates, Trait, TraitBoundData, TraitId, TraitImpl,
-    TraitImplBoundData, TraitRef, Ty,
+    AdtId, AliasName, AliasTy, AssociatedTy, AssociatedTyBoundData, AssociatedTyName,
+    AssociatedTyValue, AssociatedTyValueBoundData, AtomicPredicate, Binder, Crate, CrateId,
+    CrateItem, Crates, ImplItem, NegTraitImpl, NegTraitImplBoundData, Parameter, Predicate,
+    Predicates, Trait, TraitBoundData, TraitId, TraitImpl, TraitImplBoundData, TraitRef, Ty,
 };
 use crate::prove::ToPredicates;
 use formality_core::{seq, Downcasted, Set, To, Upcast, Upcasted};
@@ -218,6 +218,54 @@ impl Program {
             .collect()
     }
 
+    pub fn alias_bound_decls(&self, name: &AliasName) -> Vec<AliasBoundDecl> {
+        let AliasName::AssociatedTyId(AssociatedTyName {
+            trait_id, item_id, ..
+        }) = name;
+        let Ok(t) = self.crates.trait_named(trait_id) else {
+            return vec![];
+        };
+        let (trait_vars, TraitBoundData { trait_items, .. }) = t.binder.open();
+        let Some(AssociatedTy { id: _, binder }) = trait_items
+            .iter()
+            .downcasted::<AssociatedTy>()
+            .find(|assoc_ty| assoc_ty.id == *item_id)
+        else {
+            return vec![];
+        };
+        let (
+            assoc_vars,
+            AssociatedTyBoundData {
+                ensures,
+                where_clauses,
+            },
+        ) = binder.open();
+
+        let alias = AliasTy::associated_ty(
+            trait_id,
+            item_id,
+            assoc_vars.len(),
+            (&trait_vars, &assoc_vars),
+        );
+        let where_clause: Predicates = (
+            AtomicPredicate::IsImplemented(TraitRef::new(trait_id, &trait_vars)),
+            &where_clauses,
+        )
+            .to_predicates();
+        ensures
+            .iter()
+            .map(|ensure| AliasBoundDecl {
+                binder: Binder::new(
+                    (&trait_vars, &assoc_vars),
+                    AliasBoundDeclBoundData {
+                        bound: ensure.to_predicate(&alias),
+                        where_clause: where_clause.clone(),
+                    },
+                ),
+            })
+            .collect()
+    }
+
     /// Return the set of "trait invariants" for all traits.
     /// See [`TraitDecl::trait_invariants`].
     pub fn trait_invariants(&self) -> Set<TraitInvariant> {
@@ -420,5 +468,18 @@ pub struct AliasEqDeclBoundData {
     pub ty: Ty,
 
     /// The where-clauses that must hold for this rule to be applicable; derived from the impl and the GAT
+    pub where_clause: Predicates,
+}
+
+/// A bound declared on an associated type, e.g. `type Foo: [Bar]`.
+#[term(alias_bound $binder)]
+pub struct AliasBoundDecl {
+    /// Trait generics (starting with `Self`) followed by the GAT generics.
+    pub binder: Binder<AliasBoundDeclBoundData>,
+}
+
+#[term($bound $:where $where_clause)]
+pub struct AliasBoundDeclBoundData {
+    pub bound: Predicate,
     pub where_clause: Predicates,
 }
