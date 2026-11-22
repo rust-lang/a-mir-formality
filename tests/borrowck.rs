@@ -3265,6 +3265,53 @@ fn continue_drops_borrowed_local_loop_carried() {
     )
 }
 
+#[test]
+fn end_of_loop_body_drops_borrowed_local_loop_carried() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            exists<'r0, 'r1, 'r2> {
+                let z: u32 = 0_u32;
+                let r: &'r0 u32 = &'r1 z;
+                'l: loop {
+                    let _y: u32 = *r;
+                    let x: u32 = 1_u32;
+                    r = &'r2 x;
+                }
+            }
+        }
+    }])
+    .skip_execute()
+    .borrowck_err(
+        BorrowCheckFailure::All,
+        expect_test::expect![[r#"
+        the rule "borrow of disjoint places" at (nll.rs) failed because
+          condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
+            &loan.place = x : u32
+            &access.place = x : u32
+
+        the rule "loan_cannot_outlive" at (nll.rs) failed because
+          condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+            outlived_by_loan = {?lt_1, ?lt_3}
+            &lifetime.upcast() = ?lt_1
+
+        the rule "write-indirect" at (nll.rs) failed because
+          pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `x`
+
+        the rule "borrow of disjoint places" at (nll.rs) failed because
+          condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
+            &loan.place = x : u32
+            &access.place = x : u32
+
+        the rule "loan_cannot_outlive" at (nll.rs) failed because
+          condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+            outlived_by_loan = {?lt_1, ?lt_3}
+            &lifetime.upcast() = ?lt_1
+
+        the rule "write-indirect" at (nll.rs) failed because
+          pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `x`"#]],
+    );
+}
+
 /// `break` drops locals declared inside the loop body.
 /// Borrowing a local and then breaking should fail if the
 /// borrow is used after the loop.
@@ -3468,6 +3515,79 @@ fn write_to_borrowed_before_continue() {
 
             the rule "write-indirect" at (nll.rs) failed because
               pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `a`"#]])
+}
+
+/// `p` is read again on the next iteration, so writing `a` at the end of the body is an error.
+#[test]
+fn write_to_borrowed_at_end_of_loop_body() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            exists<'r0, 'r1, 'r2> {
+                let a: u32 = 22_u32;
+                let p: &'r0 u32 = &'r1 a;
+                'l: loop {
+                    let q: &'r2 u32 = p;
+                    a = 23_u32;
+                }
+            }
+        }
+    }])
+    .skip_execute()
+    .borrowck_err(
+        BorrowCheckFailure::All,
+        expect_test::expect![[r#"
+        the rule "borrow of disjoint places" at (nll.rs) failed because
+          condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
+            &loan.place = a : u32
+            &access.place = a : u32
+
+        the rule "loan_cannot_outlive" at (nll.rs) failed because
+          condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+            outlived_by_loan = {?lt_1, ?lt_2, ?lt_3}
+            &lifetime.upcast() = ?lt_1
+
+        the rule "write-indirect" at (nll.rs) failed because
+          pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `a`
+
+        the rule "borrow of disjoint places" at (nll.rs) failed because
+          condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
+            &loan.place = a : u32
+            &access.place = a : u32
+
+        the rule "loan_cannot_outlive" at (nll.rs) failed because
+          condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+            outlived_by_loan = {?lt_1, ?lt_2, ?lt_3}
+            &lifetime.upcast() = ?lt_1
+
+        the rule "write-indirect" at (nll.rs) failed because
+          pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `a`
+
+        the rule "borrow of disjoint places" at (nll.rs) failed because
+          condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
+            &loan.place = a : u32
+            &access.place = a : u32
+
+        the rule "loan_cannot_outlive" at (nll.rs) failed because
+          condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+            outlived_by_loan = {?lt_1, ?lt_2, ?lt_3}
+            &lifetime.upcast() = ?lt_1
+
+        the rule "write-indirect" at (nll.rs) failed because
+          pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `a`
+
+        the rule "borrow of disjoint places" at (nll.rs) failed because
+          condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
+            &loan.place = a : u32
+            &access.place = a : u32
+
+        the rule "loan_cannot_outlive" at (nll.rs) failed because
+          condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+            outlived_by_loan = {?lt_1, ?lt_2, ?lt_3}
+            &lifetime.upcast() = ?lt_1
+
+        the rule "write-indirect" at (nll.rs) failed because
+          pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `a`"#]],
+    );
 }
 
 /// Test that `false` works as a condition in `if` with borrow checking.
@@ -4511,6 +4631,7 @@ fn issue_57165_no_control_flow() {
 /// NLL's (and polonius alpha's) reachability approximation.
 ///
 /// rustc: [nll] error, [polonius] error, [legacy] pass.
+/// Formality also rejects this in polonius-unlocked mode.
 #[test]
 fn issue_57165_conditional() {
     FormalityTest::new(crates![crate Foo {
@@ -4541,7 +4662,7 @@ fn issue_57165_conditional() {
         }
     }])
         .skip_execute()
-        .borrowck_err(BorrowCheckFailure::Alpha, expect_test::expect![[r#"
+        .borrowck_err(BorrowCheckFailure::All, expect_test::expect![[r#"
             the rule "fixed-point" at (nll.rs) failed because
               condition evaluated to false: `state0 == state1`
                 state0 = flow_state([scope(none, None, {}, None, [], []), scope(none, None, {}, None, [], []), scope(some(U(4)), None, {}, None, [(b, X), (p, &?lt_1 mut X)], [b : X, p : &?lt_1 mut X]), scope(some(U(4)), Some('l), {}, Some({* p}), [], [])], point_flow_state({pending_outlives(?lt_2, ?lt_1)}, {loan(?lt_2, b : X, mut)}, {}), {}, {}, {pending_outlives(?lt_2, ?lt_1)})

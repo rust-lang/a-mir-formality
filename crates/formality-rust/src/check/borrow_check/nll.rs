@@ -248,7 +248,8 @@ judgment_fn! {
             // the loop's own label, so that continue/break inside the body resolve correctly.
             (let continue_live = Stmt::loop_(label, body).live_before(&env, &state, places_live_on_exit))
             (let state = state.push_continue_scope(&env.env, label, places_live_on_exit, continue_live)?)
-            (borrow_check_loop(env, assumptions, state, body, places_live_on_exit) => state)
+            // The end of the body goes back to the loop head, like a `continue`.
+            (borrow_check_loop(env, assumptions, state, body, continue_live) => state)
             (let state = state.pop_scope(label))
             ------------------------------------------------------------ ("loop")
             (borrow_check_statement(env, assumptions, state, Stmt::Loop { label, body }, places_live_on_exit) => (env, state))
