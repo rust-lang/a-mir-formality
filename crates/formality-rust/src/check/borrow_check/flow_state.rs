@@ -484,6 +484,14 @@ impl FlowState {
             .find_map(|s| s.continue_live_places.clone())
     }
 
+    pub fn live_after_break(&self, label: &LabelId) -> Option<LivePlaces> {
+        self.scopes
+            .iter()
+            .rev()
+            .find(|s| s.has_label(label))
+            .map(|s| s.break_live_places.clone())
+    }
+
     /// Returns the locals that would be dropped when exiting to the scope with the given label,
     /// from innermost scope outward, each scope's drop_locals in reverse declaration order (LIFO).
     /// Includes the drop_locals of the target scope itself.

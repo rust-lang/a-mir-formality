@@ -258,12 +258,13 @@ judgment_fn! {
             // break targets any in-scope label (block or loop).
             // Drop locals from all scopes up to and including the target.
             (if state.scope_has_label(label))!
+            (if let Some(places_live_on_break) = state.live_after_break(label))
             (let locals_to_drop = state.locals_dropped_to_label(label))
-            (drop_places(env, assumptions, state, locals_to_drop, places_live_on_exit) => state)
+            (drop_places(env, assumptions, state, locals_to_drop, places_live_on_break) => state)
             (let state = state.with_break(label))
             (let state = state.diverges())
             ------------------------------------------------------------ ("break")
-            (borrow_check_statement(env, assumptions, state, Stmt::Break { label }, places_live_on_exit) => (env, state))
+            (borrow_check_statement(env, assumptions, state, Stmt::Break { label }, _places_live_on_exit) => (env, state))
         )
 
         (

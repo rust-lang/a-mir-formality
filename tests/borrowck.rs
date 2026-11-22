@@ -3322,6 +3322,27 @@ fn break_drops_borrowed_local() {
               pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `x`"#]])
 }
 
+/// `r` isn't used after the loop, so dropping `x` at the `break` is fine.
+#[test]
+fn break_drops_borrowed_local_not_used_after_loop() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            exists<'r0, 'r1, 'r2> {
+                let z: u32 = 0_u32;
+                let r: &'r0 u32 = &'r1 z;
+                'l: loop {
+                    let _y: u32 = *r;
+                    let x: u32 = 1_u32;
+                    r = &'r2 x;
+                    break 'l;
+                }
+            }
+        }
+    }])
+    .skip_execute()
+    .borrowck_ok();
+}
+
 /// Locals declared inside a loop are properly scoped:
 /// a borrow that doesn't escape is fine even with continue.
 ///
