@@ -449,22 +449,23 @@ pub fn insert_smallest_proof<K: Ord + Clone>(
     key: K,
     proof: ProofTree,
 ) {
-    match map.get(&key) {
-        Some(existing) => {
-            if Arc::ptr_eq(&proof.0, &existing.0) {
-                return;
-            }
-            let dominated = proof
-                .total_nodes()
-                .cmp(&existing.total_nodes())
-                .then_with(|| format!("{proof:?}").cmp(&format!("{existing:?}")))
-                .is_lt();
-            if dominated {
-                map.insert(key, proof);
+    use std::collections::btree_map::Entry;
+
+    match map.entry(key) {
+        Entry::Occupied(mut entry) => {
+            let existing = entry.get();
+            if !Arc::ptr_eq(&proof.0, &existing.0)
+                && proof
+                    .total_nodes()
+                    .cmp(&existing.total_nodes())
+                    .then_with(|| format!("{proof:?}").cmp(&format!("{existing:?}")))
+                    .is_lt()
+            {
+                *entry.get_mut() = proof;
             }
         }
-        None => {
-            map.insert(key, proof);
+        Entry::Vacant(entry) => {
+            entry.insert(proof);
         }
     }
 }
