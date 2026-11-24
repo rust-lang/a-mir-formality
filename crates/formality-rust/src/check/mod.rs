@@ -27,6 +27,7 @@ mod coherence;
 mod core_crate;
 mod fns;
 mod impls;
+mod return_check;
 mod traits;
 mod where_clauses;
 
