@@ -428,6 +428,8 @@ pub enum CompareOp {
     Lt,
     #[grammar(>)]
     Gt,
+    #[grammar(==)]
+    Eq,
 }
 
 impl CompareOp {
@@ -435,6 +437,7 @@ impl CompareOp {
         match self {
             Self::Lt => "<",
             Self::Gt => ">",
+            Self::Eq => "==",
         }
     }
 }

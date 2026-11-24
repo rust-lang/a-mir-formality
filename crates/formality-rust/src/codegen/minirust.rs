@@ -407,6 +407,7 @@ pub(super) fn compare(op: &CompareOp, left: MiniRustValue, right: MiniRustValue)
     let rel = match op {
         CompareOp::Lt => lang::RelOp::Lt,
         CompareOp::Gt => lang::RelOp::Gt,
+        CompareOp::Eq => lang::RelOp::Eq,
     };
     binary_value(lang::BinOp::Rel(rel), left, right)
 }
