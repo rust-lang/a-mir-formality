@@ -176,6 +176,7 @@ impl From<&ProofTree> for ProofTreeNode {
         let children = t
             .children
             .iter()
+            .filter(|c| c.rule_name.is_some() || !c.children.is_empty())
             .map(ProofTreeNode::from)
             .filter(|c| c.rule.is_some() || !c.children.is_empty())
             .collect();
