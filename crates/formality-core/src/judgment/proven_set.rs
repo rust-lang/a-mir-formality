@@ -451,6 +451,9 @@ pub fn insert_smallest_proof<K: Ord + Clone>(
 ) {
     match map.get(&key) {
         Some(existing) => {
+            if Arc::ptr_eq(&proof.0, &existing.0) {
+                return;
+            }
             let dominated = proof
                 .total_nodes()
                 .cmp(&existing.total_nodes())
