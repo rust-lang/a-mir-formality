@@ -631,12 +631,12 @@ fn test_parse_assign_op() {
 
 #[test]
 fn test_parse_comparisons_after_arithmetic() {
-    use crate::grammar::expr::BinOpKind;
+    use crate::grammar::expr::{BinOpKind, CompareOp};
 
     let expr: Expr = term("a + b < c * d");
     let Expr::Compare {
         lhs,
-        op: BinOpKind::Lt,
+        op: CompareOp::Lt,
         rhs,
     } = expr
     else {
@@ -654,7 +654,7 @@ fn test_parse_comparisons_after_arithmetic() {
     let expr: Expr = term("a * b > c - d");
     let Expr::Compare {
         lhs,
-        op: BinOpKind::Gt,
+        op: CompareOp::Gt,
         rhs,
     } = expr
     else {

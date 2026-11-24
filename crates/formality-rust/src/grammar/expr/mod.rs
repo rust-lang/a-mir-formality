@@ -171,7 +171,6 @@ pub enum Expr {
     /// Compound assignment. Evaluates to `()`.
     #[grammar($place $op = $rhs)]
     #[precedence(0, right)]
-    #[reject(_, BinOpKind::Lt | BinOpKind::Gt, _)]
     AssignOp {
         place: PlaceExpr,
         op: BinOpKind,
@@ -261,7 +260,6 @@ pub enum Expr {
 
     #[grammar($lhs $op $rhs)]
     #[precedence(5)]
-    #[reject(_, BinOpKind::Lt | BinOpKind::Gt, _)]
     #[reject(_, BinOpKind::Mul, _)]
     #[reject(_, BinOpKind::Div, _)]
     #[reject(_, BinOpKind::Rem, _)]
@@ -277,10 +275,9 @@ pub enum Expr {
     // Arithmetic and bitwise operations come before comparisons. Comparisons cannot be chained.
     #[grammar($lhs $op $rhs)]
     #[precedence(1, none)]
-    #[reject(_, BinOpKind::Add | BinOpKind::Sub | BinOpKind::Mul | BinOpKind::Div | BinOpKind::Rem | BinOpKind::BitOr | BinOpKind::BitXor | BinOpKind::BitAnd, _)]
     Compare {
         lhs: Arc<Expr>,
-        op: BinOpKind,
+        op: CompareOp,
         rhs: Arc<Expr>,
     },
 
@@ -400,10 +397,6 @@ pub enum BinOpKind {
     Mul,
     #[grammar(/)]
     Div,
-    #[grammar(<)]
-    Lt,
-    #[grammar(>)]
-    Gt,
     #[grammar(%)]
     Rem,
     #[grammar(|)]
@@ -421,12 +414,27 @@ impl BinOpKind {
             BinOpKind::Sub => "-",
             BinOpKind::Mul => "*",
             BinOpKind::Div => "/",
-            BinOpKind::Lt => "<",
-            BinOpKind::Gt => ">",
             BinOpKind::Rem => "%",
             BinOpKind::BitOr => "|",
             BinOpKind::BitXor => "^",
             BinOpKind::BitAnd => "&",
+        }
+    }
+}
+
+#[term]
+pub enum CompareOp {
+    #[grammar(<)]
+    Lt,
+    #[grammar(>)]
+    Gt,
+}
+
+impl CompareOp {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Lt => "<",
+            Self::Gt => ">",
         }
     }
 }

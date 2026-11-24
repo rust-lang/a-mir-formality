@@ -196,16 +196,22 @@ pub fn lower_expr(ctx: &mut Context, expr: &Expr) -> Fallible<syntax::Expr> {
             op: "&".to_string(),
             rhs: Box::new(lower_expr(ctx, rhs)?),
         }),
-        Expr::BinOp { lhs, op, rhs } | Expr::Compare { lhs, op, rhs } => {
-            let lhs = Box::new(lower_expr(ctx, lhs)?);
-            let rhs = Box::new(lower_expr(ctx, rhs)?);
-            Ok(syntax::Expr::BinOp {
-                lhs,
-                op: op.as_str().to_string(),
-                rhs,
-            })
-        }
+        Expr::BinOp { lhs, op, rhs } => lower_binary_expr(ctx, lhs, op.as_str(), rhs),
+        Expr::Compare { lhs, op, rhs } => lower_binary_expr(ctx, lhs, op.as_str(), rhs),
     }
+}
+
+fn lower_binary_expr(
+    ctx: &mut Context,
+    lhs: &Expr,
+    op: &str,
+    rhs: &Expr,
+) -> Fallible<syntax::Expr> {
+    Ok(syntax::Expr::BinOp {
+        lhs: Box::new(lower_expr(ctx, lhs)?),
+        op: op.to_owned(),
+        rhs: Box::new(lower_expr(ctx, rhs)?),
+    })
 }
 
 pub fn lower_place_expr(ctx: &mut Context, place_expr: &PlaceExpr) -> Fallible<syntax::PlaceExpr> {
