@@ -2282,6 +2282,48 @@ fn move_in_loop() {
     .borrowck_err(BorrowCheckFailure::All, expect_test::expect![[""]])
 }
 
+#[test]
+#[ignore = "FIXME(#552): unreachable break propagates a move"]
+fn unreachable_break_must_not_propagate_a_move() {
+    FormalityTest::new(crates![crate Foo {
+        struct S { value: u32 }
+        fn take(s: S) -> () {}
+        fn main() -> () {
+            let s: S = S { value: 1_u32 };
+            'outer: loop {
+                break 'outer;
+                take(s);
+                break 'outer;
+            }
+            println!(s.value);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("1\n")
+    .borrowck_ok();
+}
+
+#[test]
+#[ignore = "FIXME(#552): unreachable continue propagates a move"]
+fn unreachable_continue_must_not_propagate_a_move() {
+    FormalityTest::new(crates![crate Foo {
+        struct S { value: u32 }
+        fn take(s: S) -> () {}
+        fn main() -> () {
+            let s: S = S { value: 1_u32 };
+            'outer: loop {
+                break 'outer;
+                take(s);
+                continue 'outer;
+            }
+            println!(s.value);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("1\n")
+    .borrowck_ok();
+}
+
 /// Uninitialized return place should be an error.
 ///
 /// ```rust,ignore
