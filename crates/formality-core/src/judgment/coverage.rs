@@ -357,7 +357,8 @@ pub fn record_negative_coverage<'a>(failures: impl IntoIterator<Item = &'a Faile
 }
 
 fn write_record(path: &PathBuf, record: &CoverageRecord) {
-    if let Ok(line) = serde_json::to_string(record) {
+    if let Ok(mut line) = serde_json::to_string(record) {
+        line.push('\n');
         let _ = append_line(path, &line);
     }
 }
@@ -409,5 +410,5 @@ fn append_line(path: &PathBuf, line: &str) -> std::io::Result<()> {
         .read(true)
         .open(path)?;
     f.lock()?;
-    f.write_all(format!("{line}\n").as_bytes())
+    f.write_all(line.as_bytes())
 }
