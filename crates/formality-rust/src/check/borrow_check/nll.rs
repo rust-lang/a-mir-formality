@@ -248,7 +248,8 @@ judgment_fn! {
             // the loop's own label, so that continue/break inside the body resolve correctly.
             (let continue_live = Stmt::loop_(label, body).live_before(&env, &state, places_live_on_exit))
             (let state = state.push_continue_scope(&env.env, label, places_live_on_exit, continue_live)?)
-            (borrow_check_loop(env, assumptions, state, body, places_live_on_exit) => state)
+            // The end of the body goes back to the loop head, like a `continue`.
+            (borrow_check_loop(env, assumptions, state, body, continue_live) => state)
             (let state = state.pop_scope(label))
             ------------------------------------------------------------ ("loop")
             (borrow_check_statement(env, assumptions, state, Stmt::Loop { label, body }, places_live_on_exit) => (env, state))
@@ -258,12 +259,13 @@ judgment_fn! {
             // break targets any in-scope label (block or loop).
             // Drop locals from all scopes up to and including the target.
             (if state.scope_has_label(label))!
+            (if let Some(places_live_on_break) = state.live_after_break(label))
             (let locals_to_drop = state.locals_dropped_to_label(label))
-            (drop_places(env, assumptions, state, locals_to_drop, places_live_on_exit) => state)
+            (drop_places(env, assumptions, state, locals_to_drop, places_live_on_break) => state)
             (let state = state.with_break(label))
             (let state = state.diverges())
             ------------------------------------------------------------ ("break")
-            (borrow_check_statement(env, assumptions, state, Stmt::Break { label }, places_live_on_exit) => (env, state))
+            (borrow_check_statement(env, assumptions, state, Stmt::Break { label }, _places_live_on_exit) => (env, state))
         )
 
         (

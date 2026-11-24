@@ -2657,6 +2657,120 @@ fn drop_on_break_while_borrowed() {
               pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `v1`"#]])
 }
 
+#[test]
+#[ignore = "FIXME(#559): backward liveness loses the labeled block's break target"]
+fn labeled_block_break_keeps_a_later_reference_read_live() {
+    FormalityTest::new(crates![crate Foo {
+        fn example() -> u32 {
+            exists<'r> {
+                let x: u32 = 1_u32;
+                let p: &'r u32 = &'r x;
+                x = 2_u32;
+                'pass: { break 'pass; }
+                return *p;
+            }
+        }
+    }])
+    .rustc_err(expect_test::expect![[r#"
+        error[E0506]: cannot assign to `x` because it is borrowed
+         --> lib.rs
+          |
+        4 |         let mut p: &'_ u32 = &x;
+          |                              -- `x` is borrowed here
+        5 |         x = 2_u32;
+          |         ^^^^^^^^^ `x` is assigned to here but it was already borrowed
+        ...
+        9 |         return *p;
+          |                -- borrow later used here
+
+        For more information about this error, try `rustc --explain E0506`.
+        error: could not compile `Foo` (lib) due to 1 previous error
+    "#]])
+    .borrowck_err(
+        BorrowCheckFailure::All,
+        expect_test::expect![[r#"
+        the rule "borrow of disjoint places" at (nll.rs) failed because
+          condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
+            &loan.place = x : u32
+            &access.place = x : u32
+
+        the rule "loan_cannot_outlive" at (nll.rs) failed because
+          condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+            outlived_by_loan = {?lt_1}
+            &lifetime.upcast() = ?lt_1
+
+        the rule "write-indirect" at (nll.rs) failed because
+          pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `x`"#]],
+    );
+}
+
+#[test]
+#[ignore = "FIXME(#559): backward liveness loses the labeled block's break target"]
+fn labeled_block_break_keeps_a_reference_live_at_an_earlier_break_target() {
+    FormalityTest::new(crates![crate Foo {
+        fn example(flag: bool) -> u32 {
+            exists<'p, 'x> {
+                let q: &'p u32;
+                'outer: {
+                    let x: u32 = 1_u32;
+                    q = &'x x;
+                    if flag { break 'outer; } else {}
+                    return *q;
+                }
+                'pass: { break 'pass; }
+                return *q;
+            }
+        }
+    }])
+    .rustc_err(expect_test::expect![[r#"
+        error[E0597]: `x` does not live long enough
+          --> lib.rs
+           |
+         5 |             let mut x: u32 = 1_u32;
+           |                 ----- binding `x` declared here
+         6 |             q = &x;
+           |                 ^^ borrowed value does not live long enough
+        ...
+        11 |         }
+           |         - `x` dropped here while still borrowed
+        ...
+        15 |         return *q;
+           |                -- borrow later used here
+
+        For more information about this error, try `rustc --explain E0597`.
+        error: could not compile `Foo` (lib) due to 1 previous error
+    "#]])
+    .borrowck_err(
+        BorrowCheckFailure::All,
+        expect_test::expect![[r#"
+        the rule "borrow of disjoint places" at (nll.rs) failed because
+          condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
+            &loan.place = x : u32
+            &access.place = x : u32
+
+        the rule "loan_cannot_outlive" at (nll.rs) failed because
+          condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+            outlived_by_loan = {?lt_1, ?lt_2}
+            &lifetime.upcast() = ?lt_1
+
+        the rule "write-indirect" at (nll.rs) failed because
+          pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `x`
+
+        the rule "borrow of disjoint places" at (nll.rs) failed because
+          condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
+            &loan.place = x : u32
+            &access.place = x : u32
+
+        the rule "loan_cannot_outlive" at (nll.rs) failed because
+          condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+            outlived_by_loan = {?lt_1, ?lt_2}
+            &lifetime.upcast() = ?lt_1
+
+        the rule "write-indirect" at (nll.rs) failed because
+          pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `x`"#]],
+    );
+}
+
 /// Returning a reference to a local is an error.
 #[test]
 fn return_reference_to_local() {
@@ -3265,6 +3379,459 @@ fn continue_drops_borrowed_local_loop_carried() {
     )
 }
 
+#[test]
+fn loop_liveness_overwrites_reference_before_every_read() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            exists<'p, 's, 'x> {
+                let stable: u32 = 7_u32;
+                let r: &'p u32;
+                'again: loop {
+                    r = &'s stable;
+                    println!(*r);
+                    let x: u32 = 2_u32;
+                    r = &'x x;
+                }
+            }
+        }
+    }])
+    .rustc_ok()
+    // The loop has no exit.
+    .skip_execute()
+    .borrowck_ok();
+}
+
+#[test]
+fn loop_liveness_can_skip_overwrite_before_read() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            exists<'p, 's, 'x> {
+                let stable: u32 = 7_u32;
+                let r: &'p u32 = &'s stable;
+                let first: bool = true;
+                'again: loop {
+                    if first { r = &'s stable; } else {}
+                    println!(*r);
+                    if first { first = false; } else { break 'again; }
+                    let x: u32 = 2_u32;
+                    r = &'x x;
+                }
+            }
+        }
+    }])
+    .rustc_err(expect_test::expect![[r#"
+        error[E0597]: `x` does not live long enough
+          --> lib.rs
+           |
+        10 |             *r;
+           |             -- borrow later used here
+        ...
+        16 |             let mut x: u32 = 2_u32;
+           |                 ----- binding `x` declared here
+        17 |             r = &x;
+           |                 ^^ borrowed value does not live long enough
+        18 |         }
+           |         - `x` dropped here while still borrowed
+
+        For more information about this error, try `rustc --explain E0597`.
+        error: could not compile `Foo` (lib) due to 1 previous error
+    "#]])
+    .borrowck_err(
+        BorrowCheckFailure::All,
+        expect_test::expect![[r#"
+        the rule "access_permitted" at (nll.rs) failed because
+          condition evaluated to false: `match access.kind
+          {
+              AccessKind::Write =>
+              check_place_writable(&state, &access.place.to_place_expression()),
+              AccessKind::Read | AccessKind::Move =>
+              check_place_initialized(&state, &access.place.to_place_expression()),
+          }`
+
+        the rule "access_permitted" at (nll.rs) failed because
+          condition evaluated to false: `match access.kind
+          {
+              AccessKind::Write =>
+              check_place_writable(&state, &access.place.to_place_expression()),
+              AccessKind::Read | AccessKind::Move =>
+              check_place_initialized(&state, &access.place.to_place_expression()),
+          }`
+
+        the rule "access_permitted" at (nll.rs) failed because
+          condition evaluated to false: `match access.kind
+          {
+              AccessKind::Write =>
+              check_place_writable(&state, &access.place.to_place_expression()),
+              AccessKind::Read | AccessKind::Move =>
+              check_place_initialized(&state, &access.place.to_place_expression()),
+          }`
+
+        the rule "access_permitted" at (nll.rs) failed because
+          condition evaluated to false: `match access.kind
+          {
+              AccessKind::Write =>
+              check_place_writable(&state, &access.place.to_place_expression()),
+              AccessKind::Read | AccessKind::Move =>
+              check_place_initialized(&state, &access.place.to_place_expression()),
+          }`
+
+        the rule "borrow of disjoint places" at (nll.rs) failed because
+          condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
+            &loan.place = x : u32
+            &access.place = x : u32
+
+        the rule "loan_cannot_outlive" at (nll.rs) failed because
+          condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+            outlived_by_loan = {?lt_1, ?lt_3}
+            &lifetime.upcast() = ?lt_1
+
+        the rule "write-indirect" at (nll.rs) failed because
+          pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `x`
+
+        the rule "borrow of disjoint places" at (nll.rs) failed because
+          condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
+            &loan.place = x : u32
+            &access.place = x : u32
+
+        the rule "loan_cannot_outlive" at (nll.rs) failed because
+          condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+            outlived_by_loan = {?lt_1, ?lt_3}
+            &lifetime.upcast() = ?lt_1
+
+        the rule "write-indirect" at (nll.rs) failed because
+          pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `x`
+
+        the rule "borrow of disjoint places" at (nll.rs) failed because
+          condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
+            &loan.place = x : u32
+            &access.place = x : u32
+
+        the rule "loan_cannot_outlive" at (nll.rs) failed because
+          condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+            outlived_by_loan = {?lt_1, ?lt_3}
+            &lifetime.upcast() = ?lt_1
+
+        the rule "write-indirect" at (nll.rs) failed because
+          pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `x`
+
+        the rule "borrow of disjoint places" at (nll.rs) failed because
+          condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
+            &loan.place = x : u32
+            &access.place = x : u32
+
+        the rule "loan_cannot_outlive" at (nll.rs) failed because
+          condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+            outlived_by_loan = {?lt_1, ?lt_3}
+            &lifetime.upcast() = ?lt_1
+
+        the rule "write-indirect" at (nll.rs) failed because
+          pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `x`
+
+        the rule "access_permitted" at (nll.rs) failed because
+          condition evaluated to false: `match access.kind
+          {
+              AccessKind::Write =>
+              check_place_writable(&state, &access.place.to_place_expression()),
+              AccessKind::Read | AccessKind::Move =>
+              check_place_initialized(&state, &access.place.to_place_expression()),
+          }`
+
+        the rule "access_permitted" at (nll.rs) failed because
+          condition evaluated to false: `match access.kind
+          {
+              AccessKind::Write =>
+              check_place_writable(&state, &access.place.to_place_expression()),
+              AccessKind::Read | AccessKind::Move =>
+              check_place_initialized(&state, &access.place.to_place_expression()),
+          }`
+
+        the rule "access_permitted" at (nll.rs) failed because
+          condition evaluated to false: `match access.kind
+          {
+              AccessKind::Write =>
+              check_place_writable(&state, &access.place.to_place_expression()),
+              AccessKind::Read | AccessKind::Move =>
+              check_place_initialized(&state, &access.place.to_place_expression()),
+          }`
+
+        the rule "access_permitted" at (nll.rs) failed because
+          condition evaluated to false: `match access.kind
+          {
+              AccessKind::Write =>
+              check_place_writable(&state, &access.place.to_place_expression()),
+              AccessKind::Read | AccessKind::Move =>
+              check_place_initialized(&state, &access.place.to_place_expression()),
+          }`
+
+        the rule "borrow of disjoint places" at (nll.rs) failed because
+          condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
+            &loan.place = x : u32
+            &access.place = x : u32
+
+        the rule "loan_cannot_outlive" at (nll.rs) failed because
+          condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+            outlived_by_loan = {?lt_1, ?lt_3}
+            &lifetime.upcast() = ?lt_1
+
+        the rule "write-indirect" at (nll.rs) failed because
+          pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `x`
+
+        the rule "borrow of disjoint places" at (nll.rs) failed because
+          condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
+            &loan.place = x : u32
+            &access.place = x : u32
+
+        the rule "loan_cannot_outlive" at (nll.rs) failed because
+          condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+            outlived_by_loan = {?lt_1, ?lt_3}
+            &lifetime.upcast() = ?lt_1
+
+        the rule "write-indirect" at (nll.rs) failed because
+          pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `x`
+
+        the rule "borrow of disjoint places" at (nll.rs) failed because
+          condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
+            &loan.place = x : u32
+            &access.place = x : u32
+
+        the rule "loan_cannot_outlive" at (nll.rs) failed because
+          condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+            outlived_by_loan = {?lt_1, ?lt_3}
+            &lifetime.upcast() = ?lt_1
+
+        the rule "write-indirect" at (nll.rs) failed because
+          pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `x`
+
+        the rule "borrow of disjoint places" at (nll.rs) failed because
+          condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
+            &loan.place = x : u32
+            &access.place = x : u32
+
+        the rule "loan_cannot_outlive" at (nll.rs) failed because
+          condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+            outlived_by_loan = {?lt_1, ?lt_3}
+            &lifetime.upcast() = ?lt_1
+
+        the rule "write-indirect" at (nll.rs) failed because
+          pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `x`"#]],
+    );
+}
+
+#[test]
+fn loop_liveness_break_to_outer_skips_reference_read() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            exists<'r, 'x> {
+                let r: &'r u32;
+                'outer: loop {
+                    'inner: loop {
+                        let x: u32 = 1_u32;
+                        r = &'x x;
+                        break 'outer;
+                    }
+                    println!(*r);
+                    break 'outer;
+                }
+                println!(7_u32);
+            }
+        }
+    }])
+    .rustc_ok()
+    // FIXME(#532): codegen asserts on the loan created by `&x`.
+    .skip_execute()
+    .borrowck_ok();
+}
+
+#[test]
+fn loop_liveness_break_to_inner_reaches_reference_read() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            exists<'r, 'x> {
+                let r: &'r u32;
+                'outer: loop {
+                    'inner: loop {
+                        let x: u32 = 1_u32;
+                        r = &'x x;
+                        break 'inner;
+                    }
+                    println!(*r);
+                    break 'outer;
+                }
+                println!(7_u32);
+            }
+        }
+    }])
+    .rustc_err(expect_test::expect![[r#"
+        error[E0597]: `x` does not live long enough
+          --> lib.rs
+           |
+         6 |                 let mut x: u32 = 1_u32;
+           |                     ----- binding `x` declared here
+         7 |                 r = &x;
+           |                     ^^ borrowed value does not live long enough
+         8 |                 break 'inner;
+         9 |             }
+           |             - `x` dropped here while still borrowed
+        10 |             *r;
+           |             -- borrow later used here
+
+        For more information about this error, try `rustc --explain E0597`.
+        error: could not compile `Foo` (lib) due to 1 previous error
+    "#]])
+    .borrowck_err(
+        BorrowCheckFailure::All,
+        expect_test::expect![[r#"
+        the rule "borrow of disjoint places" at (nll.rs) failed because
+          condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
+            &loan.place = x : u32
+            &access.place = x : u32
+
+        the rule "loan_cannot_outlive" at (nll.rs) failed because
+          condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+            outlived_by_loan = {?lt_1, ?lt_2}
+            &lifetime.upcast() = ?lt_1
+
+        the rule "write-indirect" at (nll.rs) failed because
+          pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `x`
+
+        the rule "borrow of disjoint places" at (nll.rs) failed because
+          condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
+            &loan.place = x : u32
+            &access.place = x : u32
+
+        the rule "loan_cannot_outlive" at (nll.rs) failed because
+          condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+            outlived_by_loan = {?lt_1, ?lt_2}
+            &lifetime.upcast() = ?lt_1
+
+        the rule "write-indirect" at (nll.rs) failed because
+          pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `x`
+
+        the rule "borrow of disjoint places" at (nll.rs) failed because
+          condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
+            &loan.place = x : u32
+            &access.place = x : u32
+
+        the rule "loan_cannot_outlive" at (nll.rs) failed because
+          condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+            outlived_by_loan = {?lt_1, ?lt_2}
+            &lifetime.upcast() = ?lt_1
+
+        the rule "write-indirect" at (nll.rs) failed because
+          pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `x`
+
+        the rule "borrow of disjoint places" at (nll.rs) failed because
+          condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
+            &loan.place = x : u32
+            &access.place = x : u32
+
+        the rule "loan_cannot_outlive" at (nll.rs) failed because
+          condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+            outlived_by_loan = {?lt_1, ?lt_2}
+            &lifetime.upcast() = ?lt_1
+
+        the rule "write-indirect" at (nll.rs) failed because
+          pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `x`"#]],
+    );
+}
+
+#[test]
+fn loop_liveness_break_and_fallthrough_keep_different_loans_live() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            exists<'p, 's, 'x> {
+                let stable: u32 = 7_u32;
+                let r: &'p u32 = &'s stable;
+                let first: bool = true;
+                'again: loop {
+                    println!(*r);
+                    let x: u32 = 2_u32;
+                    if first {
+                        first = false;
+                        r = &'s stable;
+                    } else {
+                        r = &'x x;
+                        break 'again;
+                    }
+                }
+            }
+        }
+    }])
+    .rustc_ok()
+    // FIXME(#532): codegen asserts on the loan created by `&stable`.
+    .skip_execute()
+    .borrowck_ok();
+}
+
+#[test]
+fn loop_liveness_overwrites_reference_on_second_iteration() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            exists<'p, 's, 'x> {
+                let first: bool = true;
+                let r: &'p bool;
+                'again: loop {
+                    r = &'s first;
+                    if *r { first = false; } else { break 'again; }
+                    let x: bool = true;
+                    r = &'x x;
+                }
+            }
+        }
+    }])
+    .rustc_ok()
+    // FIXME(#532): codegen asserts on the loan created by `&first`.
+    .skip_execute()
+    .borrowck_ok();
+}
+
+#[test]
+fn end_of_loop_body_drops_borrowed_local_loop_carried() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            exists<'r0, 'r1, 'r2> {
+                let z: u32 = 0_u32;
+                let r: &'r0 u32 = &'r1 z;
+                'l: loop {
+                    let _y: u32 = *r;
+                    let x: u32 = 1_u32;
+                    r = &'r2 x;
+                }
+            }
+        }
+    }])
+    .skip_execute()
+    .borrowck_err(
+        BorrowCheckFailure::All,
+        expect_test::expect![[r#"
+        the rule "borrow of disjoint places" at (nll.rs) failed because
+          condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
+            &loan.place = x : u32
+            &access.place = x : u32
+
+        the rule "loan_cannot_outlive" at (nll.rs) failed because
+          condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+            outlived_by_loan = {?lt_1, ?lt_3}
+            &lifetime.upcast() = ?lt_1
+
+        the rule "write-indirect" at (nll.rs) failed because
+          pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `x`
+
+        the rule "borrow of disjoint places" at (nll.rs) failed because
+          condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
+            &loan.place = x : u32
+            &access.place = x : u32
+
+        the rule "loan_cannot_outlive" at (nll.rs) failed because
+          condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+            outlived_by_loan = {?lt_1, ?lt_3}
+            &lifetime.upcast() = ?lt_1
+
+        the rule "write-indirect" at (nll.rs) failed because
+          pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `x`"#]],
+    );
+}
+
 /// `break` drops locals declared inside the loop body.
 /// Borrowing a local and then breaking should fail if the
 /// borrow is used after the loop.
@@ -3320,6 +3887,27 @@ fn break_drops_borrowed_local() {
 
             the rule "write-indirect" at (nll.rs) failed because
               pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `x`"#]])
+}
+
+/// `r` isn't used after the loop, so dropping `x` at the `break` is fine.
+#[test]
+fn break_drops_borrowed_local_not_used_after_loop() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            exists<'r0, 'r1, 'r2> {
+                let z: u32 = 0_u32;
+                let r: &'r0 u32 = &'r1 z;
+                'l: loop {
+                    let _y: u32 = *r;
+                    let x: u32 = 1_u32;
+                    r = &'r2 x;
+                    break 'l;
+                }
+            }
+        }
+    }])
+    .skip_execute()
+    .borrowck_ok();
 }
 
 /// Locals declared inside a loop are properly scoped:
@@ -3447,6 +4035,79 @@ fn write_to_borrowed_before_continue() {
 
             the rule "write-indirect" at (nll.rs) failed because
               pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `a`"#]])
+}
+
+/// `p` is read again on the next iteration, so writing `a` at the end of the body is an error.
+#[test]
+fn write_to_borrowed_at_end_of_loop_body() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            exists<'r0, 'r1, 'r2> {
+                let a: u32 = 22_u32;
+                let p: &'r0 u32 = &'r1 a;
+                'l: loop {
+                    let q: &'r2 u32 = p;
+                    a = 23_u32;
+                }
+            }
+        }
+    }])
+    .skip_execute()
+    .borrowck_err(
+        BorrowCheckFailure::All,
+        expect_test::expect![[r#"
+        the rule "borrow of disjoint places" at (nll.rs) failed because
+          condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
+            &loan.place = a : u32
+            &access.place = a : u32
+
+        the rule "loan_cannot_outlive" at (nll.rs) failed because
+          condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+            outlived_by_loan = {?lt_1, ?lt_2, ?lt_3}
+            &lifetime.upcast() = ?lt_1
+
+        the rule "write-indirect" at (nll.rs) failed because
+          pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `a`
+
+        the rule "borrow of disjoint places" at (nll.rs) failed because
+          condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
+            &loan.place = a : u32
+            &access.place = a : u32
+
+        the rule "loan_cannot_outlive" at (nll.rs) failed because
+          condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+            outlived_by_loan = {?lt_1, ?lt_2, ?lt_3}
+            &lifetime.upcast() = ?lt_1
+
+        the rule "write-indirect" at (nll.rs) failed because
+          pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `a`
+
+        the rule "borrow of disjoint places" at (nll.rs) failed because
+          condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
+            &loan.place = a : u32
+            &access.place = a : u32
+
+        the rule "loan_cannot_outlive" at (nll.rs) failed because
+          condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+            outlived_by_loan = {?lt_1, ?lt_2, ?lt_3}
+            &lifetime.upcast() = ?lt_1
+
+        the rule "write-indirect" at (nll.rs) failed because
+          pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `a`
+
+        the rule "borrow of disjoint places" at (nll.rs) failed because
+          condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
+            &loan.place = a : u32
+            &access.place = a : u32
+
+        the rule "loan_cannot_outlive" at (nll.rs) failed because
+          condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+            outlived_by_loan = {?lt_1, ?lt_2, ?lt_3}
+            &lifetime.upcast() = ?lt_1
+
+        the rule "write-indirect" at (nll.rs) failed because
+          pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `a`"#]],
+    );
 }
 
 /// Test that `false` works as a condition in `if` with borrow checking.
@@ -4490,6 +5151,7 @@ fn issue_57165_no_control_flow() {
 /// NLL's (and polonius alpha's) reachability approximation.
 ///
 /// rustc: [nll] error, [polonius] error, [legacy] pass.
+/// Formality also rejects this in polonius-unlocked mode.
 #[test]
 fn issue_57165_conditional() {
     FormalityTest::new(crates![crate Foo {
@@ -4520,7 +5182,7 @@ fn issue_57165_conditional() {
         }
     }])
         .skip_execute()
-        .borrowck_err(BorrowCheckFailure::Alpha, expect_test::expect![[r#"
+        .borrowck_err(BorrowCheckFailure::All, expect_test::expect![[r#"
             the rule "fixed-point" at (nll.rs) failed because
               condition evaluated to false: `state0 == state1`
                 state0 = flow_state([scope(none, None, {}, None, [], []), scope(none, None, {}, None, [], []), scope(some(U(4)), None, {}, None, [(b, X), (p, &?lt_1 mut X)], [b : X, p : &?lt_1 mut X]), scope(some(U(4)), Some('l), {}, Some({* p}), [], [])], point_flow_state({pending_outlives(?lt_2, ?lt_1)}, {loan(?lt_2, b : X, mut)}, {}), {}, {}, {pending_outlives(?lt_2, ?lt_1)})
