@@ -207,12 +207,14 @@ impl<J: Ord + Debug + Clone> ProvenSet<J> {
                 expect_values.assert_eq(&format!("{values:?}"));
 
                 // Check proof tree contains required strings
-                let full_output = format!("{map:?}");
-                for s in must_contain {
-                    assert!(
-                        full_output.contains(s),
-                        "proof tree must contain {s:?} but didn't.\nFull output:\n{full_output}"
-                    );
+                if !must_contain.is_empty() {
+                    let full_output = format!("{map:?}");
+                    for s in must_contain {
+                        assert!(
+                            full_output.contains(s),
+                            "proof tree must contain {s:?} but didn't.\nFull output:\n{full_output}"
+                        );
+                    }
                 }
             }
         }
