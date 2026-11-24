@@ -244,3 +244,97 @@ fn exists_with_return_is_accepted() {
     .rustc_ok()
     .ok();
 }
+
+#[test]
+fn break_before_return_reaches_end_of_function() {
+    let program = crates![crate Foo {
+        fn foo() -> u32 {
+            'block: {
+                break 'block;
+                return 22_u32;
+            }
+        }
+    }];
+    let (ok, stderr) = formality_rust::to_rust::test_util::run_rustc(program);
+    assert!(!ok && stderr.contains("E0308"), "{stderr}");
+    FormalityTest::new(program).err(expect_test::expect![[r#"
+        the rule "non-unit return" at (return_check.rs) failed because
+          function may not return a value
+
+        the rule "unit" at (return_check.rs) failed because
+          condition evaluated to false: `output_ty == &Ty::unit()`"#]]);
+}
+
+#[test]
+fn break_outer_skips_return_after_inner_loop() {
+    let program = crates![crate Foo {
+        fn foo(c: bool) -> u32 {
+            'outer: loop {
+                'inner: loop {
+                    if c { break 'inner; } else { break 'outer; }
+                }
+                return 22_u32;
+            }
+        }
+    }];
+    let (ok, stderr) = formality_rust::to_rust::test_util::run_rustc(program);
+    assert!(!ok && stderr.contains("E0308"), "{stderr}");
+    FormalityTest::new(program).err(expect_test::expect![[r#"
+        the rule "non-unit return" at (return_check.rs) failed because
+          function may not return a value
+
+        the rule "unit" at (return_check.rs) failed because
+          condition evaluated to false: `output_ty == &Ty::unit()`"#]]);
+}
+
+#[test]
+fn continue_outer_or_return_after_inner_loop() {
+    FormalityTest::new(crates![crate Foo {
+        fn foo(c: bool) -> u32 {
+            'outer: loop {
+                'inner: loop {
+                    if c { break 'inner; } else { continue 'outer; }
+                }
+                return 22_u32;
+            }
+        }
+    }])
+    .rustc_ok()
+    .skip_execute()
+    .ok();
+}
+
+#[test]
+fn loop_can_return_or_repeat() {
+    FormalityTest::new(crates![crate Foo {
+        fn condition() -> bool { return true; }
+        fn foo() -> u32 {
+            'again: loop { if condition() { return 22_u32; } }
+        }
+    }])
+    .rustc_ok()
+    .skip_execute()
+    .ok();
+}
+
+#[test]
+fn outer_break_skips_borrow_in_inner_block() {
+    let program = crates![crate Foo {
+        fn main() -> () {
+            exists<'p, 'x, 'y> {
+                let x: u32 = 22_u32;
+                let y: u32 = 0_u32;
+                let p: &'p u32 = &'x x;
+                'outer: {
+                    'inner: { break 'outer; }
+                    p = &'y y;
+                }
+                y = 1_u32;
+                println!(*p);
+            }
+        }
+    }];
+    let (ok, stderr) = formality_rust::to_rust::test_util::run_rustc(program);
+    assert!(ok, "{stderr}");
+    FormalityTest::new(program).expect_output("22\n").ok();
+}
