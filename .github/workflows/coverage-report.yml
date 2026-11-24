@@ -12,6 +12,8 @@ on:
     branches: [main]
   workflow_dispatch:
 
+permissions: {}
+
 jobs:
   coverage-diff:
     runs-on: ubuntu-latest
