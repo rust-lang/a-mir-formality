@@ -380,15 +380,11 @@ macro_rules! judgment_fn {
 
                     failed_rules.clear();
 
-                    #[allow(unused)]
-                    let input_string = format!("{:?}", input);
-
                     $crate::push_rules!(
                         $name,
                         &input,
                         output,
                         failed_rules,
-                        &input_string,
                         ($($input_name),*) => $output,
                         $(($($rule)*))*
                     );
@@ -412,16 +408,16 @@ macro_rules! judgment_fn {
 
 #[macro_export]
 macro_rules! push_rules {
-    ($judgment_name:ident, $input_value:expr, $output:expr, $failed_rules:expr, $input_string:expr, $input_names:tt => $output_ty:ty, $($rule:tt)*) => {
-        $($crate::push_rules!(@rule ($judgment_name, $input_value, $output, $failed_rules, $input_string, $input_names => $output_ty) $rule);)*
+    ($judgment_name:ident, $input_value:expr, $output:expr, $failed_rules:expr, $input_names:tt => $output_ty:ty, $($rule:tt)*) => {
+        $($crate::push_rules!(@rule ($judgment_name, $input_value, $output, $failed_rules, $input_names => $output_ty) $rule);)*
     };
 
     // `@rule (builder) rule` phase: invoked for each rule, emits `push_rule` call
 
-    (@rule ($judgment_name:ident, $input_value:expr, $output:expr, $failed_rules:expr, $input_string:expr, $input_names:tt => $output_ty:ty) ($($m:tt)*)) => {
+    (@rule ($judgment_name:ident, $input_value:expr, $output:expr, $failed_rules:expr, $input_names:tt => $output_ty:ty) ($($m:tt)*)) => {
         // Start accumulating.
         $crate::push_rules!(@accum
-            args($judgment_name, $input_value, $output, $failed_rules, $input_string, $input_names => $output_ty)
+            args($judgment_name, $input_value, $output, $failed_rules, $input_names => $output_ty)
             accum(true;)
             input($($m)*)
         );
@@ -434,7 +430,7 @@ macro_rules! push_rules {
     // at 0. The `current_index` is also expected to start as the expression `0`.
 
     (@accum
-        args($judgment_name:ident, $input_value:expr, $output:expr, $failed_rules:expr, $input_string:expr, ($($input_names:ident),*) => $output_ty:ty)
+        args($judgment_name:ident, $input_value:expr, $output:expr, $failed_rules:expr, ($($input_names:ident),*) => $output_ty:ty)
         accum($match_default:tt; $($m:tt)*)
         input(
             ---$(-)* ($n:literal)
