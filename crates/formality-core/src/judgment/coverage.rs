@@ -81,11 +81,17 @@ pub const MAX_ATTR_VALUE_LEN: usize = 512;
 /// appending `…` when it was clipped.
 fn cap_attr_value(value: &str) -> String {
     if value.chars().count() <= MAX_ATTR_VALUE_LEN {
-        value.to_string()
-    } else {
-        let head: String = value.chars().take(MAX_ATTR_VALUE_LEN).collect();
-        format!("{head}…")
+        return value.to_string();
     }
+
+    // An ASCII prefix of this length contains exactly the allowed number of
+    // characters and can be copied directly.
+    if value.as_bytes()[..MAX_ATTR_VALUE_LEN].is_ascii() {
+        return format!("{}…", &value[..MAX_ATTR_VALUE_LEN]);
+    }
+
+    let head: String = value.chars().take(MAX_ATTR_VALUE_LEN).collect();
+    format!("{head}…")
 }
 
 /// A single (judgment, rule) pair as identified in positive coverage output.
@@ -411,4 +417,23 @@ fn append_line(path: &PathBuf, line: &str) -> std::io::Result<()> {
         .open(path)?;
     f.lock()?;
     f.write_all(line.as_bytes())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{cap_attr_value, MAX_ATTR_VALUE_LEN};
+
+    #[test]
+    fn coverage_attributes_are_truncated_at_a_char_boundary() {
+        let ascii = "a".repeat(MAX_ATTR_VALUE_LEN);
+        assert_eq!(cap_attr_value(&ascii), ascii);
+        assert_eq!(cap_attr_value(&format!("{ascii}é")), format!("{ascii}…"));
+
+        let at_limit = "é".repeat(MAX_ATTR_VALUE_LEN);
+        assert_eq!(cap_attr_value(&at_limit), at_limit);
+        assert_eq!(
+            cap_attr_value(&format!("{at_limit}é")),
+            format!("{at_limit}…")
+        );
+    }
 }
