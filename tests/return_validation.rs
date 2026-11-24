@@ -144,16 +144,27 @@ fn simple_return() {
 /// A break in dead code must not make the loop exit reachable.
 #[test]
 fn unreachable_break_after_return_does_not_revive_loop_exit() {
-    FormalityTest::new(crates![crate Foo {
+    let program = crates![crate Foo {
         fn foo() -> u32 {
             'a: loop {
                 return 1_u32;
                 break 'a;
             }
         }
-    }])
-    .skip_execute()
-    .ok()
+    }];
+
+    // The dead break contributes no reachable exit in Formality. In generated Rust
+    // it still supplies `()` to a tail loop whose expected type is `u32`.
+    let proof = a_mir_formality::test_program_ok(program)
+        .expect("the dead break cannot reach function exit");
+    formality_core::judgment::coverage::record_coverage(std::iter::once(&proof));
+    // FIXME(#558): Reconcile the generated tail loop's type with Formality,
+    // then update the rustc expectation here.
+    let (ok, stderr) = formality_rust::to_rust::test_util::run_rustc(program);
+    assert!(
+        !ok && stderr.contains("E0308") && stderr.contains("expected `u32`, found `()`"),
+        "{stderr}"
+    );
 }
 
 /// A reachable break on one branch means the loop can fall through.
@@ -336,5 +347,6 @@ fn outer_break_skips_borrow_in_inner_block() {
     }];
     let (ok, stderr) = formality_rust::to_rust::test_util::run_rustc(program);
     assert!(ok, "{stderr}");
+    // FIXME(#209): The borrow checker carries the skipped loan of `y` past the block.
     FormalityTest::new(program).expect_output("22\n").ok();
 }
