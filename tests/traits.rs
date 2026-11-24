@@ -98,3 +98,16 @@ fn associated_type_trait_and_outlives_bounds() {
     .rustc_ok()
     .ok();
 }
+
+#[test]
+fn associated_type_trait_bound_holds_for_projection() {
+    FormalityTest::new(crates![crate Foo {
+        trait Bar {}
+        trait Tr { type Item: [Bar]; }
+        fn require_bar<T>() -> () where T: Bar {}
+        fn project<T>() -> () where T: Tr { require_bar::<<T as Tr>::Item>(); }
+        fn main() -> () {}
+    }])
+    .rustc_ok()
+    .ok();
+}

@@ -1,10 +1,10 @@
-use crate::grammar::{AtomicPredicate, Predicate, Predicates, TraitRef, Ty};
+use crate::grammar::{AliasTy, AtomicPredicate, Predicate, Predicates, TraitRef, Ty};
 use formality_core::{judgment_fn, Downcast};
 
 use crate::prove::{
     binder_scope::{enter_existentially_with_constraints, enter_universally_with_constraints},
     combinators::for_all,
-    decls::Program,
+    decls::{AliasBoundDeclBoundData, Program},
     env::{Bias, Env},
     is_local::{is_local_trait_ref, may_be_remote},
     prove,
@@ -117,6 +117,17 @@ judgment_fn! {
                 (prove_via(decls, env, assumptions, &ti.where_clause, trait_ref) => c)
                 (prove_after(decls, c, assumptions, &ti.trait_ref) => c))
             ----------------------------- ("trait implied bound")
+            (prove_predicate(decls, env, assumptions, AtomicPredicate::IsImplemented(trait_ref)) => c)
+        )
+
+        (
+            // `check_associated_ty_value` makes sure impls satisfy the bounds declared on the associated type.
+            (if let Some(alias) = trait_ref.parameters.first().and_then(|p| p.downcast::<AliasTy>()))
+            (decl in decls.alias_bound_decls(&alias.name))!
+            (let AliasBoundDeclBoundData { bound, where_clause } = decl.binder.instantiate_with(&alias.parameters)?)
+            (prove_via(decls, env, assumptions, bound, &trait_ref) => c)
+            (prove_after(decls, c, assumptions, where_clause) => c)
+            ----------------------------- ("alias bound")
             (prove_predicate(decls, env, assumptions, AtomicPredicate::IsImplemented(trait_ref)) => c)
         )
 

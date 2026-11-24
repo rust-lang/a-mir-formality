@@ -283,7 +283,6 @@ fn alias_is_sized_if_normalized_type_is() {
 
 #[test]
 fn projection_non_final_field_with_sized_bound_is_accepted() {
-    // The solver ignores bounds on associated types, so `type A: [Sized]` wouldn't help.
     FormalityTest::new(crates![crate Foo {
         trait Tr { type A: []; }
         struct S<T> where T: Tr, <T as Tr>::A: Sized { a: <T as Tr>::A, b: u32 }
@@ -471,34 +470,117 @@ fn call_requires_sized_struct_argument() {
           expression evaluated to an empty collection: `decls.trait_invariants()`"#]]);
 }
 
-// FIXME #540: use the associated-type Sized bound; remove should_panic when fixed.
 #[test]
-#[should_panic(expected = "prove_sized { ty: <!ty_0 as Tr>::A")]
 fn associated_sized_bound_allows_nonfinal_struct_field() {
-    let program = crates![crate Foo {
+    FormalityTest::new(crates![crate Foo {
         trait Tr { type A: [Sized]; }
         struct S<T> where T: Tr { first: <T as Tr>::A, last: u32 }
         fn main() -> () {}
-    }];
-    // Check rustc before the expected formality failure.
-    let (ok, stderr) = formality_rust::to_rust::test_util::run_rustc(&program);
-    assert!(ok, "{stderr}");
-    FormalityTest::new(program).rustc_ok().ok();
+    }])
+    .rustc_ok()
+    .ok();
 }
 
-// FIXME #540: use the associated-type Sized bound; remove should_panic when fixed.
 #[test]
-#[should_panic(expected = "prove_sized { ty: <!ty_0 as Tr>::A")]
 fn associated_sized_bound_allows_enum_field() {
-    let program = crates![crate Foo {
+    FormalityTest::new(crates![crate Foo {
         trait Tr { type A: [Sized]; }
         enum E<T> where T: Tr { Some { value: <T as Tr>::A }, None {} }
         fn main() -> () {}
-    }];
-    // Check rustc before the expected formality failure.
-    let (ok, stderr) = formality_rust::to_rust::test_util::run_rustc(&program);
-    assert!(ok, "{stderr}");
-    FormalityTest::new(program).rustc_ok().ok();
+    }])
+    .rustc_ok()
+    .ok();
+}
+
+#[test]
+fn associated_sized_bound_requires_trait_bound() {
+    FormalityTest::new(crates![crate Foo {
+        trait Tr { type A: [Sized]; }
+        struct S<T> { first: <T as Tr>::A, last: u32 }
+    }])
+    .rustc_err(expect_test::expect![[r#"
+        error[E0277]: the trait bound `T00: Tr` is not satisfied
+         --> lib.rs
+          |
+        6 |     pub first: <T00 as Tr>::A,
+          |                ^^^^^^^^^^^^^^ the trait `Tr` is not implemented for `T00`
+          |
+        help: consider restricting type parameter `T00` with trait `Tr`
+          |
+        5 | pub struct S<T00: Tr> {
+          |                 ++++
+
+        For more information about this error, try `rustc --explain E0277`.
+        error: could not compile `Foo` (lib) due to 1 previous error
+    "#]])
+    .err(expect_test::expect![[r#"
+        the rule "trait implied bound" at (prove_predicate.rs) failed because
+          expression evaluated to an empty collection: `decls.trait_invariants()`
+
+        the rule "normalize-via-impl" at (prove_normalize.rs) failed because
+          expression evaluated to an empty collection: `decls.alias_eq_decls(&a.name)`
+
+        the rule "trait implied bound" at (prove_predicate.rs) failed because
+          expression evaluated to an empty collection: `decls.trait_invariants()`"#]]);
+}
+
+#[test]
+fn gat_sized_bound_allows_nonfinal_struct_field() {
+    FormalityTest::new(crates![crate Foo {
+        trait Bar {}
+        trait Tr<V> { type A<U>: [Sized] where U: Bar; }
+        struct S<T, V, U> where T: Tr<V>, U: Bar { first: <T as Tr<V>>::A<U>, last: u32 }
+        fn main() -> () {}
+    }])
+    .rustc_ok()
+    .ok();
+}
+
+#[test]
+fn gat_sized_bound_requires_gat_where_clauses() {
+    FormalityTest::new(crates![crate Foo {
+        trait Bar {}
+        trait Tr<V> { type A<U>: [Sized] where U: Bar; }
+        struct S<T, V, U> where T: Tr<V> { first: <T as Tr<V>>::A<U>, last: u32 }
+    }])
+    .rustc_err(expect_test::expect![[r#"
+        error[E0277]: the trait bound `T02: Bar` is not satisfied
+          --> lib.rs
+           |
+        13 |     pub first: <T00 as Tr<T01>>::A<T02>,
+           |                ^^^^^^^^^^^^^^^^^^^^^^^^ the trait `Bar` is not implemented for `T02`
+           |
+        note: required by a bound in `Tr::A`
+          --> lib.rs
+           |
+         4 |     type A<T10>: Sized
+           |          - required by a bound in this associated type
+         5 |     where
+         6 |         T10: Bar;
+           |              ^^^ required by this bound in `Tr::A`
+        help: consider further restricting type parameter `T02` with trait `Bar`
+           |
+        11 |     T00: Tr<T01>, T02: Bar
+           |                   ++++++++
+
+        For more information about this error, try `rustc --explain E0277`.
+        error: could not compile `Foo` (lib) due to 1 previous error
+    "#]])
+    .err(expect_test::expect![[r#"
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Bar(!ty_2), via: Tr(!ty_0, !ty_1), assumptions: {Tr(!ty_0, !ty_1)}, env: Env { variables: [!ty_0, !ty_1, !ty_2], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+        the rule "trait implied bound" at (prove_predicate.rs) failed because
+          expression evaluated to an empty collection: `decls.trait_invariants()`
+
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Sized(<!ty_0 as Tr<!ty_1>>::A<!ty_2>), via: Tr(!ty_0, !ty_1), assumptions: {Tr(!ty_0, !ty_1)}, env: Env { variables: [!ty_0, !ty_1, !ty_2], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+        crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: <!ty_0 as Tr<!ty_1>>::A<!ty_2>, via: Tr(!ty_0, !ty_1), assumptions: {Tr(!ty_0, !ty_1)}, env: Env { variables: [!ty_0, !ty_1, !ty_2], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+        the rule "normalize-via-impl" at (prove_normalize.rs) failed because
+          expression evaluated to an empty collection: `decls.alias_eq_decls(&a.name)`
+
+        the rule "trait implied bound" at (prove_predicate.rs) failed because
+          expression evaluated to an empty collection: `decls.trait_invariants()`"#]]);
 }
 
 #[test]
