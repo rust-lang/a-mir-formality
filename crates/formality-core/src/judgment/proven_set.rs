@@ -451,8 +451,11 @@ pub fn insert_smallest_proof<K: Ord + Clone>(
 ) {
     match map.get(&key) {
         Some(existing) => {
-            let dominated = (proof.total_nodes(), format!("{:?}", proof))
-                < (existing.total_nodes(), format!("{:?}", existing));
+            let dominated = proof
+                .total_nodes()
+                .cmp(&existing.total_nodes())
+                .then_with(|| format!("{proof:?}").cmp(&format!("{existing:?}")))
+                .is_lt();
             if dominated {
                 map.insert(key, proof);
             }
@@ -1139,6 +1142,17 @@ mod shared_proof_tests {
 
     fn leaf() -> ProofTree {
         ProofTree::with_all("leaf", vec![], None, "test.rs", 1, 1, vec![])
+    }
+
+    #[test]
+    fn equal_size_proofs_are_ordered_by_their_rendered_text() {
+        let earlier = ProofTree::with_all("leaf", vec![], None, "z/a.rs", 1, 1, vec![]);
+        let later = ProofTree::with_all("leaf", vec![], None, "a/z.rs", 1, 1, vec![]);
+        let mut proofs = Map::from([((), later)]);
+
+        insert_smallest_proof(&mut proofs, (), earlier.clone());
+
+        assert_eq!(proofs[&()], earlier);
     }
 
     #[test]
