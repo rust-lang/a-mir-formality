@@ -1975,6 +1975,28 @@ fn division_runs_calls_left_to_right() {
 }
 
 #[test]
+fn compound_division_rhs_runs_once_and_clears_overflow() {
+    FormalityTest::new(crates![crate Foo {
+        fn update<'a>(p: &'a mut i32) -> i32 {
+            println!(99_i32);
+            *p = 7_i32;
+            return -1_i32;
+        }
+        fn main() -> () {
+            let x: i32 = -2147483648_i32;
+            exists<'a> {
+                let r: &'a mut i32 = &'a mut x;
+                x /= update::<'a>(r);
+            }
+            println!(x);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("99\n-7\n")
+    .borrowck_ok();
+}
+
+#[test]
 fn division_near_overflow_does_not_abort() {
     FormalityTest::new(crates![crate Foo {
         fn main() -> () {
