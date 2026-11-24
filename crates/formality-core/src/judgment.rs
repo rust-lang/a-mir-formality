@@ -456,9 +456,10 @@ macro_rules! push_rules {
 
             if let Some(__JudgmentStruct($($input_names),*)) = Some($input_value) {
                 let __judgment_name = stringify!($judgment_name);
-                let __attributes: Vec<(String, String)> = vec![
-                    $((stringify!($input_names).to_string(), format!("{:?}", $input_names))),*
-                ];
+                // Only successful rule applications need proof attributes.
+                let __attributes = || -> Vec<(String, String)> {
+                    vec![$((stringify!($input_names).to_string(), format!("{:?}", $input_names))),*]
+                };
                 let mut __matched = $match_default;
                 $crate::push_rules!(@match
                     $conclusion_name
@@ -1197,7 +1198,7 @@ macro_rules! push_rules {
     ) => {
         {
             let result = $crate::Upcast::upcast($v);
-            let mut attributes = $input_attributes.clone();
+            let mut attributes = $input_attributes();
             attributes.push(("result".to_string(), format!("{:?}", result)));
             let (file, line, column) = $crate::respan!($rule_name ((file!(), line!(), column!())));
             let proof_tree = $crate::judgment::ProofTree::with_all(
