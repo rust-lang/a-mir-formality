@@ -172,7 +172,19 @@ impl<J: Ord + Debug + Clone> ProvenSet<J> {
     where
         K: Ord + Debug + Clone,
     {
-        self.flat_map::<_, K>(|elem| ProvenSet::singleton(op(elem)))
+        match self.data {
+            ProvenSetData::Failure(e) => ProvenSet {
+                data: ProvenSetData::Failure(e),
+            },
+            ProvenSetData::Success(items) => {
+                let mut mapped = Map::new();
+                for item in items {
+                    let (value, proof) = op(item);
+                    mapped.insert(value, proof);
+                }
+                ProvenSet::proven(mapped)
+            }
+        }
     }
 
     /// Convenience function for tests: asserts that the proven values match expected.
