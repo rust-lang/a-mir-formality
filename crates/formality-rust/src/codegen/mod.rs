@@ -353,6 +353,7 @@ judgment_fn! {
             (type_expr(cfn, scope, rhs) => rhs_ty)
             (let (rhs_temp, cfn) = cfn.alloc_temp(rhs_ty)?)
             (codegen_expr_into(global, cfn, scope, rhs_temp, rhs) => (code, global, cfn))
+            (let (code, cfn) = cfn.check_binop_operands(code, op, &typed_dest.ty, load(dest), load(rhs_temp))?)
             ---- ("assign-op")
             (codegen_expr_into(global, cfn, scope, target, Expr::AssignOp { place, op, rhs }) => (
                 code
@@ -437,6 +438,7 @@ judgment_fn! {
             (let (rhs_temp, cfn) = cfn.alloc_temp(&rhs_ty)?)
             (codegen_expr_into(global, cfn, scope, rhs_temp, rhs) => (rhs_code, global, cfn))
             (let (code, cfn) = cfn.append_from(code, rhs_code))
+            (let (code, cfn) = cfn.check_binop_operands(code, op, &lhs_ty, load(lhs_temp), load(rhs_temp))?)
             ----- ("binop")
             (codegen_expr_into(global, cfn, scope, target, Expr::BinOp { lhs, op, rhs }) => (
                 code.assign(target, binop(op, load(lhs_temp), load(rhs_temp))),
