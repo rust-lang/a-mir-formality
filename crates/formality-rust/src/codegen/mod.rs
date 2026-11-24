@@ -431,6 +431,39 @@ judgment_fn! {
             ))
         )
         (
+            (codegen_operands(global, cfn, scope, lhs, rhs) => (code, (left, right, _), global, cfn))
+            ---- ("comparison")
+            (codegen_expr_into(global, cfn, scope, target, Expr::Compare { lhs, op, rhs }) => (
+                code.assign(target, compare(op, load(left), load(right))),
+                global,
+                cfn,
+            ))
+        )
+
+        (
+            (codegen_operands(global, cfn, scope, lhs, rhs) => (code, (left, right, lhs_ty), global, cfn))
+            (let (code, cfn) = cfn.check_binop_operands(code, op, lhs_ty, load(left), load(right))?)
+            ---- ("binop")
+            (codegen_expr_into(global, cfn, scope, target, Expr::BinOp { lhs, op, rhs }) => (
+                code.assign(target, binop(op, load(left), load(right))),
+                global,
+                cfn,
+            ))
+        )
+    }
+}
+
+judgment_fn! {
+    fn codegen_operands(
+        global: CodegenGlobal,
+        cfn: CodegenFn,
+        scope: CodegenScope,
+        lhs: Expr,
+        rhs: Expr,
+    ) => (CodeBlock, (MiniRustLocal, MiniRustLocal, Ty), CodegenGlobal, CodegenFn) {
+        debug(lhs, rhs)
+
+        (
             (type_expr(cfn, scope, lhs) => lhs_ty)
             (let (lhs_temp, cfn) = cfn.alloc_temp(&lhs_ty)?)
             (codegen_expr_into(global, cfn, scope, lhs_temp, lhs) => (code, global, cfn))
@@ -438,12 +471,9 @@ judgment_fn! {
             (let (rhs_temp, cfn) = cfn.alloc_temp(&rhs_ty)?)
             (codegen_expr_into(global, cfn, scope, rhs_temp, rhs) => (rhs_code, global, cfn))
             (let (code, cfn) = cfn.append_from(code, rhs_code))
-            (let (code, cfn) = cfn.check_binop_operands(code, op, &lhs_ty, load(lhs_temp), load(rhs_temp))?)
-            ----- ("binop")
-            (codegen_expr_into(global, cfn, scope, target, Expr::BinOp { lhs, op, rhs }) => (
-                code.assign(target, binop(op, load(lhs_temp), load(rhs_temp))),
-                global,
-                cfn,
+            ---- ("operands")
+            (codegen_operands(global, cfn, scope, lhs, rhs) => (
+                code, (lhs_temp, rhs_temp, lhs_ty), global, cfn,
             ))
         )
     }

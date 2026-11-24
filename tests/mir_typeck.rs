@@ -1,4 +1,4 @@
-use a_mir_formality::{crates, FormalityTest};
+use a_mir_formality::{crates, BorrowCheckFailure, FormalityTest};
 use formality_core::test;
 
 /// Test assign statement with locals at rhs.
@@ -2263,4 +2263,144 @@ fn test_div_boolean_operands() {
         the rule "binop" at (nll.rs) failed because
           condition evaluated to false: `scalar.is_int()`
             scalar = bool"#]])
+}
+
+#[test]
+fn test_comparison_lt_mismatched_int_types() {
+    FormalityTest::new(crates![crate Foo {
+        fn foo() -> () { let x: bool = 1_i32 < 2_u32; }
+    }])
+    .err(expect_test::expect![[r#"
+        crates/formality-rust/src/prove/prove_normalize.rs:22:1: no applicable rules for prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+
+        crates/formality-rust/src/prove/prove_normalize.rs:22:1: no applicable rules for prove_normalize { p: i32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }"#]]);
+}
+
+#[test]
+fn test_comparison_gt_mismatched_int_types() {
+    FormalityTest::new(crates![crate Foo {
+        fn foo() -> () { let x: bool = 2_i32 > 1_i64; }
+    }])
+    .err(expect_test::expect![[r#"
+        crates/formality-rust/src/prove/prove_normalize.rs:22:1: no applicable rules for prove_normalize { p: i64, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+
+        crates/formality-rust/src/prove/prove_normalize.rs:22:1: no applicable rules for prove_normalize { p: i32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }"#]]);
+}
+
+#[test]
+fn test_comparison_result_is_not_an_integer() {
+    FormalityTest::new(crates![crate Foo {
+        fn foo() -> () { let x: i32 = 1_i32 < 2_i32; }
+    }])
+    .err(expect_test::expect![[r#"
+        crates/formality-rust/src/prove/prove_normalize.rs:22:1: no applicable rules for prove_normalize { p: bool, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+
+        crates/formality-rust/src/prove/prove_normalize.rs:22:1: no applicable rules for prove_normalize { p: i32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }"#]]);
+}
+
+#[test]
+fn test_comparison_boolean_and_integer() {
+    FormalityTest::new(crates![crate Foo {
+        fn foo() -> () { let x: bool = false < 1_i32; }
+    }])
+    .err(expect_test::expect![[r#"
+        crates/formality-rust/src/prove/prove_normalize.rs:22:1: no applicable rules for prove_normalize { p: i32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+
+        crates/formality-rust/src/prove/prove_normalize.rs:22:1: no applicable rules for prove_normalize { p: bool, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }"#]]);
+}
+
+#[test]
+fn test_comparison_integer_and_boolean() {
+    FormalityTest::new(crates![crate Foo {
+        fn foo() -> () { let x: bool = 1_i32 > true; }
+    }])
+    .err(expect_test::expect![[r#"
+        crates/formality-rust/src/prove/prove_normalize.rs:22:1: no applicable rules for prove_normalize { p: bool, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+
+        crates/formality-rust/src/prove/prove_normalize.rs:22:1: no applicable rules for prove_normalize { p: i32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }"#]]);
+}
+
+#[test]
+fn test_comparisons_through_references() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            let x: i32 = 4_i32;
+            exists<'a> {
+                let r: &'a i32 = &'a x;
+                let less: bool = *r < 5_i32;
+                let greater: bool = *r > 3_i32;
+                println!(less);
+                println!(greater);
+            }
+        }
+    }])
+    .rustc_ok()
+    .expect_output("true\ntrue\n")
+    .borrowck_ok();
+}
+
+#[test]
+fn test_comparison_last_use_of_mut_ref_on_left() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            let x: u32 = 4_u32;
+            exists<'a> {
+                let r: &'a mut u32 = &'a mut x;
+                println!(*r < x);
+            }
+        }
+    }])
+    .rustc_ok()
+    .expect_output("false\n")
+    .borrowck_ok();
+}
+
+#[test]
+fn test_comparison_last_use_of_mut_ref_on_right() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            let x: u32 = 4_u32;
+            exists<'a> {
+                let r: &'a mut u32 = &'a mut x;
+                println!(x < *r);
+            }
+        }
+    }])
+    .rustc_err(expect_test::expect![[r#"
+        error[E0503]: cannot use `x` because it was mutably borrowed
+         --> lib.rs
+          |
+        4 |         let mut r: &'_ mut u32 = &mut x;
+          |                                  ------ `x` is borrowed here
+        5 |         x < *r;
+          |         ^   -- borrow later used here
+          |         |
+          |         use of borrowed `x`
+
+        For more information about this error, try `rustc --explain E0503`.
+        error: could not compile `Foo` (lib) due to 1 previous error
+    "#]])
+    .borrowck_err(
+        BorrowCheckFailure::All,
+        expect_test::expect![[r#"
+        the rule "borrow of disjoint places" at (nll.rs) failed because
+          condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
+            &loan.place = x : u32
+            &access.place = x : u32
+
+        the rule "loan_cannot_outlive" at (nll.rs) failed because
+          condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+            outlived_by_loan = {?lt_1}
+            &lifetime.upcast() = ?lt_1
+
+        the rule "borrow of disjoint places" at (nll.rs) failed because
+          condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
+            &loan.place = x : u32
+            &access.place = x : u32
+
+        the rule "loan_cannot_outlive" at (nll.rs) failed because
+          condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+            outlived_by_loan = {?lt_1}
+            &lifetime.upcast() = ?lt_1"#]],
+    );
 }

@@ -399,6 +399,14 @@ judgment_fn! {
         )
 
         (
+            (borrow_check_expr(env, assumptions, state, lhs, rhs.live_before(env, &state, places_live_on_exit)) => (lhs_ty, state))
+            (prove_ty_is_rigid(env, assumptions, state, &lhs_ty) => (RigidTy { name: RigidName::ScalarId(_), parameters: _ }, state))
+            (borrow_check_expr_has_ty(env, assumptions, state, rhs, &lhs_ty, places_live_on_exit) => state)
+            ---- ("comparison")
+            (borrow_check_expr(env, assumptions, state, Expr::Compare { lhs, op: _, rhs }, places_live_on_exit) => (ScalarId::Bool, state))
+        )
+
+        (
             (let expr = Expr::bin_op(lhs, BinOpKind::Mul, rhs))
             (borrow_check_expr(env, assumptions, state, expr, places_live_on_exit) => (ty, state))
             ---- ("multiplication")
