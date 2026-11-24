@@ -1,4 +1,4 @@
-use a_mir_formality::{crates, FormalityTest};
+use a_mir_formality::{crates, BorrowCheckFailure, FormalityTest};
 use formality_core::test;
 
 /// Test assign statement with locals at rhs.
@@ -2329,10 +2329,78 @@ fn test_comparisons_through_references() {
                 let r: &'a i32 = &'a x;
                 let less: bool = *r < 5_i32;
                 let greater: bool = *r > 3_i32;
+                println!(less);
+                println!(greater);
             }
         }
     }])
     .rustc_ok()
-    .skip_execute()
+    .expect_output("true\ntrue\n")
     .borrowck_ok();
+}
+
+#[test]
+fn test_comparison_last_use_of_mut_ref_on_left() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            let x: u32 = 4_u32;
+            exists<'a> {
+                let r: &'a mut u32 = &'a mut x;
+                println!(*r < x);
+            }
+        }
+    }])
+    .rustc_ok()
+    .expect_output("false\n")
+    .borrowck_ok();
+}
+
+#[test]
+fn test_comparison_last_use_of_mut_ref_on_right() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            let x: u32 = 4_u32;
+            exists<'a> {
+                let r: &'a mut u32 = &'a mut x;
+                println!(x < *r);
+            }
+        }
+    }])
+    .rustc_err(expect_test::expect![[r#"
+        error[E0503]: cannot use `x` because it was mutably borrowed
+         --> lib.rs
+          |
+        4 |         let mut r: &'_ mut u32 = &mut x;
+          |                                  ------ `x` is borrowed here
+        5 |         x < *r;
+          |         ^   -- borrow later used here
+          |         |
+          |         use of borrowed `x`
+
+        For more information about this error, try `rustc --explain E0503`.
+        error: could not compile `Foo` (lib) due to 1 previous error
+    "#]])
+    .borrowck_err(
+        BorrowCheckFailure::All,
+        expect_test::expect![[r#"
+        the rule "borrow of disjoint places" at (nll.rs) failed because
+          condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
+            &loan.place = x : u32
+            &access.place = x : u32
+
+        the rule "loan_cannot_outlive" at (nll.rs) failed because
+          condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+            outlived_by_loan = {?lt_1}
+            &lifetime.upcast() = ?lt_1
+
+        the rule "borrow of disjoint places" at (nll.rs) failed because
+          condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
+            &loan.place = x : u32
+            &access.place = x : u32
+
+        the rule "loan_cannot_outlive" at (nll.rs) failed because
+          condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+            outlived_by_loan = {?lt_1}
+            &lifetime.upcast() = ?lt_1"#]],
+    );
 }
