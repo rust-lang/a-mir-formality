@@ -2658,7 +2658,6 @@ fn drop_on_break_while_borrowed() {
 }
 
 #[test]
-#[ignore = "FIXME(#559): backward liveness loses the labeled block's break target"]
 fn labeled_block_break_keeps_a_later_reference_read_live() {
     FormalityTest::new(crates![crate Foo {
         fn example() -> u32 {
@@ -2705,7 +2704,6 @@ fn labeled_block_break_keeps_a_later_reference_read_live() {
 }
 
 #[test]
-#[ignore = "FIXME(#559): backward liveness loses the labeled block's break target"]
 fn labeled_block_break_keeps_a_reference_live_at_an_earlier_break_target() {
     FormalityTest::new(crates![crate Foo {
         fn example(flag: bool) -> u32 {
