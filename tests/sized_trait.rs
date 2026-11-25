@@ -230,11 +230,39 @@ fn sized_non_final_field_is_accepted() {
 
 #[test]
 fn unsized_non_final_field_is_rejected() {
-    // Only the last field of a struct can be unsized.
+    // Only the last field of a struct can be unsized. We emit `?Sized`
+    // on struct type parameters, so rustc rejects this too.
     FormalityTest::new(crates![crate Foo {
         struct Bad<T> { prefix: T, tail: u32 }
     }])
-    .rustc_ok()
+    .rustc_err(expect_test::expect![[r#"
+        error[E0277]: the size for values of type `T00` cannot be known at compilation time
+         --> lib.rs
+          |
+        1 | pub struct Bad<T00: ?Sized> {
+          |                --- this type parameter needs to be `Sized`
+        2 |     pub prefix: T00,
+          |                 ^^^ doesn't have a size known at compile-time
+          |
+          = note: only the last field of a struct may have a dynamically sized type
+          = help: change the field's type to have a statically known size
+        help: consider removing the `?Sized` bound to make the type parameter `Sized`
+          |
+        1 - pub struct Bad<T00: ?Sized> {
+        1 + pub struct Bad<T00> {
+          |
+        help: borrowed types always have a statically known size
+          |
+        2 |     pub prefix: &T00,
+          |                 +
+        help: the `Box` type always has a statically known size and allocates its contents in the heap
+          |
+        2 |     pub prefix: Box<T00>,
+          |                 ++++   +
+
+        For more information about this error, try `rustc --explain E0277`.
+        error: could not compile `Foo` (lib) due to 1 previous error
+    "#]])
     .err(expect_test::expect![[r#"
         crates/formality-rust/src/prove/prove_sized.rs:12:1: no applicable rules for prove_sized { ty: !ty_0, assumptions: {}, env: Env { variables: [!ty_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
 
