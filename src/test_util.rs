@@ -277,7 +277,7 @@ fn execute_program(input: &str, step_limit: usize) -> String {
 
     type Mem = minirust_rs::mem::BasicMemory<minirust_rs::prelude::x86_64>;
     let mut machine: minirust_rs::lang::Machine<Mem> =
-        minirust_rs::lang::Machine::new(program, stdout, stderr)
+        minirust_rs::lang::Machine::new(program, (), stdout, stderr)
             .get_internal()
             .expect("machine creation failed");
 

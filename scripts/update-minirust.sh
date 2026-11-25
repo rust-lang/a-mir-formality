@@ -7,7 +7,7 @@
 # 3. Installs the matching specr-transpile if needed
 # 4. Runs specr-transpile to generate the minirust-rs crate
 # 5. Copies the generated sources into crates/minirust-rs/
-# 6. Updates libspecr version in crates/formality-rust/Cargo.toml
+# 6. Updates libspecr versions in the workspace manifests
 
 set -euo pipefail
 
@@ -54,19 +54,26 @@ rm -rf "$DEST/src"
 cp -r "$GENERATED/src" "$DEST/src"
 cp "$GENERATED/Cargo.toml" "$DEST/Cargo.toml"
 
-# Sync libspecr version in formality-rust
-FORMALITY_CARGO="$REPO_ROOT/crates/formality-rust/Cargo.toml"
-if [ -f "$FORMALITY_CARGO" ]; then
-    sed -i "s/libspecr = \"=[^\"]*\"/libspecr = \"=${SPECR_VERSION}\"/" "$FORMALITY_CARGO"
-    echo "Updated libspecr in formality-rust/Cargo.toml to =${SPECR_VERSION}"
-fi
+# Sync libspecr versions in all consumers of the generated crate
+for MANIFEST in "$REPO_ROOT/Cargo.toml" "$REPO_ROOT/crates/formality-rust/Cargo.toml"; do
+    sed -i "s/libspecr = \"=[^\"]*\"/libspecr = \"=${SPECR_VERSION}\"/" "$MANIFEST"
+    echo "Updated libspecr in $MANIFEST to =${SPECR_VERSION}"
+done
 
 # Sync rust-toolchain.toml (minirust pins a specific nightly for compatibility)
 MINIRUST_TOOLCHAIN="$TMPDIR/minirust/rust-toolchain.toml"
 if [ -f "$MINIRUST_TOOLCHAIN" ]; then
     echo "Updating rust-toolchain.toml..."
     cp "$MINIRUST_TOOLCHAIN" "$REPO_ROOT/rust-toolchain.toml"
+    # Keep the workspace's editor support alongside upstream's components.
+    if ! grep -q '"rust-analyzer"' "$REPO_ROOT/rust-toolchain.toml"; then
+        sed -i 's/"rustfmt"/"rustfmt", "rust-analyzer"/' "$REPO_ROOT/rust-toolchain.toml"
+    fi
 fi
+
+# Match the workspace's formatting using the updated toolchain.
+cd "$REPO_ROOT"
+cargo fmt -p minirust-rs
 
 # Record the commit we built from
 COMMIT="$(cd "$TMPDIR/minirust" && git rev-parse HEAD)"

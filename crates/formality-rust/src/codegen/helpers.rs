@@ -160,6 +160,7 @@ pub(super) fn build_function(
         calling_convention: lang::CallingConvention::Rust,
         blocks,
         start: entry,
+        implicit_writes: true,
     }
 }
 
@@ -420,6 +421,7 @@ pub(super) fn build_start_function(
             m
         },
         start: call_bb,
+        implicit_writes: true,
     };
     (start_fn_name, start_fn)
 }
