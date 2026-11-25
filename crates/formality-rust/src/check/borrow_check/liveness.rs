@@ -445,7 +445,15 @@ impl LiveBefore for Block {
         places_live: impl Upcast<LivePlaces>,
     ) -> LivePlaces {
         let places_live: LivePlaces = places_live.upcast();
-        self.stmts.live_before(env, scopes, places_live)
+        // Nothing can `break` to an unlabeled block.
+        if self.label.is_none() {
+            return self.stmts.live_before(env, scopes, places_live);
+        }
+        // A `break` to this label lands right after the block.
+        let ctx = scopes
+            .into_liveness_context()
+            .with_block(&self.label, places_live.clone());
+        self.stmts.live_before(env, &ctx, places_live)
     }
 }
 
