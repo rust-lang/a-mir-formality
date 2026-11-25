@@ -114,6 +114,12 @@ impl Skeleton {
 }
 
 impl AtomicPredicate {
+    /// Goal to prove `ty: Sized`.
+    pub fn sized(ty: impl Upcast<Parameter>) -> Self {
+        let ty: Parameter = ty.upcast();
+        AtomicPredicate::IsImplemented(TraitRef::new(TraitId::sized(), vec![ty]))
+    }
+
     /// Separate an atomic predicate into the "skeleton" (which can be compared for equality using `==`)
     /// and the parameters (which must be related).
     #[tracing::instrument(level = "trace", ret)]

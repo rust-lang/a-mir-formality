@@ -236,6 +236,8 @@ impl Display for GenericArg {
         match self {
             GenericArg::Type(ty) => write!(f, "{ty}"),
             GenericArg::Lifetime(lt) => f.write_str(lt),
+            // A tuple used as a const generic argument must be braced: `Foo<{ (1_u32, true) }>`.
+            GenericArg::Const(konst @ ConstExpr::Tuple(_)) => write!(f, "{{ {konst} }}"),
             GenericArg::Const(konst) => write!(f, "{konst}"),
         }
     }
@@ -244,7 +246,13 @@ impl Display for GenericArg {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ConstExpr {
     Ident(String),
-    Scalar { value: String, suffix: String },
+    Scalar {
+        value: String,
+        suffix: String,
+    },
+    /// A tuple value, e.g. `(1_u32, true)`.
+    Tuple(Vec<ConstExpr>),
+    Block(Block),
 }
 
 impl Display for ConstExpr {
@@ -252,6 +260,30 @@ impl Display for ConstExpr {
         match self {
             ConstExpr::Ident(name) => f.write_str(name),
             ConstExpr::Scalar { value, suffix } => write!(f, "{value}_{suffix}"),
+            ConstExpr::Tuple(values) => {
+                f.write_str("(")?;
+                for (i, value) in values.iter().enumerate() {
+                    if i > 0 {
+                        f.write_str(", ")?;
+                    }
+                    write!(f, "{value}")?;
+                }
+                // A one-element tuple needs a trailing comma: `(1_u32,)`.
+                if values.len() == 1 {
+                    f.write_str(",")?;
+                }
+                f.write_str(")")
+            }
+            ConstExpr::Block(block) => {
+                // Labeled blocks need extra braces to be valid const expressions
+                if block.label.is_some() {
+                    f.write_char('{')?;
+                    block.fmt_pretty(f, 0)?;
+                    f.write_char('}')
+                } else {
+                    block.fmt_pretty(f, 0)
+                }
+            }
         }
     }
 }

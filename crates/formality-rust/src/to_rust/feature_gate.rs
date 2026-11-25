@@ -8,6 +8,8 @@ pub fn lower_feature_gate(gate: &FeatureGate) -> Fallible<syntax::Attr> {
         FeatureGateName::PoloniusAlpha => "polonius_alpha",
         FeatureGateName::NonLifetimeBinders => "non_lifetime_binders",
         FeatureGateName::NegativeImpls => "negative_impls",
+        FeatureGateName::AdtConstParams => "adt_const_params",
+        FeatureGateName::UnsizedConstParams => "unsized_const_params",
     };
     Ok(syntax::Attr::Feature(name.to_owned()))
 }

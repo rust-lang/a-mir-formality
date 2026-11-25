@@ -70,6 +70,7 @@ judgment_fn! {
         (
             (check_for_duplicate_items(program) => ())
             (check_for_non_lifetime_binders(c) => ())
+            // FIXME #534: Enforce tuple const gates with crate-local semantic checks.
             (for_all(item in &c.items)
                 (check_crate_item(program, item, &c.id) => ()))
             (check_coherence(program, c) => ())
@@ -198,7 +199,7 @@ judgment_fn! {
         )
 
         (
-            (check_adt(program, &s.to_adt()) => ())
+            (check_adt(program, s) => ())
             ------------------------------------------------------------ ("adt")
             (check_crate_item(program, CrateItem::AdtItem(s), crate_id) => ())
         )

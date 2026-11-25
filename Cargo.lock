@@ -10,6 +10,7 @@ dependencies = [
  "clap",
  "expect-test",
  "formality-core",
+ "formality-lint",
  "formality-macros",
  "formality-rust",
  "libspecr",
@@ -39,6 +40,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ddd31a130427c27518df266943a5308ed92d4b226cc639f5a8f1002816174301"
 dependencies = [
  "memchr",
+]
+
+[[package]]
+name = "annotate-snippets"
+version = "0.12.17"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b2a5b0a5ab8561c603f16c3b78c24a386b1f70e7fc1b1b1e8c15738828e4a176"
+dependencies = [
+ "anstyle",
+ "memchr",
+ "unicode-width 0.2.2",
 ]
 
 [[package]]
@@ -308,7 +320,7 @@ checksum = "d9c4f5dac5e15c24eb999c26181a6ca40b39fe946cbe4c263c7209467bc83af2"
 
 [[package]]
 name = "formality-core"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "anyhow",
  "contracts",
@@ -342,8 +354,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "formality-lint"
+version = "0.1.0"
+dependencies = [
+ "annotate-snippets",
+ "expect-test",
+ "proc-macro2",
+]
+
+[[package]]
 name = "formality-macros"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "convert_case",
  "proc-macro2",
@@ -749,9 +770,9 @@ dependencies = [
 
 [[package]]
 name = "proc-macro2"
-version = "1.0.106"
+version = "1.0.107"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8fd00f0bb2e90d81d1044c2b32617f68fcb9fa3bb7640c23e9c748e53fb30934"
+checksum = "985e7ec9bb745e6ce6535b544d84d6cd6f7ad8bd711c398938ae983b91a766d9"
 dependencies = [
  "unicode-ident",
 ]

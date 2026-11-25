@@ -1,6 +1,8 @@
 # Summary
 
 - [Intro](./intro.md)
+- [Reviewing pull requests](./reviewing_prs.md)
+  - [Linting judgment functions](./judgment_lint.md)
 - [`formality_core`: the Formality system](./formality_core.md)
   - [Defining your lang](./formality_core/lang.md)
   - [Defining terms with the `term` macro](./formality_core/terms.md)

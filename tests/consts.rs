@@ -82,7 +82,7 @@ fn generic_mismatch() {
 
                 crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: bool, via: @ ConstHasType(!const_0 , u32), assumptions: {@ ConstHasType(!const_0 , u32)}, env: Env { variables: [!const_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
 
-                crates/formality-rust/src/prove/prove_const_has_type.rs:11:1: no applicable rules for prove_const_has_type { constant: !const_0, assumptions: {@ ConstHasType(!const_0 , u32)}, env: Env { variables: [!const_0], bias: Soundness, pending: [], allow_pending_outlives: false }, decls: program([crate core { trait Copy <ty> { } impl Copy for () { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for u128 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for i128 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Drop <ty> { fn drop <lt> (self : &^lt0_0 mut ^ty1_0) where ^ty1_0 : ^lt0_0 ; } trait Derefable <ty> { type Target : [] ; } impl <lt, ty> Derefable for &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } impl <lt, ty> Derefable for &^lt0_0 mut ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } trait Sized <ty> { } impl Sized for () { } impl Sized for u8 { } impl Sized for u16 { } impl Sized for u32 { } impl Sized for u64 { } impl Sized for u128 { } impl Sized for i8 { } impl Sized for i16 { } impl Sized for i32 { } impl Sized for i64 { } impl Sized for i128 { } impl Sized for bool { } impl Sized for usize { } impl Sized for isize { } impl <lt, ty> Sized for &^lt0_0 ^ty0_1 { } impl <lt, ty> Sized for &^lt0_0 mut ^ty0_1 { } }, crate Foo { trait Foo <ty, const> where type_of_const ^const0_1 is bool { } impl <const> Foo <^const0_0> for u32 where type_of_const ^const0_0 is u32 { } }], 222) }
+                crates/formality-rust/src/prove/prove_const_has_type.rs:11:1: no applicable rules for prove_const_has_type { constant: !const_0, assumptions: {@ ConstHasType(!const_0 , u32)}, env: Env { variables: [!const_0], bias: Soundness, pending: [], allow_pending_outlives: false }, decls: program([crate core { trait Copy <ty> { } impl Copy for () { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for u128 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for i128 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Drop <ty> { fn drop <lt> (self : &^lt0_0 mut ^ty1_0) where ^ty1_0 : ^lt0_0 ; } trait Derefable <ty> { type Target : [] ; } impl <lt, ty> Derefable for &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } impl <lt, ty> Derefable for &^lt0_0 mut ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } trait Sized <ty> { } }, crate Foo { trait Foo <ty, const> where type_of_const ^const0_1 is bool { } impl <const> Foo <^const0_0> for u32 where type_of_const ^const0_0 is u32 { } }], 222) }
 
                 the rule "trait implied bound" at (prove_predicate.rs) failed because
                   expression evaluated to an empty collection: `decls.trait_invariants()`"#]])
@@ -164,4 +164,83 @@ fn const_parameter_bounds_translate_to_rust() {
     }])
     .rustc_ok()
     .ok()
+}
+
+#[test]
+fn const_block_with_statements_is_well_formed() {
+    assert!(a_mir_formality::test_where_clause(
+        "[crate Foo {}]",
+        "{} => { @wf({ let x: u32 = 1_u32; }) }",
+    )
+    .is_proven());
+}
+
+#[test]
+fn const_block_with_ill_typed_initializer_is_rejected() {
+    assert!(!a_mir_formality::test_where_clause(
+        "[crate Foo {}]",
+        "{} => { @wf({ let x: u32 = true; }) }",
+    )
+    .is_proven());
+}
+
+#[test]
+fn empty_const_block_argument_executes() {
+    FormalityTest::new(crates![crate Foo {
+        #![feature(adt_const_params)]
+        fn value<const C>() -> u32 where type_of_const C is () { return 7_u32; }
+        fn main() -> () { println!(value::<{}>()); }
+    }])
+    .rustc_ok()
+    .expect_output("7\n")
+    .ok();
+}
+
+#[test]
+fn statement_const_block_argument_executes() {
+    FormalityTest::new(crates![crate Foo {
+        #![feature(adt_const_params)]
+        fn value<const C>() -> u32 where type_of_const C is () { return 8_u32; }
+        fn main() -> () { println!(value::<{ let x: u32 = 1_u32; }>()); }
+    }])
+    .rustc_ok()
+    .expect_output("8\n")
+    .ok();
+}
+
+#[test]
+fn labeled_const_block_argument_executes() {
+    FormalityTest::new(crates![crate Foo {
+        #![feature(adt_const_params)]
+        fn value<const C>() -> u32 where type_of_const C is () { return 9_u32; }
+        fn main() -> () { println!(value::<'done: { break 'done; }>()); }
+    }])
+    .rustc_ok()
+    .expect_output("9\n")
+    .ok();
+}
+
+#[test]
+fn ill_typed_const_block_argument_is_rejected() {
+    FormalityTest::new(crates![crate Foo {
+        #![feature(adt_const_params)]
+        fn value<const C>() -> u32 where type_of_const C is () { return 7_u32; }
+        fn main() -> () { println!(value::<{ let x: u32 = true; }>()); }
+    }])
+    .rustc_err(expect_test::expect![[r#"
+        error[E0308]: mismatched types
+          --> lib.rs
+           |
+        10 |             let mut x: u32 = true;
+           |                        ---   ^^^^ expected `u32`, found `bool`
+           |                        |
+           |                        expected due to this
+
+        For more information about this error, try `rustc --explain E0308`.
+        error: could not compile `Foo` (lib) due to 1 previous error
+    "#]])
+    .err(expect_test::expect![[r#"
+        crates/formality-rust/src/prove/prove_normalize.rs:22:1: no applicable rules for prove_normalize { p: bool, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+
+        crates/formality-rust/src/prove/prove_normalize.rs:22:1: no applicable rules for prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }"#]]);
 }

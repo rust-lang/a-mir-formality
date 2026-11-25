@@ -1131,3 +1131,1178 @@ fn compound_multiplication_to_field() {
     .expect_output("18\n2\n")
     .ok();
 }
+
+#[test]
+fn integer_bitwise_xor() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(12_i32 ^ 10_i32);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("6\n")
+    .ok();
+}
+
+#[test]
+fn arithmetic_before_bitwise_xor() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(1_i32 ^ 2_i32 + 3_i32);
+            println!(5_i32 + 3_i32 ^ 6_i32);
+            println!(10_i32 - 4_i32 ^ 1_i32);
+            println!(7_i32 ^ 2_i32 * 3_i32);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("4\n14\n7\n1\n")
+    .ok();
+}
+
+#[test]
+fn bitwise_xor_negative_operands() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(-1_i32 ^ 5_i32);
+            println!(-8_i32 ^ -3_i32);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("-6\n5\n")
+    .ok();
+}
+
+#[test]
+fn integer_bitwise_xor_unsigned() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(255_u8 ^ 15_u8);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("240\n")
+    .ok();
+}
+
+#[test]
+fn bitwise_xor_runs_calls_left_to_right() {
+    FormalityTest::new(crates![crate Foo {
+        fn left() -> i32 { println!(1_i32); return 3_i32; }
+        fn right() -> i32 { println!(2_i32); return 5_i32; }
+        fn main() -> () { println!(left() ^ right()); }
+    }])
+    .rustc_ok()
+    .expect_output("1\n2\n6\n")
+    .ok();
+}
+
+#[test]
+fn bitwise_xor_with_parentheses() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!((1_i32 ^ 2_i32) + 3_i32);
+            println!(2_i32 * (3_i32 ^ 5_i32));
+        }
+    }])
+    .rustc_ok()
+    .expect_output("6\n12\n")
+    .ok();
+}
+
+#[test]
+fn bitwise_xor_in_assignment() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            let x: i32 = 5_i32;
+            x = x ^ 3_i32;
+            println!(x);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("6\n")
+    .ok();
+}
+
+#[test]
+fn compound_bitwise_xor() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            let x: u32 = 12_u32;
+            x ^= 3_u32 + 5_u32;
+            println!(x);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("4\n")
+    .ok();
+}
+
+#[test]
+fn bitwise_xor_assignment_reads_destination_after_rhs() {
+    FormalityTest::new(crates![crate Foo {
+        fn update<'a>(r: &'a mut u32) -> u32 {
+            *r = 10_u32;
+            return 3_u32;
+        }
+        fn main() -> () {
+            let x: u32 = 1_u32;
+            exists<'a> {
+                let r: &'a mut u32 = &'a mut x;
+                x ^= update::<'a>(r);
+            }
+            println!(x);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("9\n")
+    .ok();
+}
+
+#[test]
+fn bitwise_xor_signed_width_boundary() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(-128_i8 ^ -1_i8);
+            println!(127_i8 ^ -1_i8);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("127\n-128\n")
+    .ok();
+}
+
+#[test]
+fn bitwise_xor_128_bit_high_bits() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(340282366920938463463374607431768211455_u128
+                ^ 170141183460469231731687303715884105728_u128);
+            println!(170141183460469231731687303715884105728_u128 ^ 1_u128);
+            println!(-170141183460469231731687303715884105728_i128 ^ -1_i128);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("170141183460469231731687303715884105727\n170141183460469231731687303715884105729\n170141183460469231731687303715884105727\n")
+    .ok();
+}
+
+#[test]
+fn integer_bitwise_or() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(12_i32 | 10_i32);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("14\n")
+    .ok();
+}
+
+#[test]
+fn bitwise_xor_before_bitwise_or() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(1_i32 | 2_i32 ^ 3_i32);
+            println!(5_i32 ^ 1_i32 | 1_i32);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("1\n5\n")
+    .ok();
+}
+
+#[test]
+fn arithmetic_before_bitwise_or() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(3_i32 | 1_i32 + 1_i32);
+            println!(3_i32 + 1_i32 | 1_i32);
+            println!(9_i32 - 1_i32 | 1_i32);
+            println!(5_i32 | 2_i32 * 3_i32);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("3\n5\n9\n7\n")
+    .ok();
+}
+
+#[test]
+fn bitwise_or_negative_operands() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(-16_i32 | 5_i32);
+            println!(-8_i32 | -3_i32);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("-11\n-3\n")
+    .ok();
+}
+
+#[test]
+fn integer_bitwise_or_unsigned() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(240_u8 | 15_u8);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("255\n")
+    .ok();
+}
+
+#[test]
+fn bitwise_or_runs_calls_left_to_right() {
+    FormalityTest::new(crates![crate Foo {
+        fn left() -> i32 { println!(1_i32); return 4_i32; }
+        fn right() -> i32 { println!(2_i32); return 1_i32; }
+        fn main() -> () { println!(left() | right()); }
+    }])
+    .rustc_ok()
+    .expect_output("1\n2\n5\n")
+    .ok();
+}
+
+#[test]
+fn bitwise_or_with_parentheses() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!((1_i32 | 2_i32) ^ 3_i32);
+            println!(2_i32 * (1_i32 | 4_i32));
+        }
+    }])
+    .rustc_ok()
+    .expect_output("0\n10\n")
+    .ok();
+}
+
+#[test]
+fn bitwise_or_in_assignment() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            let x: i32 = 5_i32;
+            x = x | 2_i32;
+            println!(x);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("7\n")
+    .ok();
+}
+
+#[test]
+fn compound_bitwise_or() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            let x: u32 = 6_u32;
+            x |= 1_u32 + 2_u32;
+            println!(x);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("7\n")
+    .ok();
+}
+
+#[test]
+fn bitwise_or_assignment_reads_destination_after_rhs() {
+    FormalityTest::new(crates![crate Foo {
+        fn update<'a>(r: &'a mut u32) -> u32 {
+            *r = 8_u32;
+            return 1_u32;
+        }
+        fn main() -> () {
+            let x: u32 = 2_u32;
+            exists<'a> {
+                let r: &'a mut u32 = &'a mut x;
+                x |= update::<'a>(r);
+            }
+            println!(x);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("9\n")
+    .ok();
+}
+
+#[test]
+fn bitwise_or_signed_width_boundary() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(-128_i8 | 127_i8);
+            println!(64_i8 | 63_i8);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("-1\n127\n")
+    .ok();
+}
+
+#[test]
+fn bitwise_or_128_bit_high_bits() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(170141183460469231731687303715884105728_u128
+                | 170141183460469231731687303715884105727_u128);
+            println!(170141183460469231731687303715884105728_u128 | 1_u128);
+            println!(-170141183460469231731687303715884105728_i128
+                | 170141183460469231731687303715884105727_i128);
+        }
+    }])
+    .rustc_ok()
+    .expect_output(
+        "340282366920938463463374607431768211455\n170141183460469231731687303715884105729\n-1\n",
+    )
+    .ok();
+}
+
+#[test]
+fn integer_bitwise_and() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(12_i32 & 10_i32);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("8\n")
+    .ok();
+}
+
+#[test]
+fn bitwise_and_before_bitwise_xor() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(5_i32 ^ 6_i32 & 3_i32);
+            println!(6_i32 & 3_i32 ^ 1_i32);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("7\n3\n")
+    .ok();
+}
+
+#[test]
+fn arithmetic_before_bitwise_and() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(5_i32 & 1_i32 + 2_i32);
+            println!(3_i32 + 1_i32 & 6_i32);
+            println!(9_i32 - 1_i32 & 12_i32);
+            println!(6_i32 & 3_i32 * 2_i32);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("1\n4\n8\n6\n")
+    .ok();
+}
+
+#[test]
+fn bitwise_and_negative_operands() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(-1_i32 & 5_i32);
+            println!(-6_i32 & -3_i32);
+            println!(-16_i32 & 31_i32);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("5\n-8\n16\n")
+    .ok();
+}
+
+#[test]
+fn integer_bitwise_and_unsigned() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(240_u8 & 60_u8);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("48\n")
+    .ok();
+}
+
+#[test]
+fn bitwise_and_runs_calls_left_to_right() {
+    FormalityTest::new(crates![crate Foo {
+        fn left() -> i32 { println!(1_i32); return 12_i32; }
+        fn right() -> i32 { println!(2_i32); return 10_i32; }
+        fn main() -> () { println!(left() & right()); }
+    }])
+    .rustc_ok()
+    .expect_output("1\n2\n8\n")
+    .ok();
+}
+
+#[test]
+fn bitwise_and_with_parentheses() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!((5_i32 ^ 6_i32) & 3_i32);
+            println!((6_i32 & 3_i32) * 2_i32);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("3\n4\n")
+    .ok();
+}
+
+#[test]
+fn bitwise_and_in_assignment() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            let x: i32 = 5_i32;
+            x = x & 6_i32;
+            println!(x);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("4\n")
+    .ok();
+}
+
+#[test]
+fn compound_bitwise_and() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            let x: u32 = 14_u32;
+            x &= 7_u32 + 5_u32;
+            println!(x);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("12\n")
+    .ok();
+}
+
+#[test]
+fn bitwise_and_assignment_reads_destination_after_rhs() {
+    FormalityTest::new(crates![crate Foo {
+        fn update<'a>(r: &'a mut u32) -> u32 {
+            *r = 10_u32;
+            return 6_u32;
+        }
+        fn main() -> () {
+            let x: u32 = 1_u32;
+            exists<'a> {
+                let r: &'a mut u32 = &'a mut x;
+                x &= update::<'a>(r);
+            }
+            println!(x);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("2\n")
+    .ok();
+}
+
+#[test]
+fn bitwise_and_signed_width_boundary() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(-128_i8 & -1_i8);
+            println!(127_i8 & -128_i8);
+            println!(-1_i8 & 127_i8);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("-128\n0\n127\n")
+    .ok();
+}
+
+#[test]
+fn bitwise_and_128_bit_high_bits() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(340282366920938463463374607431768211455_u128
+                & 170141183460469231731687303715884105729_u128);
+            println!(170141183460469231731687303715884105728_u128
+                & 170141183460469231731687303715884105727_u128);
+            println!(-170141183460469231731687303715884105728_i128 & -1_i128);
+        }
+    }])
+    .rustc_ok()
+    .expect_output(
+        "170141183460469231731687303715884105729\n0\n-170141183460469231731687303715884105728\n",
+    )
+    .ok();
+}
+
+#[test]
+fn bitwise_and_with_dereference() {
+    FormalityTest::new(crates![crate Foo {
+        fn and_left<'a>(r: &'a u32) -> u32 {
+            return *r & 6_u32;
+        }
+        fn and_right<'a>(r: &'a u32) -> u32 {
+            return 10_u32 & *r;
+        }
+        fn main() -> () {
+            let x: u32 = 12_u32;
+            exists<'a, 'b> {
+                let r: &'a u32 = &'a x;
+                println!(and_left::<'a>(r));
+                let s: &'b u32 = &'b x;
+                println!(and_right::<'b>(s));
+            }
+        }
+    }])
+    .rustc_ok()
+    .expect_output("4\n8\n")
+    .ok();
+}
+
+#[test]
+fn bitwise_and_reuses_copy_referent() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            let x: u32 = 12_u32;
+            exists<'a> {
+                let r: &'a u32 = &'a x;
+                println!(*r & *r);
+                println!(*r & 6_u32);
+            }
+        }
+    }])
+    .rustc_ok()
+    .expect_output("12\n4\n")
+    .ok();
+}
+
+#[test]
+fn integer_remainder() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(7_i32 % 3_i32);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("1\n")
+    .ok();
+}
+
+#[test]
+fn integer_remainder_negative_operands() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(-7_i32 % 3_i32);
+            println!(7_i32 % -3_i32);
+            println!(-7_i32 % -3_i32);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("-1\n1\n-1\n")
+    .ok();
+}
+
+#[test]
+fn integer_remainder_unsigned() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(13_u32 % 3_u32);
+            println!(2_u32 % 7_u32);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("1\n2\n")
+    .ok();
+}
+
+#[test]
+fn remainder_before_addition() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(10_i32 + 7_i32 % 4_i32);
+            println!(7_i32 % 4_i32 + 10_i32);
+            println!(20_i32 - 7_i32 % 4_i32);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("13\n13\n17\n")
+    .ok();
+}
+
+#[test]
+fn remainder_runs_left_to_right() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(10_i32 % 4_i32 % 3_i32);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("2\n")
+    .ok();
+}
+
+#[test]
+fn remainder_with_multiplication() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(3_i32 * 7_i32 % 4_i32);
+            println!(7_i32 % 4_i32 * 3_i32);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("1\n9\n")
+    .ok();
+}
+
+#[test]
+fn remainder_with_parentheses() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(10_i32 % (4_i32 % 3_i32));
+            println!((10_i32 + 7_i32) % 4_i32);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("0\n1\n")
+    .ok();
+}
+
+#[test]
+fn remainder_runs_calls_left_to_right() {
+    FormalityTest::new(crates![crate Foo {
+        fn left() -> i32 { println!(1_i32); return 7_i32; }
+        fn right() -> i32 { println!(2_i32); return 3_i32; }
+        fn main() -> () { println!(left() % right()); }
+    }])
+    .rustc_ok()
+    .expect_output("1\n2\n1\n")
+    .ok();
+}
+
+#[test]
+fn remainder_near_overflow_does_not_abort() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(7_i32 % -1_i32);
+            println!(-2147483647_i32 % -1_i32);
+            println!(-2147483648_i32 % 1_i32);
+            println!(-2147483648_i32 % 2147483647_i32);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("0\n0\n0\n-1\n")
+    .ok();
+}
+
+#[test]
+#[should_panic(expected = "execution error: Abort")]
+fn integer_remainder_by_zero() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(7_i32 % 0_i32);
+        }
+    }])
+    .ok();
+}
+
+#[test]
+#[should_panic(expected = "execution error: Abort")]
+fn integer_remainder_overflow() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(-2147483648_i32 % -1_i32);
+        }
+    }])
+    .ok();
+}
+
+#[test]
+fn compound_remainder_field_reads_after_rhs() {
+    FormalityTest::new(crates![crate Foo {
+        struct Pair { left: u32, right: u32 }
+        fn update<'a>(p: &'a mut Pair) -> u32 {
+            (*p).left = 14_u32;
+            return 5_u32;
+        }
+        fn main() -> () {
+            let p: Pair = Pair { left: 8_u32, right: 16_u32 };
+            exists<'a> {
+                let r: &'a mut Pair = &'a mut p;
+                p.left %= update::<'a>(r);
+            }
+            println!(p.left);
+            println!(p.right);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("4\n16\n")
+    .borrowck_ok();
+}
+
+#[test]
+fn remainder_width_boundaries_and_last_loan_use() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(340282366920938463463374607431768211455_u128 % 2_u128);
+            println!(-170141183460469231731687303715884105728_i128 % 3_i128);
+            let x: u32 = 7_u32;
+            exists<'a> {
+                let r: &'a mut u32 = &'a mut x;
+                println!(*r % x);
+            }
+        }
+    }])
+    .rustc_ok()
+    .expect_output("1\n-2\n0\n")
+    .borrowck_ok();
+}
+
+#[test]
+fn integer_division() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(12_i32 / 3_i32);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("4\n")
+    .ok();
+}
+
+#[test]
+fn integer_division_drops_fraction() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(7_i32 / 2_i32);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("3\n")
+    .ok();
+}
+
+#[test]
+fn integer_division_negative_result() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(-7_i32 / 2_i32);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("-3\n")
+    .ok();
+}
+
+#[test]
+fn division_before_addition() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(2_i32 + 12_i32 / 3_i32);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("6\n")
+    .ok();
+}
+
+#[test]
+fn division_runs_left_to_right() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(24_i32 / 4_i32 / 2_i32);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("3\n")
+    .ok();
+}
+
+#[test]
+fn integer_division_with_parentheses() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(24_i32 / (4_i32 / 2_i32));
+        }
+    }])
+    .rustc_ok()
+    .expect_output("12\n")
+    .ok();
+}
+
+#[test]
+fn integer_division_unsigned() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(13_u32 / 3_u32);
+            println!(0_u32 / 3_u32);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("4\n0\n")
+    .ok();
+}
+
+#[test]
+fn integer_division_negative_divisor() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(7_i32 / -2_i32);
+            println!(-7_i32 / -2_i32);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("-3\n3\n")
+    .ok();
+}
+
+#[test]
+fn division_with_subtraction() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(20_i32 - 12_i32 / 3_i32);
+            println!(12_i32 / 3_i32 - 2_i32);
+            println!((20_i32 - 12_i32) / 2_i32);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("16\n2\n4\n")
+    .ok();
+}
+
+#[test]
+fn division_runs_calls_left_to_right() {
+    FormalityTest::new(crates![crate Foo {
+        fn left() -> i32 { println!(1_i32); return 12_i32; }
+        fn right() -> i32 { println!(2_i32); return 3_i32; }
+        fn main() -> () { println!(left() / right()); }
+    }])
+    .rustc_ok()
+    .expect_output("1\n2\n4\n")
+    .ok();
+}
+
+#[test]
+fn compound_division_rhs_runs_once_and_clears_overflow() {
+    FormalityTest::new(crates![crate Foo {
+        fn update<'a>(p: &'a mut i32) -> i32 {
+            println!(99_i32);
+            *p = 7_i32;
+            return -1_i32;
+        }
+        fn main() -> () {
+            let x: i32 = -2147483648_i32;
+            exists<'a> {
+                let r: &'a mut i32 = &'a mut x;
+                x /= update::<'a>(r);
+            }
+            println!(x);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("99\n-7\n")
+    .borrowck_ok();
+}
+
+#[test]
+fn division_near_overflow_does_not_abort() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(7_i32 / -1_i32);
+            println!(-2147483647_i32 / -1_i32);
+            println!(-2147483648_i32 / 1_i32);
+            println!(-2147483648_i32 / 2147483647_i32);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("-7\n2147483647\n-2147483648\n-1\n")
+    .ok();
+}
+
+#[test]
+#[should_panic(expected = "execution error: Abort")]
+fn integer_division_by_zero() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(12_i32 / 0_i32);
+        }
+    }])
+    .ok();
+}
+
+#[test]
+#[should_panic(expected = "execution error: Abort")]
+fn integer_division_overflow() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(-2147483648_i32 / -1_i32);
+        }
+    }])
+    .ok();
+}
+
+#[test]
+fn division_with_multiplication() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(24_i32 / 4_i32 * 2_i32);
+            println!(20_i32 * 3_i32 / 4_i32);
+            println!(24_i32 / (4_i32 * 2_i32));
+            println!(2_i32 + 24_i32 / 4_i32 * 2_i32);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("12\n15\n3\n14\n")
+    .ok();
+}
+
+#[test]
+fn integer_division_result_is_zero() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(2_i32 / 7_i32);
+            println!(-2_i32 / 7_i32);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("0\n0\n")
+    .ok();
+}
+
+#[test]
+fn integer_division_different_sizes() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(127_i8 / 2_i8);
+            println!(-127_i8 / 2_i8);
+            println!(18446744073709551616_u128 / 2_u128);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("63\n-63\n9223372036854775808\n")
+    .ok();
+}
+
+#[test]
+fn division_in_assignment() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            let x: i32 = 0_i32;
+            x = 12_i32 / 3_i32;
+            println!(x);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("4\n")
+    .ok();
+}
+
+#[test]
+fn division_in_call_arguments() {
+    FormalityTest::new(crates![crate Foo {
+        fn sum(x: i32, y: i32) -> i32 { return x + y; }
+        fn main() -> () {
+            println!(sum(12_i32 / 3_i32, 10_i32 / 2_i32));
+        }
+    }])
+    .rustc_ok()
+    .expect_output("9\n")
+    .ok();
+}
+
+#[test]
+fn integer_comparisons() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(3_i32 < 4_i32);
+            println!(4_i32 < 3_i32);
+            println!(3_i32 < 3_i32);
+            println!(4_i32 > 3_i32);
+            println!(3_i32 > 4_i32);
+            println!(3_i32 > 3_i32);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("true\nfalse\nfalse\ntrue\nfalse\nfalse\n")
+    .ok();
+}
+
+#[test]
+fn integer_comparisons_with_negative_values() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(-4_i32 < -3_i32);
+            println!(-3_i32 > -4_i32);
+            println!(-1_i32 < 0_i32);
+            println!(0_i32 > -1_i32);
+            println!(-1_i32 > 0_i32);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("true\ntrue\ntrue\ntrue\nfalse\n")
+    .ok();
+}
+
+#[test]
+fn integer_comparisons_unsigned() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(0_u32 < 3_u32);
+            println!(3_u32 > 0_u32);
+            println!(3_u32 < 3_u32);
+            println!(3_u32 > 3_u32);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("true\ntrue\nfalse\nfalse\n")
+    .ok();
+}
+
+#[test]
+fn integer_comparisons_at_type_limits() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(-128_i8 < 127_i8);
+            println!(255_u8 > 0_u8);
+            println!(-170141183460469231731687303715884105728_i128 < 170141183460469231731687303715884105727_i128);
+            println!(340282366920938463463374607431768211455_u128 > 0_u128);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("true\ntrue\ntrue\ntrue\n")
+    .ok();
+}
+
+#[test]
+fn arithmetic_before_comparisons() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(2_i32 + 3_i32 < 6_i32);
+            println!(2_i32 * 3_i32 > 5_i32);
+            println!(10_i32 - 3_i32 > 6_i32);
+            println!(4_i32 < 2_i32 + 3_i32);
+            println!(5_i32 < 2_i32 * 3_i32);
+            println!(5_i32 < 10_i32 - 3_i32);
+            println!(12_i32 / 3_i32 > 3_i32);
+            println!(3_i32 < 12_i32 / 3_i32);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("true\ntrue\ntrue\ntrue\ntrue\ntrue\ntrue\ntrue\n")
+    .ok();
+}
+
+#[test]
+fn integer_comparisons_with_parentheses() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!((1_i32 + 2_i32) * 3_i32 > 8_i32);
+            println!(10_i32 > (2_i32 + 3_i32) * 1_i32);
+            let result: bool = (2_i32 < 3_i32);
+            println!(result);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("true\ntrue\ntrue\n")
+    .ok();
+}
+
+#[test]
+fn comparisons_run_calls_left_to_right() {
+    FormalityTest::new(crates![crate Foo {
+        fn left() -> i32 { println!(1_i32); return 3_i32; }
+        fn right() -> i32 { println!(2_i32); return 4_i32; }
+        fn main() -> () {
+            println!(left() < right());
+            println!(left() > right());
+        }
+    }])
+    .rustc_ok()
+    .expect_output("1\n2\ntrue\n1\n2\nfalse\n")
+    .ok();
+}
+
+#[test]
+fn comparisons_in_conditions_and_assignments() {
+    FormalityTest::new(crates![crate Foo {
+        fn smaller(a: i32, b: i32) -> bool { return a < b; }
+        fn show(value: bool) -> () { println!(value); }
+        fn main() -> () {
+            let result: bool = 2_i32 < 3_i32;
+            println!(result);
+            result = 2_i32 > 3_i32;
+            println!(result);
+            show(3_i32 > 2_i32);
+            println!(smaller(2_i32, 3_i32));
+            if 2_i32 < 3_i32 { println!(1_i32); } else { println!(0_i32); }
+            if 2_i32 > 3_i32 { println!(0_i32); } else { println!(2_i32); }
+        }
+    }])
+    .rustc_ok()
+    .expect_output("true\nfalse\ntrue\ntrue\n1\n2\n")
+    .ok();
+}
+
+#[test]
+fn comparisons_with_generic_calls() {
+    FormalityTest::new(crates![crate Foo {
+        fn identity<T>(x: T) -> T { return x; }
+        fn main() -> () {
+            println!(identity::<i32>(1_i32) < identity::<i32>(2_i32));
+            println!(identity::<u32>(3_u32) > identity::<u32>(2_u32));
+        }
+    }])
+    .rustc_ok()
+    .expect_output("true\ntrue\n")
+    .ok();
+}
+
+#[test]
+fn boolean_comparisons() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(false < false);
+            println!(false < true);
+            println!(true < false);
+            println!(true < true);
+            println!(false > false);
+            println!(false > true);
+            println!(true > false);
+            println!(true > true);
+            println!((1_i32 < 2_i32) > false);
+            println!(false < (2_i32 > 1_i32));
+        }
+    }])
+    .rustc_ok()
+    .expect_output("false\ntrue\nfalse\nfalse\nfalse\nfalse\ntrue\nfalse\ntrue\ntrue\n")
+    .ok();
+}
+
+#[test]
+fn boolean_comparisons_run_calls_left_to_right() {
+    FormalityTest::new(crates![crate Foo {
+        fn left() -> bool { println!(1_i32); return false; }
+        fn right() -> bool { println!(2_i32); return true; }
+        fn main() -> () {
+            let result: bool = left() < right();
+            println!(result);
+            result = left() > right();
+            println!(result);
+            if false < true { println!(3_i32); } else { println!(0_i32); }
+        }
+    }])
+    .rustc_ok()
+    .expect_output("1\n2\ntrue\n1\n2\nfalse\n3\n")
+    .ok();
+}
+
+#[test]
+fn bitwise_and_remainder_before_comparisons() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(1_u32 | 2_u32 < 4_u32);
+            println!(0_u32 < 1_u32 | 2_u32);
+            println!(7_u32 ^ 3_u32 > 3_u32);
+            println!(3_u32 < 7_u32 ^ 3_u32);
+            println!(6_u32 & 3_u32 < 3_u32);
+            println!(1_u32 < 6_u32 & 3_u32);
+            println!(7_u32 % 3_u32 < 2_u32);
+            println!(0_u32 < 7_u32 % 3_u32);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("true\ntrue\ntrue\ntrue\ntrue\ntrue\ntrue\ntrue\n")
+    .ok();
+}

@@ -9,8 +9,8 @@ pub fn zip<A, B, C>(
     decls: &Program,
     env: &Env,
     context: &C,
-    mut a: Vec<A>,
-    mut b: Vec<B>,
+    a: &[A],
+    b: &[B],
     op: &impl Fn(Program, Env, C, A, B) -> ProvenSet<Constraints>,
 ) -> ProvenSet<Constraints>
 where
@@ -26,13 +26,20 @@ where
         return ProvenSet::singleton((constraints, leaf));
     }
 
-    let a0 = a.remove(0);
-    let b0 = b.remove(0);
-    op(decls.clone(), env.clone(), context.clone(), a0, b0).flat_map(|(c1, tree1)| {
+    let (a0, a) = a.split_first().unwrap();
+    let (b0, b) = b.split_first().unwrap();
+    op(
+        decls.clone(),
+        env.clone(),
+        context.clone(),
+        a0.clone(),
+        b0.clone(),
+    )
+    .flat_map(|(c1, tree1)| {
         let context = c1.substitution().apply(context);
-        let a = c1.substitution().apply(&a);
-        let b = c1.substitution().apply(&b);
-        zip(decls, c1.env(), &context, a, b, op).map(move |(c2, tree2)| {
+        let a: Vec<_> = a.iter().map(|p| c1.substitution().apply(p)).collect();
+        let b: Vec<_> = b.iter().map(|p| c1.substitution().apply(p)).collect();
+        zip(decls, c1.env(), &context, &a, &b, op).map(move |(c2, tree2)| {
             (
                 c1.seq(c2),
                 ProofTree::new("zip", None, vec![tree1.clone(), tree2.clone()]),

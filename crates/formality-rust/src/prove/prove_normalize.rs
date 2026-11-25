@@ -40,7 +40,7 @@ judgment_fn! {
 
         (
             (decl in decls.alias_eq_decls(&a.name))
-            (scope(enter_existentially_with_constraints(env, &decl.binder)
+            (scope(enter_existentially_with_constraints(decls, env, assumptions, &decl.binder)
                 => (env, AliasEqDeclBoundData { alias: AliasTy { name, parameters }, ty, where_clause })) with(ty, c)
                 (assert a.name == *name)
                 (prove(decls, env, assumptions, Predicates::all_eq(&a.parameters, &parameters)) => c)
@@ -111,7 +111,7 @@ judgment_fn! {
         // These rules handle the the ∀ and ⇒ cases.
 
         (
-            (scope(enter_existentially_with_constraints(env, binder) => (env, via1)) with(p, c)
+            (scope(enter_existentially_with_constraints(decls, env, assumptions, binder) => (env, via1)) with(p, c)
                 (prove_normalize_via(decls, env, assumptions, via1, goal) => Constrained(p, c)))
             ----------------------------- ("forall")
             (prove_normalize_via(decls, env, assumptions, Predicate::ForAll(binder), goal) => Constrained(p, c))
@@ -149,7 +149,7 @@ judgment_fn! {
             (let RigidTy { name: a_name, parameters: a_parameters } = a)
             (let RigidTy { name: b_name, parameters: b_parameters } = b)
             (if a_name == b_name)!
-            (zip(decls, env, assumptions, a_parameters.clone(), b_parameters.clone(), &prove_syntactically_eq) => c)
+            (zip(decls, env, assumptions, a_parameters, b_parameters, &prove_syntactically_eq) => c)
             ----------------------------- ("rigid")
             (prove_syntactically_eq(decls, env, assumptions, Ty::RigidTy(a), Ty::RigidTy(b)) => c)
         )
@@ -158,7 +158,7 @@ judgment_fn! {
             (let AliasTy { name: a_name, parameters: a_parameters } = a)
             (let AliasTy { name: b_name, parameters: b_parameters } = b)
             (if a_name == b_name)!
-            (zip(decls, env, assumptions, a_parameters.clone(), b_parameters.clone(), &prove_syntactically_eq) => c)
+            (zip(decls, env, assumptions, a_parameters, b_parameters, &prove_syntactically_eq) => c)
             ----------------------------- ("alias")
             (prove_syntactically_eq(decls, env, assumptions, Ty::AliasTy(a), Ty::AliasTy(b)) => c)
         )

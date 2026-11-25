@@ -58,7 +58,7 @@ judgment_fn! {
         (
             (let result: Map<Num, Num> = for_all pair in values => (pair.0, pair.1))
             // Maps do not have an identity upcast, so expose their entries.
-            (let entries: Vec<_> = result.iter().map(|(k, v)| (k.clone(), v.clone())).collect())
+            (let entries: Vec<(Num, Num)> = for_all entry in result => entry)
             --- ("map")
             (as_map(values) => entries)
         )

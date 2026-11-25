@@ -1,5 +1,5 @@
-use crate::grammar::{AtomicPredicate, Predicate, Predicates};
-use formality_core::judgment_fn;
+use crate::grammar::{AtomicPredicate, Predicate, Predicates, TraitRef, Ty};
+use formality_core::{judgment_fn, Downcast};
 
 use crate::prove::{
     binder_scope::{enter_existentially_with_constraints, enter_universally_with_constraints},
@@ -12,6 +12,7 @@ use crate::prove::{
     prove_const_has_type::prove_const_has_type,
     prove_eq::prove_eq,
     prove_outlives::prove_outlives,
+    prove_sized::prove_sized,
     prove_sub::prove_sub,
     prove_via::prove_via,
     prove_wf::prove_wf,
@@ -31,7 +32,7 @@ judgment_fn! {
         debug(goal, assumptions, env)
 
         (
-            (scope(enter_universally_with_constraints(env, binder) => (env, p1)) with(c)
+            (scope(enter_universally_with_constraints(decls, env, assumptions, binder) => (env, p1)) with(c)
                 (prove_predicate(decls, env, assumptions, p1) => c))
             --- ("forall")
             (prove_predicate(decls, env, assumptions, Predicate::ForAll(binder)) => c)
@@ -57,7 +58,7 @@ judgment_fn! {
             (i in decls.impl_decls(&trait_ref.trait_id))!
 
             // Instantiate impl generics with inference variables (in our example, `A => ?A, B => ?B`).
-            (scope(enter_existentially_with_constraints(env, &i.binder) => (env, i)) with(c)
+            (scope(enter_existentially_with_constraints(decls, env, assumptions, &i.binder) => (env, i)) with(c)
                 // Instantiate trait where-clauses from `Foo<?B>`. If we had `trait Foo<X: Debug>`, for example,
                 // this would yield `?B: Debug`.
                 (let t = decls.trait_decl(&i.trait_ref.trait_id).binder.instantiate_with(&i.trait_ref.parameters).unwrap())
@@ -88,8 +89,16 @@ judgment_fn! {
         )
 
         (
+            (if trait_id.is_sized())!
+            (let (ty,) = parameters.downcast_err::<(Ty,)>()?)
+            (prove_sized(decls, env, assumptions, ty) => c)
+            ----------------------------- ("built-in Sized")
+            (prove_predicate(decls, env, assumptions, AtomicPredicate::IsImplemented(TraitRef { trait_id, parameters })) => c)
+        )
+
+        (
             (i in decls.neg_impl_decls(&trait_ref.trait_id))
-            (scope(enter_existentially_with_constraints(env, &i.binder) => (env, i)) with(c)
+            (scope(enter_existentially_with_constraints(decls, env, assumptions, &i.binder) => (env, i)) with(c)
                 (prove(decls, env, assumptions, Predicates::all_eq(&trait_ref.parameters, &i.trait_ref.parameters)) => c)
                 (prove_after(decls, c, assumptions, &i.where_clause) => c))
             ----------------------------- ("negative impl")
@@ -104,7 +113,7 @@ judgment_fn! {
 
         (
             (ti in decls.trait_invariants())
-            (scope(enter_existentially_with_constraints(env, &ti.binder) => (env, ti)) with(c)
+            (scope(enter_existentially_with_constraints(decls, env, assumptions, &ti.binder) => (env, ti)) with(c)
                 (prove_via(decls, env, assumptions, &ti.where_clause, trait_ref) => c)
                 (prove_after(decls, c, assumptions, &ti.trait_ref) => c))
             ----------------------------- ("trait implied bound")

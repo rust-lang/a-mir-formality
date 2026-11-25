@@ -229,16 +229,51 @@ judgment_fn! {
         debug(global, cfn, scope, target, expr)
 
         (
+            (let expr = Expr::bin_op(lhs, BinOpKind::Div, rhs))
+            (codegen_expr_into(global, cfn, scope, target, expr) => (code, global, cfn))
+            ---- ("division")
+            (codegen_expr_into(global, cfn, scope, target, Expr::Div { lhs, rhs }) => (code, global, cfn))
+        )
+
+        (
             (codegen_expr_into(global, cfn, scope, target, expr) => (code, global, cfn))
             ---- ("parenthesized")
             (codegen_expr_into(global, cfn, scope, target, Expr::Parens(expr)) => (code, global, cfn))
         )
 
         (
-            (let expr = Expr::BinOp { lhs: lhs.clone(), op: BinOpKind::Mul, rhs: rhs.clone() })
+            (let expr = Expr::bin_op(lhs, BinOpKind::Mul, rhs))
             (codegen_expr_into(global, cfn, scope, target, expr) => (code, global, cfn))
             ---- ("multiplication")
             (codegen_expr_into(global, cfn, scope, target, Expr::Mul { lhs, rhs }) => (code, global, cfn))
+        )
+
+        (
+            (let expr = Expr::bin_op(lhs, BinOpKind::Rem, rhs))
+            (codegen_expr_into(global, cfn, scope, target, expr) => (code, global, cfn))
+            ---- ("remainder")
+            (codegen_expr_into(global, cfn, scope, target, Expr::Rem { lhs, rhs }) => (code, global, cfn))
+        )
+
+        (
+            (let expr = Expr::bin_op(lhs, BinOpKind::BitOr, rhs))
+            (codegen_expr_into(global, cfn, scope, target, expr) => (code, global, cfn))
+            ---- ("bitwise or")
+            (codegen_expr_into(global, cfn, scope, target, Expr::BitOr { lhs, rhs }) => (code, global, cfn))
+        )
+
+        (
+            (let expr = Expr::bin_op(lhs, BinOpKind::BitXor, rhs))
+            (codegen_expr_into(global, cfn, scope, target, expr) => (code, global, cfn))
+            ---- ("bitwise xor")
+            (codegen_expr_into(global, cfn, scope, target, Expr::BitXor { lhs, rhs }) => (code, global, cfn))
+        )
+
+        (
+            (let expr = Expr::bin_op(lhs, BinOpKind::BitAnd, rhs))
+            (codegen_expr_into(global, cfn, scope, target, expr) => (code, global, cfn))
+            ---- ("bitwise and")
+            (codegen_expr_into(global, cfn, scope, target, Expr::BitAnd { lhs, rhs }) => (code, global, cfn))
         )
 
         (
@@ -318,6 +353,7 @@ judgment_fn! {
             (type_expr(cfn, scope, rhs) => rhs_ty)
             (let (rhs_temp, cfn) = cfn.alloc_temp(rhs_ty)?)
             (codegen_expr_into(global, cfn, scope, rhs_temp, rhs) => (code, global, cfn))
+            (let (code, cfn) = cfn.check_binop_operands(code, op, &typed_dest.ty, load(dest), load(rhs_temp))?)
             ---- ("assign-op")
             (codegen_expr_into(global, cfn, scope, target, Expr::AssignOp { place, op, rhs }) => (
                 code
@@ -395,6 +431,39 @@ judgment_fn! {
             ))
         )
         (
+            (codegen_operands(global, cfn, scope, lhs, rhs) => (code, (left, right, _), global, cfn))
+            ---- ("comparison")
+            (codegen_expr_into(global, cfn, scope, target, Expr::Compare { lhs, op, rhs }) => (
+                code.assign(target, compare(op, load(left), load(right))),
+                global,
+                cfn,
+            ))
+        )
+
+        (
+            (codegen_operands(global, cfn, scope, lhs, rhs) => (code, (left, right, lhs_ty), global, cfn))
+            (let (code, cfn) = cfn.check_binop_operands(code, op, lhs_ty, load(left), load(right))?)
+            ---- ("binop")
+            (codegen_expr_into(global, cfn, scope, target, Expr::BinOp { lhs, op, rhs }) => (
+                code.assign(target, binop(op, load(left), load(right))),
+                global,
+                cfn,
+            ))
+        )
+    }
+}
+
+judgment_fn! {
+    fn codegen_operands(
+        global: CodegenGlobal,
+        cfn: CodegenFn,
+        scope: CodegenScope,
+        lhs: Expr,
+        rhs: Expr,
+    ) => (CodeBlock, (MiniRustLocal, MiniRustLocal, Ty), CodegenGlobal, CodegenFn) {
+        debug(lhs, rhs)
+
+        (
             (type_expr(cfn, scope, lhs) => lhs_ty)
             (let (lhs_temp, cfn) = cfn.alloc_temp(&lhs_ty)?)
             (codegen_expr_into(global, cfn, scope, lhs_temp, lhs) => (code, global, cfn))
@@ -402,11 +471,9 @@ judgment_fn! {
             (let (rhs_temp, cfn) = cfn.alloc_temp(&rhs_ty)?)
             (codegen_expr_into(global, cfn, scope, rhs_temp, rhs) => (rhs_code, global, cfn))
             (let (code, cfn) = cfn.append_from(code, rhs_code))
-            ----- ("binop")
-            (codegen_expr_into(global, cfn, scope, target, Expr::BinOp { lhs, op, rhs }) => (
-                code.assign(target, binop(op, load(lhs_temp), load(rhs_temp))),
-                global,
-                cfn,
+            ---- ("operands")
+            (codegen_operands(global, cfn, scope, lhs, rhs) => (
+                code, (lhs_temp, rhs_temp, lhs_ty), global, cfn,
             ))
         )
     }

@@ -37,6 +37,7 @@ pub mod prove_normalize;
 mod prove_outlives;
 mod prove_predicate;
 mod prove_predicate_list;
+mod prove_sized;
 mod prove_sub;
 mod prove_via;
 mod prove_wf;
@@ -47,7 +48,8 @@ mod test;
 
 pub use binder_scope::{
     enter_existentially, enter_existentially_with_constraints, enter_universally,
-    enter_universally_with_constraints, with_variables, BinderScope, BinderScopeWithConstraints,
+    enter_universally_with_constraints, with_variables, without_var, BinderScope,
+    BinderScopeWithConstraints,
 };
 pub use constraints::{Constrained, Constraints};
 pub use decls::*;

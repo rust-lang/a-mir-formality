@@ -7,21 +7,23 @@ description = "Model of the Rust type system maintained by the Rust types team (
 homepage = "https://rust-lang.github.io/a-mir-formality/"
 repository = "https://github.com/rust-lang/a-mir-formality/"
 readme = "README.md"
+publish = false
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dev-dependencies]
 expect-test = "1.4.0"
-formality-macros = { version = "0.2.0", path = "crates/formality-macros" }
-formality-core = { version = "0.2.0", path = "crates/formality-core" }
+formality-macros = { version = "0.2.1", path = "crates/formality-macros" }
+formality-core = { version = "0.3.0", path = "crates/formality-core" }
 tracing = "0.1.40"
+formality-lint = { path = "crates/formality-lint" }
 
 
 [dependencies]
 anyhow = "1"
 clap = { version = "4.0.9", features = ["derive"] }
 formality-rust = { version = "0.1.0", path = "crates/formality-rust" }
-formality-core = { version = "0.2.0", path = "crates/formality-core" }
+formality-core = { version = "0.3.0", path = "crates/formality-core" }
 minirust-rs = { version = "0.1.0", path = "crates/minirust-rs" }
 libspecr = "=0.1.40"
 expect-test = "1.4.0"
@@ -34,5 +36,6 @@ members = [
     "crates/formality-mdbook",
     "crates/formality-mdbook-skills",
     "crates/formality-coverage",
+    "crates/formality-lint",
     "crates/minirust-rs",
 ]

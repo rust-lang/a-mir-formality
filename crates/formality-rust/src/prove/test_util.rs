@@ -30,12 +30,29 @@ pub enum TestAssertion {
 /// existential variables created for the bindings, so they're really just suitable for
 /// using with expect.
 pub fn test_prove(decls: Program, assertion: Arc<TestAssertion>) -> ProvenSet<Constraints> {
+    test_prove_in(decls, assertion, false)
+}
+
+/// Like [`test_prove`][], but an outlives goal may be left pending, as
+/// during type checking.
+pub fn test_prove_pending_outlives(
+    decls: Program,
+    assertion: Arc<TestAssertion>,
+) -> ProvenSet<Constraints> {
+    test_prove_in(decls, assertion, true)
+}
+
+fn test_prove_in(
+    decls: Program,
+    assertion: Arc<TestAssertion>,
+    allow_pending_outlives: bool,
+) -> ProvenSet<Constraints> {
     let (mut assertion, bias) = match &*assertion {
         TestAssertion::Default(assertion) => (assertion.clone(), Bias::Soundness),
         TestAssertion::CoherenceMode(assertion) => (assertion.clone(), Bias::Completeness),
     };
 
-    let mut env = Env::new_with_bias(bias);
+    let mut env = Env::new_with_bias(bias).with_allow_pending_outlives(allow_pending_outlives);
 
     loop {
         match &*assertion {

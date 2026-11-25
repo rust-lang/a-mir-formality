@@ -132,7 +132,9 @@ judgment_fn! {
         debug(assumptions, env, state, block)
 
         (
-            (borrow_check_block(env, assumptions, state, block, LivePlaces::default()) => _state)
+            (borrow_check_block(env, assumptions, state, block, LivePlaces::default()) => state)
+            (let locals_to_drop = state.locals_dropped_on_return())
+            (drop_places(env, assumptions, state, locals_to_drop, LivePlaces::default()) => _state)
             ------------------------------------------------------------ ("borrow_check")
             (borrow_check(env, assumptions, state, block) => ())
         )
@@ -194,7 +196,7 @@ judgment_fn! {
                 LiveBefore::live_before(&Assignment(id), env, &state, &places_live_on_exit),
             ) => state)
             (let state = state.with_local_in_scope(&env.env, label, id, ty)?)
-            (let state = state.with_initialized(&PlaceExpr::Var(id.clone())))
+            (let state = state.with_initialized(&PlaceExpr::var(id)))
             ------------------------------------------------------------ ("let")
             (borrow_check_statement(env, assumptions, state, Stmt::Let { label, id, ty, init: Some(Init { expr }) }, places_live_on_exit) => (env, state))
         )
@@ -202,7 +204,7 @@ judgment_fn! {
         (
             (prove_ty_is_wf(env, assumptions, state, ty) => state)
             (let state = state.with_local_in_scope(&env.env, label, id, ty)?)
-            (let state = state.with_uninit(&PlaceExpr::Var(id.clone())))
+            (let state = state.with_uninit(&PlaceExpr::var(id)))
             ------------------------------------------------------------ ("let-no-init")
             (borrow_check_statement(env, assumptions, state, Stmt::Let { label, id, ty, init: None }, places_live_on_exit) => (env, state))
         )
@@ -246,7 +248,8 @@ judgment_fn! {
             // the loop's own label, so that continue/break inside the body resolve correctly.
             (let continue_live = Stmt::loop_(label, body).live_before(&env, &state, places_live_on_exit))
             (let state = state.push_continue_scope(&env.env, label, places_live_on_exit, continue_live)?)
-            (borrow_check_loop(env, assumptions, state, body, places_live_on_exit) => state)
+            // The end of the body goes back to the loop head, like a `continue`.
+            (borrow_check_loop(env, assumptions, state, body, continue_live) => state)
             (let state = state.pop_scope(label))
             ------------------------------------------------------------ ("loop")
             (borrow_check_statement(env, assumptions, state, Stmt::Loop { label, body }, places_live_on_exit) => (env, state))
@@ -256,12 +259,13 @@ judgment_fn! {
             // break targets any in-scope label (block or loop).
             // Drop locals from all scopes up to and including the target.
             (if state.scope_has_label(label))!
+            (if let Some(places_live_on_break) = state.live_after_break(label))
             (let locals_to_drop = state.locals_dropped_to_label(label))
-            (drop_places(env, assumptions, state, locals_to_drop, places_live_on_exit) => state)
+            (drop_places(env, assumptions, state, locals_to_drop, places_live_on_break) => state)
             (let state = state.with_break(label))
             (let state = state.diverges())
             ------------------------------------------------------------ ("break")
-            (borrow_check_statement(env, assumptions, state, Stmt::Break { label }, places_live_on_exit) => (env, state))
+            (borrow_check_statement(env, assumptions, state, Stmt::Break { label }, _places_live_on_exit) => (env, state))
         )
 
         (
@@ -282,6 +286,8 @@ judgment_fn! {
             (borrow_check_expr(env, assumptions, state, expr, LivePlaces::default()) => (expr_ty, state))
             (if let Some(output_ty) = &env.output_ty)
             (prove_assignable(env, assumptions, state, expr_ty, output_ty) => state)
+            (let locals_to_drop = state.locals_dropped_on_return())
+            (drop_places(env, assumptions, state, locals_to_drop, LivePlaces::default()) => state)
             (let state = state.diverges())
             ------------------------------------------------------------ ("return")
             (borrow_check_statement(env, assumptions, state, Stmt::Return { expr }, _places_live_on_exit) => (env, state))
@@ -323,7 +329,7 @@ judgment_fn! {
             // Existential variables: enter the binder and check the inner block
             (scope(env.enter_existentially(&with_variables(binder)) => (env, (vars, block))) with(state)
                 (let assumptions_body = (assumptions, wf_assumptions_for_existential_vars(vars)))
-                (let entry_state = state.clone())
+                (let entry_state = state)
                 (borrow_check_block(env, assumptions_body, state, block, places_live_on_exit) => state)
                 // Rerun borrowck again, with the *entry* state combined with the entire outlives set.
                 (let state = entry_state.with_global_outlives_from(&state))
@@ -380,16 +386,59 @@ judgment_fn! {
         debug(state, expr, places_live_on_exit, assumptions, env)
 
         (
+            (let expr = Expr::bin_op(lhs, BinOpKind::Div, rhs))
+            (borrow_check_expr(env, assumptions, state, expr, places_live_on_exit) => (ty, state))
+            ---- ("division")
+            (borrow_check_expr(env, assumptions, state, Expr::Div { lhs, rhs }, places_live_on_exit) => (ty, state))
+        )
+
+        (
             (borrow_check_expr(env, assumptions, state, expr, places_live_on_exit) => (ty, state))
             ---- ("parenthesized")
             (borrow_check_expr(env, assumptions, state, Expr::Parens(expr), places_live_on_exit) => (ty, state))
         )
 
         (
-            (let expr = Expr::BinOp { lhs: lhs.clone(), op: BinOpKind::Mul, rhs: rhs.clone() })
+            (borrow_check_expr(env, assumptions, state, lhs, rhs.live_before(env, &state, places_live_on_exit)) => (lhs_ty, state))
+            (prove_ty_is_rigid(env, assumptions, state, &lhs_ty) => (RigidTy { name: RigidName::ScalarId(_), parameters: _ }, state))
+            (borrow_check_expr_has_ty(env, assumptions, state, rhs, &lhs_ty, places_live_on_exit) => state)
+            ---- ("comparison")
+            (borrow_check_expr(env, assumptions, state, Expr::Compare { lhs, op: _, rhs }, places_live_on_exit) => (ScalarId::Bool, state))
+        )
+
+        (
+            (let expr = Expr::bin_op(lhs, BinOpKind::Mul, rhs))
             (borrow_check_expr(env, assumptions, state, expr, places_live_on_exit) => (ty, state))
             ---- ("multiplication")
             (borrow_check_expr(env, assumptions, state, Expr::Mul { lhs, rhs }, places_live_on_exit) => (ty, state))
+        )
+
+        (
+            (let expr = Expr::bin_op(lhs, BinOpKind::Rem, rhs))
+            (borrow_check_expr(env, assumptions, state, expr, places_live_on_exit) => (ty, state))
+            ---- ("remainder")
+            (borrow_check_expr(env, assumptions, state, Expr::Rem { lhs, rhs }, places_live_on_exit) => (ty, state))
+        )
+
+        (
+            (let expr = Expr::bin_op(lhs, BinOpKind::BitOr, rhs))
+            (borrow_check_expr(env, assumptions, state, expr, places_live_on_exit) => (ty, state))
+            ---- ("bitwise or")
+            (borrow_check_expr(env, assumptions, state, Expr::BitOr { lhs, rhs }, places_live_on_exit) => (ty, state))
+        )
+
+        (
+            (let expr = Expr::bin_op(lhs, BinOpKind::BitXor, rhs))
+            (borrow_check_expr(env, assumptions, state, expr, places_live_on_exit) => (ty, state))
+            ---- ("bitwise xor")
+            (borrow_check_expr(env, assumptions, state, Expr::BitXor { lhs, rhs }, places_live_on_exit) => (ty, state))
+        )
+
+        (
+            (let expr = Expr::bin_op(lhs, BinOpKind::BitAnd, rhs))
+            (borrow_check_expr(env, assumptions, state, expr, places_live_on_exit) => (ty, state))
+            ---- ("bitwise and")
+            (borrow_check_expr(env, assumptions, state, Expr::BitAnd { lhs, rhs }, places_live_on_exit) => (ty, state))
         )
 
         (
@@ -471,11 +520,10 @@ judgment_fn! {
                 binder.instantiate_with(parameters)?)
 
             // Check argument count matches
-            (let input_tys: Vec<Ty> = input_args.iter().map(|a| a.ty.clone()).collect())
-            (if input_tys.len() == args.len())
+            (if input_args.len() == args.len())
 
             (for_all(i in 0..args.len()) with(state)
-                (borrow_check_expr_has_ty(env, assumptions, state, &args[i], &input_tys[i], places_live) => state))
+                (borrow_check_expr_has_ty(env, assumptions, state, &args[i], &input_args[i].ty, args[i+1..].live_before(env, &state, places_live)) => state))
 
             (prove_where_clauses(env, assumptions, state, where_clauses) => state)
             ------------------------------------------------------------ ("call")
@@ -545,7 +593,7 @@ judgment_fn! {
             (borrow_check_place_expr(env, assumptions, state, place) => (place, state))
             (access_kind_for_place_use(env, assumptions, state, place) => (access_kind, state))
             (access_permitted(env, assumptions, state, Access::new(access_kind, place), places_live_on_exit) => state)
-            (let state = if matches!(access_kind, AccessKind::Move) { state.with_uninit(&place.to_place_expression()) } else { state.clone() })
+            (record_place_use(state, access_kind, place) => state)
             (prove_place_is_movable(env, assumptions, state, place) => state)
             ------------------------------------------------------------ ("place")
             (borrow_check_expr(env, assumptions, state, Expr::Place(place), places_live_on_exit) => (&place.ty, state))
@@ -602,7 +650,7 @@ judgment_fn! {
             (for_all(i in 0..field_exprs.len()) with(state)
                 (field in fields)
                 (if field.name == field_exprs[i].name)
-                (borrow_check_expr_has_ty(env, assumptions, state, &field_exprs[i].value, &field.ty, places_live_on_exit) => state))
+                (borrow_check_expr_has_ty(env, assumptions, state, &field_exprs[i].value, &field.ty, field_exprs[i+1..].live_before(env, &state, places_live_on_exit)) => state))
 
             (prove_where_clauses(env, assumptions, state, where_clauses) => state)
 
@@ -990,6 +1038,28 @@ fn places_live_for_loan(
             cur = pre.prefix();
         }
         p
+    }
+}
+
+judgment_fn! {
+    /// Record initialization after a permitted value use of a place.
+    fn record_place_use(
+        state: FlowState,
+        access_kind: AccessKind,
+        place: TypedPlaceExpr,
+    ) => FlowState {
+        debug(state, access_kind, place)
+
+        (
+            ---- ("read")
+            (record_place_use(state, AccessKind::Read, _place) => state)
+        )
+
+        (
+            (let state = state.with_uninit(&place.to_place_expression()))
+            ---- ("move")
+            (record_place_use(state, AccessKind::Move, place) => state)
+        )
     }
 }
 

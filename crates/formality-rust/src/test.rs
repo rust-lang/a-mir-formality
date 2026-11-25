@@ -401,6 +401,156 @@ fn test_parse_binop_left_associative() {
 }
 
 #[test]
+fn test_parse_bitxor_binds_looser_than_arithmetic() {
+    let expr: Expr = term("a + b ^ c * d");
+    expect_test::expect![[r#"
+        BitXor {
+            lhs: BinOp {
+                lhs: Place(
+                    Var(
+                        a,
+                    ),
+                ),
+                op: Add,
+                rhs: Place(
+                    Var(
+                        b,
+                    ),
+                ),
+            },
+            rhs: Mul {
+                lhs: Place(
+                    Var(
+                        c,
+                    ),
+                ),
+                rhs: Place(
+                    Var(
+                        d,
+                    ),
+                ),
+            },
+        }
+    "#]]
+    .assert_debug_eq(&expr);
+}
+
+#[test]
+fn test_parse_bitxor_left_associative() {
+    let expr: Expr = term("a ^ b ^ c");
+    expect_test::expect![[r#"
+        BitXor {
+            lhs: BitXor {
+                lhs: Place(
+                    Var(
+                        a,
+                    ),
+                ),
+                rhs: Place(
+                    Var(
+                        b,
+                    ),
+                ),
+            },
+            rhs: Place(
+                Var(
+                    c,
+                ),
+            ),
+        }
+    "#]]
+    .assert_debug_eq(&expr);
+}
+
+#[test]
+fn test_parse_bitor_binds_looser_than_bitxor() {
+    let expr: Expr = term("a ^ b | c ^ d");
+    expect_test::expect![[r#"
+        BitOr {
+            lhs: BitXor {
+                lhs: Place(
+                    Var(
+                        a,
+                    ),
+                ),
+                rhs: Place(
+                    Var(
+                        b,
+                    ),
+                ),
+            },
+            rhs: BitXor {
+                lhs: Place(
+                    Var(
+                        c,
+                    ),
+                ),
+                rhs: Place(
+                    Var(
+                        d,
+                    ),
+                ),
+            },
+        }
+    "#]]
+    .assert_debug_eq(&expr);
+}
+
+#[test]
+fn test_parse_bitor_left_associative() {
+    let expr: Expr = term("a | b | c");
+    expect_test::expect![[r#"
+        BitOr {
+            lhs: BitOr {
+                lhs: Place(
+                    Var(
+                        a,
+                    ),
+                ),
+                rhs: Place(
+                    Var(
+                        b,
+                    ),
+                ),
+            },
+            rhs: Place(
+                Var(
+                    c,
+                ),
+            ),
+        }
+    "#]]
+    .assert_debug_eq(&expr);
+}
+
+#[test]
+fn test_parse_bitand_left_associative() {
+    let expr: Expr = term("a & b & c");
+    expect_test::expect![[r#"
+        BitAnd {
+            lhs: BitAnd {
+                lhs: Place(
+                    Var(
+                        a,
+                    ),
+                ),
+                rhs: Place(
+                    Var(
+                        b,
+                    ),
+                ),
+            },
+            rhs: Place(
+                Var(
+                    c,
+                ),
+            ),
+        }
+    "#]]
+    .assert_debug_eq(&expr);
+}
+
+#[test]
 fn test_parse_128_bit_integers_extreme_values() {
     let expr_data: Expr = term("-170141183460469231731687303715884105728 _ i128");
     assert!(matches!(
@@ -477,4 +627,61 @@ fn test_parse_assign_op() {
         }
     "#]]
     .assert_debug_eq(&expr);
+}
+
+#[test]
+fn test_parse_comparisons_after_arithmetic() {
+    use crate::grammar::expr::{BinOpKind, CompareOp};
+
+    let expr: Expr = term("a + b < c * d");
+    let Expr::Compare {
+        lhs,
+        op: CompareOp::Lt,
+        rhs,
+    } = expr
+    else {
+        panic!("expected a less than comparison");
+    };
+    assert!(matches!(
+        &*lhs,
+        Expr::BinOp {
+            op: BinOpKind::Add,
+            ..
+        }
+    ));
+    assert!(matches!(&*rhs, Expr::Mul { .. }));
+
+    let expr: Expr = term("a * b > c - d");
+    let Expr::Compare {
+        lhs,
+        op: CompareOp::Gt,
+        rhs,
+    } = expr
+    else {
+        panic!("expected a greater than comparison");
+    };
+    assert!(matches!(&*lhs, Expr::Mul { .. }));
+    assert!(matches!(
+        &*rhs,
+        Expr::BinOp {
+            op: BinOpKind::Sub,
+            ..
+        }
+    ));
+}
+
+#[test]
+fn test_parse_comparisons_cannot_be_chained() {
+    for input in ["a < b < c", "a > b > c", "a < b > c", "a > b < c"] {
+        assert!(try_term::<Expr>(input).is_err(), "accepted {input}");
+    }
+    assert!(try_term::<Expr>("(a < b) < c").is_ok());
+    assert!(try_term::<Expr>("a > (b > c)").is_ok());
+}
+
+#[test]
+fn test_parse_comparisons_cannot_be_assignment_operators() {
+    for input in ["x <= y", "x >= y", "x < = y", "x > = y"] {
+        assert!(try_term::<Expr>(input).is_err(), "accepted {input}");
+    }
 }

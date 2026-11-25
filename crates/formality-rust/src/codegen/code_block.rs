@@ -1,4 +1,5 @@
-use crate::grammar::Fallible;
+use crate::grammar::expr::BinOpKind;
+use crate::grammar::{Fallible, Ty};
 use formality_core::Upcast;
 use libspecr::hidden::GcCow;
 use libspecr::list;
@@ -624,5 +625,69 @@ impl CodegenFn {
             Some(next_bb),
         );
         Ok((code, cfn))
+    }
+
+    /// Add checks before `/` and `%` that abort where Rust would panic: a zero
+    /// divisor, or `MIN / -1` for signed types. MiniRust treats these as UB.
+    pub(super) fn check_binop_operands(
+        &self,
+        code: &CodeBlock,
+        op: &BinOpKind,
+        ty: &Ty,
+        left: MiniRustValue,
+        right: MiniRustValue,
+    ) -> Fallible<(CodeBlock, Self)> {
+        if !matches!(op, BinOpKind::Div | BinOpKind::Rem) {
+            return Ok((code.clone(), self.clone()));
+        }
+        let lang::Type::Int(int_ty) = self.minirust_ty(ty)? else {
+            anyhow::bail!("`/` or `%` on non-integer type {ty:?}");
+        };
+        let (code, cfn) = self.abort_if_all_eq(code, &[(right, Int::ZERO)]);
+        if matches!(int_ty.signed, Signedness::Unsigned) {
+            return Ok((code, cfn));
+        }
+        let min = -Int::from(2).pow(int_ty.size.bits() - 1);
+        Ok(cfn.abort_if_all_eq(&code, &[(right, Int::from(-1)), (left, min)]))
+    }
+
+    /// Abort if every `(value, case)` pair in `checks` matches.
+    fn abort_if_all_eq(
+        &self,
+        code: &CodeBlock,
+        checks: &[(MiniRustValue, Int)],
+    ) -> (CodeBlock, Self) {
+        if !code.has_fallthrough() {
+            return (code.clone(), self.clone());
+        }
+
+        let (pass, mut cfn) = self.fresh_bb();
+        let mut code = code.clone();
+        for &(value, case) in checks {
+            let (matched, next_cfn) = cfn.fresh_bb();
+            let mut cases = Map::new();
+            cases.insert(case, matched);
+            (code, cfn) = next_cfn.terminate(
+                code,
+                lang::Terminator::Switch {
+                    value: value.into(),
+                    cases,
+                    fallback: pass,
+                },
+                Some(matched),
+            );
+        }
+
+        let (abort_ret, cfn) = cfn.alloc_local(unit_ty());
+        cfn.terminate(
+            code,
+            lang::Terminator::Intrinsic {
+                intrinsic: lang::IntrinsicOp::Abort,
+                arguments: list![],
+                ret: lang::PlaceExpr::Local(abort_ret),
+                next_block: None,
+            },
+            Some(pass),
+        )
     }
 }

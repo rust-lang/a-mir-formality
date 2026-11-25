@@ -1,0 +1,30 @@
+name: Release-plz
+
+on:
+  push:
+    branches:
+      - main
+
+permissions: {}
+
+jobs:
+  release-plz:
+    name: Release-plz
+    runs-on: ubuntu-latest
+    environment: publish
+    permissions:
+      pull-requests: write  # Required for release-plz to open a PR
+      contents: write  # Required for release-plz to push a tag
+      id-token: write  # Required for OIDC for publishing
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Install Rust (rustup)
+        run: rustup update stable --no-self-update && rustup default stable
+      - name: Run release-plz
+        uses: MarcoIeni/release-plz-action@66b324fd6c72d05d2a08568492ecdd62bfb8a62b # v0.5.148
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,4 +1,4 @@
-use a_mir_formality::{crates, FormalityTest};
+use a_mir_formality::{crates, BorrowCheckFailure, FormalityTest};
 use formality_core::test;
 
 /// Test assign statement with locals at rhs.
@@ -531,7 +531,7 @@ fn test_call_generic_fn_wrong_parameters_number_with_turbofish() {
     "#]])
     .err(expect_test::expect![[r#"
             the rule "call" at (nll.rs) failed because
-              condition evaluated to false: `input_tys.len() == args.len()`"#]])
+              condition evaluated to false: `input_args.len() == args.len()`"#]])
 }
 
 /// Test calling a generic function with wrong number of type args via turbofish.
@@ -1044,9 +1044,9 @@ fn test_break_nonexistent_label() {
             error: could not compile `Foo` (lib) due to 1 previous error
         "#]])
         .err(expect_test::expect![[r#"
-                crates/formality-rust/src/check/borrow_check/nll.rs:174:1: no applicable rules for borrow_check_statement { state: flow_state([scope(none, None, {}, None, [], []), scope(none, None, {}, None, [], []), scope(none, None, {}, Some({}), [], []), scope(none, None, {}, None, [], [])], point_flow_state({}, {}, {}), {}, {}, {}), statement: break 'nonexistent ;, places_live_on_exit: {}, assumptions: {}, env: TypeckEnv { env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: false }, output_ty: Some(u32) } }
+                crates/formality-rust/src/check/borrow_check/nll.rs:176:1: no applicable rules for borrow_check_statement { state: flow_state([scope(none, None, {}, None, [], []), scope(none, None, {}, None, [], []), scope(none, None, {}, Some({}), [], []), scope(none, None, {}, None, [], [])], point_flow_state({}, {}, {}), {}, {}, {}), statement: break 'nonexistent ;, places_live_on_exit: {}, assumptions: {}, env: TypeckEnv { env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: false }, output_ty: Some(u32) } }
 
-                crates/formality-rust/src/check/borrow_check/nll.rs:174:1: no applicable rules for borrow_check_statement { state: flow_state([scope(none, None, {}, None, [], []), scope(none, None, {}, None, [], []), scope(none, None, {}, Some({}), [], []), scope(none, None, {}, None, [], [])], point_flow_state({}, {}, {}), {}, {}, {}), statement: break 'nonexistent ;, places_live_on_exit: {}, assumptions: {}, env: TypeckEnv { env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: false }, output_ty: Some(u32) } }"#]])
+                crates/formality-rust/src/check/borrow_check/nll.rs:176:1: no applicable rules for borrow_check_statement { state: flow_state([scope(none, None, {}, None, [], []), scope(none, None, {}, None, [], []), scope(none, None, {}, Some({}), [], []), scope(none, None, {}, None, [], [])], point_flow_state({}, {}, {}), {}, {}, {}), statement: break 'nonexistent ;, places_live_on_exit: {}, assumptions: {}, env: TypeckEnv { env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: false }, output_ty: Some(u32) } }"#]])
 }
 
 /// `continue` targeting a valid loop label should pass.
@@ -1352,6 +1352,436 @@ fn test_mul_boolean_operands() {
             scalar = bool"#]])
 }
 
+/// Taking the remainder of integers of different types should fail.
+#[test]
+fn test_rem_mismatched_int_types() {
+    FormalityTest::new(crates![crate Foo {
+        fn foo() -> () {
+            let x: i32 = 7_i32 % 3_u32;
+        }
+    }])
+    .rustc_err(expect_test::expect![[r#"
+        error[E0308]: mismatched types
+         --> lib.rs
+          |
+        2 |     let mut x: i32 = 7_i32 % 3_u32;
+          |                              ^^^^^ expected `i32`, found `u32`
+
+        error[E0277]: cannot calculate the remainder of `i32` divided by `u32`
+           --> lib.rs
+            |
+          2 |     let mut x: i32 = 7_i32 % 3_u32;
+            |                            ^ no implementation for `i32 % u32`
+            |
+            = help: the trait `Rem<u32>` is not implemented for `i32`
+        help: the following other types implement trait `Rem<Rhs>`
+           --> arith.rs
+            |
+        599 |           impl const Rem for $t {
+            |           ^^^^^^^^^^^^^^^^^^^^^ `i32` implements `Rem`
+        ...
+        613 | / rem_impl_integer! {
+        614 | |     (usize u8 u16 u32 u64 u128) => "This operation will panic if `other == 0`.",
+        615 | |     (isize i8 i16 i32 i64 i128) => "This operation will panic if `other == 0` or if `self / other` results in overflow."
+        616 | | }
+            | |_- in this macro invocation
+            |
+           ::: internal_macros.rs
+            |
+         22 |           impl const $imp<$u> for &$t {
+            |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^ `&i32` implements `Rem<i32>`
+        ...
+         33 |           impl const $imp<&$u> for $t {
+            |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^ `i32` implements `Rem<&i32>`
+        ...
+         44 |           impl const $imp<&$u> for &$t {
+            |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `&i32` implements `Rem`
+            = note: this error originates in the macro `rem_impl_integer` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+        Some errors have detailed explanations: E0277, E0308.
+        For more information about an error, try `rustc --explain E0277`.
+        error: could not compile `Foo` (lib) due to 2 previous errors
+    "#]])
+    .err(expect_test::expect![[r#"
+        crates/formality-rust/src/prove/prove_normalize.rs:22:1: no applicable rules for prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+
+        crates/formality-rust/src/prove/prove_normalize.rs:22:1: no applicable rules for prove_normalize { p: i32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }"#]])
+}
+
+/// Remainder requires integers, even when both operands have the same type.
+#[test]
+fn test_rem_boolean_operands() {
+    FormalityTest::new(crates![crate Foo {
+        fn foo() -> () {
+            let x: bool = true % false;
+        }
+    }])
+    .rustc_err(expect_test::expect![[r#"
+        error[E0369]: cannot calculate the remainder of `bool` divided by `bool`
+         --> lib.rs
+          |
+        2 |     let mut x: bool = true % false;
+          |                       ---- ^ ----- bool
+          |                       |
+          |                       bool
+
+        For more information about this error, try `rustc --explain E0369`.
+        error: could not compile `Foo` (lib) due to 1 previous error
+    "#]])
+    .err(expect_test::expect![[r#"
+        the rule "binop" at (nll.rs) failed because
+          condition evaluated to false: `scalar.is_int()`
+            scalar = bool"#]])
+}
+
+/// XOR-ing integers of different types should fail.
+#[test]
+fn test_bitxor_mismatched_int_types() {
+    FormalityTest::new(crates![crate Foo {
+        fn foo() -> () {
+            let x: i32 = 3_i32 ^ 4_u32;
+        }
+    }])
+    .rustc_err(expect_test::expect![[r#"
+        error[E0308]: mismatched types
+         --> lib.rs
+          |
+        2 |     let mut x: i32 = 3_i32 ^ 4_u32;
+          |                              ^^^^^ expected `i32`, found `u32`
+
+        error[E0277]: no implementation for `i32 ^ u32`
+           --> lib.rs
+            |
+          2 |     let mut x: i32 = 3_i32 ^ 4_u32;
+            |                            ^ no implementation for `i32 ^ u32`
+            |
+            = help: the trait `BitXor<u32>` is not implemented for `i32`
+        help: the following other types implement trait `BitXor<Rhs>`
+           --> bit.rs
+            |
+        382 |         impl const BitXor for $t {
+            |         ^^^^^^^^^^^^^^^^^^^^^^^^ `i32` implements `BitXor`
+        ...
+        395 | bitxor_impl! { bool usize u8 u16 u32 u64 u128 isize i8 i16 i32 i64 i128 }
+            | ------------------------------------------------------------------------- in this macro invocation
+            |
+           ::: internal_macros.rs
+            |
+         22 |         impl const $imp<$u> for &$t {
+            |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^ `&i32` implements `BitXor<i32>`
+        ...
+         33 |         impl const $imp<&$u> for $t {
+            |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^ `i32` implements `BitXor<&i32>`
+        ...
+         44 |         impl const $imp<&$u> for &$t {
+            |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `&i32` implements `BitXor`
+            = note: this error originates in the macro `bitxor_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+        Some errors have detailed explanations: E0277, E0308.
+        For more information about an error, try `rustc --explain E0277`.
+        error: could not compile `Foo` (lib) due to 2 previous errors
+    "#]])
+    .err(expect_test::expect![[r#"
+        crates/formality-rust/src/prove/prove_normalize.rs:22:1: no applicable rules for prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+
+        crates/formality-rust/src/prove/prove_normalize.rs:22:1: no applicable rules for prove_normalize { p: i32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }"#]])
+}
+
+/// Compound XOR requires matching integer types too.
+#[test]
+fn test_bitxor_assignment_mismatched_int_types() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            let x: u32 = 12_u32;
+            x ^= 3_i32;
+        }
+    }])
+    .rustc_err(expect_test::expect![[r#"
+        error[E0308]: mismatched types
+         --> lib.rs
+          |
+        3 |     x ^= 3_i32;
+          |          ^^^^^ expected `u32`, found `i32`
+
+        error[E0277]: no implementation for `u32 ^= i32`
+           --> lib.rs
+            |
+          3 |     x ^= 3_i32;
+            |       ^^ no implementation for `u32 ^= i32`
+            |
+            = help: the trait `BitXorAssign<i32>` is not implemented for `u32`
+        help: `u32` implements trait `BitXorAssign<Rhs>`
+           --> bit.rs
+            |
+        896 |         impl const BitXorAssign for $t {
+            |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `BitXorAssign`
+        ...
+        907 | bitxor_assign_impl! { bool usize u8 u16 u32 u64 u128 isize i8 i16 i32 i64 i128 }
+            | -------------------------------------------------------------------------------- in this macro invocation
+            |
+           ::: internal_macros.rs
+            |
+         61 |         impl const $imp<&$u> for $t {
+            |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^ `BitXorAssign<&u32>`
+            = note: this error originates in the macro `bitxor_assign_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+        Some errors have detailed explanations: E0277, E0308.
+        For more information about an error, try `rustc --explain E0277`.
+        error: could not compile `Foo` (lib) due to 2 previous errors
+    "#]])
+    .err(expect_test::expect![[r#"
+        crates/formality-rust/src/prove/prove_normalize.rs:22:1: no applicable rules for prove_normalize { p: i32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+
+        crates/formality-rust/src/prove/prove_normalize.rs:22:1: no applicable rules for prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }"#]]);
+}
+
+/// Formality only models `^` on integers so far, but Rust also implements it for `bool`.
+#[test]
+fn test_bitxor_boolean_operands() {
+    FormalityTest::new(crates![crate Foo {
+        fn foo() -> () {
+            let x: bool = true ^ false;
+        }
+    }])
+    .rustc_ok() // rustc implements `BitXor` for `bool`
+    .err(expect_test::expect![[r#"
+        the rule "binop" at (nll.rs) failed because
+          condition evaluated to false: `scalar.is_int()`
+            scalar = bool"#]])
+}
+
+/// OR-ing integers of different types should fail.
+#[test]
+fn test_bitor_mismatched_int_types() {
+    FormalityTest::new(crates![crate Foo {
+        fn foo() -> () {
+            let x: i32 = 3_i32 | 4_u32;
+        }
+    }])
+    .rustc_err(expect_test::expect![[r#"
+        error[E0308]: mismatched types
+         --> lib.rs
+          |
+        2 |     let mut x: i32 = 3_i32 | 4_u32;
+          |                              ^^^^^ expected `i32`, found `u32`
+
+        error[E0277]: no implementation for `i32 | u32`
+           --> lib.rs
+            |
+          2 |     let mut x: i32 = 3_i32 | 4_u32;
+            |                            ^ no implementation for `i32 | u32`
+            |
+            = help: the trait `BitOr<u32>` is not implemented for `i32`
+        help: the following other types implement trait `BitOr<Rhs>`
+           --> bit.rs
+            |
+        278 |         impl const BitOr for $t {
+            |         ^^^^^^^^^^^^^^^^^^^^^^^ `i32` implements `BitOr`
+        ...
+        291 | bitor_impl! { bool usize u8 u16 u32 u64 u128 isize i8 i16 i32 i64 i128 }
+            | ------------------------------------------------------------------------ in this macro invocation
+            |
+           ::: internal_macros.rs
+            |
+         22 |         impl const $imp<$u> for &$t {
+            |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^ `&i32` implements `BitOr<i32>`
+        ...
+         33 |         impl const $imp<&$u> for $t {
+            |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^ `i32` implements `BitOr<&i32>`
+        ...
+         44 |         impl const $imp<&$u> for &$t {
+            |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `&i32` implements `BitOr`
+            = note: this error originates in the macro `bitor_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+        Some errors have detailed explanations: E0277, E0308.
+        For more information about an error, try `rustc --explain E0277`.
+        error: could not compile `Foo` (lib) due to 2 previous errors
+    "#]])
+    .err(expect_test::expect![[r#"
+        crates/formality-rust/src/prove/prove_normalize.rs:22:1: no applicable rules for prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+
+        crates/formality-rust/src/prove/prove_normalize.rs:22:1: no applicable rules for prove_normalize { p: i32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }"#]])
+}
+
+/// Compound OR requires matching integer types too.
+#[test]
+fn test_bitor_assignment_mismatched_int_types() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            let x: u32 = 12_u32;
+            x |= 3_i32;
+        }
+    }])
+    .rustc_err(expect_test::expect![[r#"
+        error[E0308]: mismatched types
+         --> lib.rs
+          |
+        3 |     x |= 3_i32;
+          |          ^^^^^ expected `u32`, found `i32`
+
+        error[E0277]: no implementation for `u32 |= i32`
+           --> lib.rs
+            |
+          3 |     x |= 3_i32;
+            |       ^^ no implementation for `u32 |= i32`
+            |
+            = help: the trait `BitOrAssign<i32>` is not implemented for `u32`
+        help: `u32` implements trait `BitOrAssign<Rhs>`
+           --> bit.rs
+            |
+        821 |         impl const BitOrAssign for $t {
+            |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `BitOrAssign`
+        ...
+        832 | bitor_assign_impl! { bool usize u8 u16 u32 u64 u128 isize i8 i16 i32 i64 i128 }
+            | ------------------------------------------------------------------------------- in this macro invocation
+            |
+           ::: internal_macros.rs
+            |
+         61 |         impl const $imp<&$u> for $t {
+            |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^ `BitOrAssign<&u32>`
+            = note: this error originates in the macro `bitor_assign_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+        Some errors have detailed explanations: E0277, E0308.
+        For more information about an error, try `rustc --explain E0277`.
+        error: could not compile `Foo` (lib) due to 2 previous errors
+    "#]])
+    .err(expect_test::expect![[r#"
+        crates/formality-rust/src/prove/prove_normalize.rs:22:1: no applicable rules for prove_normalize { p: i32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+
+        crates/formality-rust/src/prove/prove_normalize.rs:22:1: no applicable rules for prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }"#]]);
+}
+
+/// Formality only models `|` on integers so far, but Rust also implements it for `bool`.
+#[test]
+fn test_bitor_boolean_operands() {
+    FormalityTest::new(crates![crate Foo {
+        fn foo() -> () {
+            let x: bool = true | false;
+        }
+    }])
+    .rustc_ok() // rustc implements `BitOr` for `bool`
+    .err(expect_test::expect![[r#"
+        the rule "binop" at (nll.rs) failed because
+          condition evaluated to false: `scalar.is_int()`
+            scalar = bool"#]])
+}
+
+/// AND-ing integers of different types should fail.
+#[test]
+fn test_bitand_mismatched_int_types() {
+    FormalityTest::new(crates![crate Foo {
+        fn foo() -> () {
+            let x: i32 = 3_i32 & 4_u32;
+        }
+    }])
+    .rustc_err(expect_test::expect![[r#"
+        error[E0308]: mismatched types
+         --> lib.rs
+          |
+        2 |     let mut x: i32 = 3_i32 & 4_u32;
+          |                              ^^^^^ expected `i32`, found `u32`
+
+        error[E0277]: no implementation for `i32 & u32`
+           --> lib.rs
+            |
+          2 |     let mut x: i32 = 3_i32 & 4_u32;
+            |                            ^ no implementation for `i32 & u32`
+            |
+            = help: the trait `BitAnd<u32>` is not implemented for `i32`
+        help: the following other types implement trait `BitAnd<Rhs>`
+           --> bit.rs
+            |
+        174 |         impl const BitAnd for $t {
+            |         ^^^^^^^^^^^^^^^^^^^^^^^^ `i32` implements `BitAnd`
+        ...
+        187 | bitand_impl! { bool usize u8 u16 u32 u64 u128 isize i8 i16 i32 i64 i128 }
+            | ------------------------------------------------------------------------- in this macro invocation
+            |
+           ::: internal_macros.rs
+            |
+         22 |         impl const $imp<$u> for &$t {
+            |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^ `&i32` implements `BitAnd<i32>`
+        ...
+         33 |         impl const $imp<&$u> for $t {
+            |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^ `i32` implements `BitAnd<&i32>`
+        ...
+         44 |         impl const $imp<&$u> for &$t {
+            |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `&i32` implements `BitAnd`
+            = note: this error originates in the macro `bitand_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+        Some errors have detailed explanations: E0277, E0308.
+        For more information about an error, try `rustc --explain E0277`.
+        error: could not compile `Foo` (lib) due to 2 previous errors
+    "#]])
+    .err(expect_test::expect![[r#"
+        crates/formality-rust/src/prove/prove_normalize.rs:22:1: no applicable rules for prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+
+        crates/formality-rust/src/prove/prove_normalize.rs:22:1: no applicable rules for prove_normalize { p: i32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }"#]])
+}
+
+/// Compound AND requires matching integer types too.
+#[test]
+fn test_bitand_assignment_mismatched_int_types() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            let x: u32 = 12_u32;
+            x &= 3_i32;
+        }
+    }])
+    .rustc_err(expect_test::expect![[r#"
+        error[E0308]: mismatched types
+         --> lib.rs
+          |
+        3 |     x &= 3_i32;
+          |          ^^^^^ expected `u32`, found `i32`
+
+        error[E0277]: no implementation for `u32 &= i32`
+           --> lib.rs
+            |
+          3 |     x &= 3_i32;
+            |       ^^ no implementation for `u32 &= i32`
+            |
+            = help: the trait `BitAndAssign<i32>` is not implemented for `u32`
+        help: `u32` implements trait `BitAndAssign<Rhs>`
+           --> bit.rs
+            |
+        746 |         impl const BitAndAssign for $t {
+            |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `BitAndAssign`
+        ...
+        757 | bitand_assign_impl! { bool usize u8 u16 u32 u64 u128 isize i8 i16 i32 i64 i128 }
+            | -------------------------------------------------------------------------------- in this macro invocation
+            |
+           ::: internal_macros.rs
+            |
+         61 |         impl const $imp<&$u> for $t {
+            |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^ `BitAndAssign<&u32>`
+            = note: this error originates in the macro `bitand_assign_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+        Some errors have detailed explanations: E0277, E0308.
+        For more information about an error, try `rustc --explain E0277`.
+        error: could not compile `Foo` (lib) due to 2 previous errors
+    "#]])
+    .err(expect_test::expect![[r#"
+        crates/formality-rust/src/prove/prove_normalize.rs:22:1: no applicable rules for prove_normalize { p: i32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+
+        crates/formality-rust/src/prove/prove_normalize.rs:22:1: no applicable rules for prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }"#]])
+}
+
+/// Formality only models `&` on integers so far, but Rust also implements it for `bool`.
+#[test]
+fn test_bitand_boolean_operands() {
+    FormalityTest::new(crates![crate Foo {
+        fn foo() -> () {
+            let x: bool = true & false;
+        }
+    }])
+    .rustc_ok() // rustc implements `BitAnd` for `bool`
+    .err(expect_test::expect![[r#"
+        the rule "binop" at (nll.rs) failed because
+          condition evaluated to false: `scalar.is_int()`
+            scalar = bool"#]])
+}
+
 /// A generic function named without being called still
 /// needs its where-clauses to hold. `S` does not implement `Marker`.
 #[test]
@@ -1587,4 +2017,390 @@ fn test_compound_add_bool() {
         the rule "assign-op" at (nll.rs) failed because
           condition evaluated to false: `scalar.is_int()`
             scalar = bool"#]])
+}
+
+// A proof of a `for<'a>` bound may defer a region constraint on the
+// placeholder `'a`. Leaving the binder, the constraint must hold for every
+// `'a` (see `BinderScope::pop`).
+
+/// `'a: 'static` does not hold for every `'a`.
+#[test]
+fn for_all_placeholder_outlives_static() {
+    FormalityTest::new(crates![crate foo {
+        fn needs_all() -> () where for<'a> 'a: 'static { }
+        fn main() -> () {
+            needs_all();
+        }
+    }])
+    .err(expect_test::expect![[r#"
+        failed at (proven_set.rs) because
+          `!lt_1 : ' static` cannot be restated without `!lt_1`
+
+        the rule "local" at (nll.rs) failed because
+          unknown local variable `needs_all`"#]])
+}
+
+/// The impl needs `'r: 'a`, which holds for every `'a` iff `'r: 'static`:
+/// the loan of `v0` never ends.
+#[test]
+fn for_all_local_outlives_placeholder() {
+    FormalityTest::new(crates![crate foo {
+        trait Tr<'a> {}
+        impl<'a, 'b> Tr<'a> for &'b u32 where 'b: 'a {}
+        fn needs_all<T>(t: T) -> () where for<'a> T: Tr<'a> { }
+        fn main() -> () {
+            let v0: u32 = 0_u32;
+            exists<'r> {
+                let v1: &'r u32 = &'r v0;
+                needs_all::<&'r u32>(v1);
+                v0 = 1_u32;
+            }
+        }
+    }])
+    .rustc_err(expect_test::expect![[r#"
+        error[E0597]: `v0` does not live long enough
+          --> lib.rs
+           |
+        12 |     let mut v0: u32 = 0_u32;
+           |         ------ binding `v0` declared here
+        13 |     {
+        14 |         let mut v1: &'_ u32 = &v0;
+           |                               ^^^ borrowed value does not live long enough
+        15 |         needs_all::<&'_ u32>(v1);
+           |         ------------------------ argument requires that `v0` is borrowed for `'static`
+        ...
+        18 | }
+           | - `v0` dropped here while still borrowed
+           |
+        note: due to a current limitation of the type system, this implies a `'static` lifetime
+          --> lib.rs
+           |
+         7 |     for<'a10> T00: Tr<'a10>,
+           |     ^^^^^^^^^^^^^^^^^^^^^^^
+
+        error[E0506]: cannot assign to `v0` because it is borrowed
+          --> lib.rs
+           |
+        14 |         let mut v1: &'_ u32 = &v0;
+           |                               --- `v0` is borrowed here
+        15 |         needs_all::<&'_ u32>(v1);
+           |         ------------------------ argument requires that `v0` is borrowed for `'static`
+        16 |         v0 = 1_u32;
+           |         ^^^^^^^^^^ `v0` is assigned to here but it was already borrowed
+           |
+        note: due to a current limitation of the type system, this implies a `'static` lifetime
+          --> lib.rs
+           |
+         7 |     for<'a10> T00: Tr<'a10>,
+           |     ^^^^^^^^^^^^^^^^^^^^^^^
+
+        Some errors have detailed explanations: E0506, E0597.
+        For more information about an error, try `rustc --explain E0506`.
+        error: could not compile `foo` (lib) due to 2 previous errors
+    "#]])
+    .err(expect_test::expect![[r#"
+        the rule "borrow of disjoint places" at (nll.rs) failed because
+          condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
+            &loan.place = v0 : u32
+            &access.place = v0 : u32
+
+        the rule "loan_not_required_by_universal_regions" at (nll.rs) failed because
+          condition evaluated to false: `outlived_by_loan.iter().all(|p| match p
+          {
+              Parameter::Ty(_) => false, Parameter::Lt(lt) => match lt.as_ref()
+              {
+                  Lt::Static => false, Lt::Variable(Variable::UniversalVar(_)) => false,
+                  Lt::Variable(Variable::ExistentialVar(_)) => true,
+                  Lt::Variable(Variable::BoundVar(_)) =>
+                  panic!("cannot outlive a bound var"), Lt::Erased => true,
+              }, Parameter::Const(_) => panic!("cannot outlive a constant"),
+          })`
+
+        the rule "write-indirect" at (nll.rs) failed because
+          pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `v0`
+
+        the rule "borrow of disjoint places" at (nll.rs) failed because
+          condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
+            &loan.place = v0 : u32
+            &access.place = v0 : u32
+
+        the rule "loan_not_required_by_universal_regions" at (nll.rs) failed because
+          condition evaluated to false: `outlived_by_loan.iter().all(|p| match p
+          {
+              Parameter::Ty(_) => false, Parameter::Lt(lt) => match lt.as_ref()
+              {
+                  Lt::Static => false, Lt::Variable(Variable::UniversalVar(_)) => false,
+                  Lt::Variable(Variable::ExistentialVar(_)) => true,
+                  Lt::Variable(Variable::BoundVar(_)) =>
+                  panic!("cannot outlive a bound var"), Lt::Erased => true,
+              }, Parameter::Const(_) => panic!("cannot outlive a constant"),
+          })`
+
+        the rule "write-indirect" at (nll.rs) failed because
+          pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `v0`"#]])
+}
+
+/// ...whereas with no constraint on the placeholder, it ends after the call.
+#[test]
+fn for_all_no_constraint_on_placeholder() {
+    FormalityTest::new(crates![crate foo {
+        trait Tr<'a> {}
+        impl<'a, 'b> Tr<'a> for &'b u32 {}
+        fn needs_all<T>(t: T) -> () where for<'a> T: Tr<'a> { }
+        fn main() -> () {
+            let v0: u32 = 0_u32;
+            exists<'r> {
+                let v1: &'r u32 = &'r v0;
+                needs_all::<&'r u32>(v1);
+                v0 = 1_u32;
+            }
+        }
+    }])
+    .rustc_ok()
+    .ok()
+}
+
+/// `'x: 'a` for every `'a` iff `'x: 'static`, which the caller assumes.
+#[test]
+fn for_all_universal_outlives_placeholder_given_static() {
+    FormalityTest::new(crates![crate foo {
+        trait Tr<'a> {}
+        impl<'a, 'b> Tr<'a> for &'b u32 where 'b: 'a {}
+        fn needs_all<T>(t: T) -> () where for<'a> T: Tr<'a> { }
+        fn caller<'x>(v: &'x u32) -> () where 'x: 'static {
+            needs_all::<&'x u32>(v);
+        }
+    }])
+    .skip_execute()
+    .rustc_ok()
+    .ok()
+}
+
+/// ...and without that assumption does not hold.
+#[test]
+fn for_all_universal_outlives_placeholder() {
+    FormalityTest::new(crates![crate foo {
+        trait Tr<'a> {}
+        impl<'a, 'b> Tr<'a> for &'b u32 where 'b: 'a {}
+        fn needs_all<T>(t: T) -> () where for<'a> T: Tr<'a> { }
+        fn caller<'x>(v: &'x u32) -> () {
+            needs_all::<&'x u32>(v);
+        }
+    }])
+    .rustc_err(expect_test::expect![[r#"
+        error: lifetime may not live long enough
+          --> lib.rs
+           |
+        11 | pub fn caller<'a00>(mut v: &'a00 u32) -> () {
+           |               ---- lifetime `'a00` defined here
+        12 |     needs_all::<&'a00 u32>(v);
+           |     ^^^^^^^^^^^^^^^^^^^^^^ requires that `'a00` must outlive `'static`
+           |
+        note: due to a current limitation of the type system, this implies a `'static` lifetime
+          --> lib.rs
+           |
+         7 |     for<'a10> T00: Tr<'a10>,
+           |     ^^^^^^^^^^^^^^^^^^^^^^^
+
+        error: could not compile `foo` (lib) due to 1 previous error
+    "#]])
+    .err(expect_test::expect!["crates/formality-rust/src/check/borrow_check/outlives.rs:56:1: no applicable rules for can_outlive { param_a: !lt_1, param_b: ' static, assumptions: {}, env: TypeckEnv { env: Env { variables: [!lt_1], bias: Soundness, pending: [], allow_pending_outlives: false }, output_ty: Some(()) }, outlives: {pending_outlives(!lt_1, ' static)} }"])
+}
+
+/// The impl needs `'a: 'r`, which fails for an `'a` shorter than `'r`.
+#[test]
+fn for_all_placeholder_outlives_local() {
+    FormalityTest::new(crates![crate foo {
+        trait Tr<'a> {}
+        impl<'a, 'b> Tr<'a> for &'b u32 where 'a: 'b {}
+        fn needs_all<T>(t: T) -> () where for<'a> T: Tr<'a> { }
+        fn main() -> () {
+            let v0: u32 = 0_u32;
+            exists<'r> {
+                let v1: &'r u32 = &'r v0;
+                needs_all::<&'r u32>(v1);
+            }
+        }
+    }])
+    .rustc_err(expect_test::expect![[r#"
+        error: implementation of `Tr` is not general enough
+          --> lib.rs
+           |
+        15 |         needs_all::<&'_ u32>(v1);
+           |         ^^^^^^^^^^^^^^^^^^^^^^^^ implementation of `Tr` is not general enough
+           |
+           = note: `&u32` must implement `Tr<'0>`, for any lifetime `'0`...
+           = note: ...but `&u32` actually implements `Tr<'1>`, for some specific lifetime `'1`
+
+        error: could not compile `foo` (lib) due to 1 previous error
+    "#]])
+    .err(expect_test::expect![[r#"
+        failed at (proven_set.rs) because
+          `!lt_1 : ?lt_0` cannot be restated without `!lt_1`"#]])
+}
+
+#[test]
+fn test_div_mismatched_int_types() {
+    FormalityTest::new(crates![crate Foo {
+        fn foo() -> () {
+            let x: i32 = 12_i32 / 3_u32;
+        }
+    }])
+    .err(expect_test::expect![[r#"
+        crates/formality-rust/src/prove/prove_normalize.rs:22:1: no applicable rules for prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+
+        crates/formality-rust/src/prove/prove_normalize.rs:22:1: no applicable rules for prove_normalize { p: i32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }"#]])
+}
+
+#[test]
+fn test_div_boolean_operands() {
+    FormalityTest::new(crates![crate Foo {
+        fn foo() -> () {
+            let x: bool = true / false;
+        }
+    }])
+    .err(expect_test::expect![[r#"
+        the rule "binop" at (nll.rs) failed because
+          condition evaluated to false: `scalar.is_int()`
+            scalar = bool"#]])
+}
+
+#[test]
+fn test_comparison_lt_mismatched_int_types() {
+    FormalityTest::new(crates![crate Foo {
+        fn foo() -> () { let x: bool = 1_i32 < 2_u32; }
+    }])
+    .err(expect_test::expect![[r#"
+        crates/formality-rust/src/prove/prove_normalize.rs:22:1: no applicable rules for prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+
+        crates/formality-rust/src/prove/prove_normalize.rs:22:1: no applicable rules for prove_normalize { p: i32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }"#]]);
+}
+
+#[test]
+fn test_comparison_gt_mismatched_int_types() {
+    FormalityTest::new(crates![crate Foo {
+        fn foo() -> () { let x: bool = 2_i32 > 1_i64; }
+    }])
+    .err(expect_test::expect![[r#"
+        crates/formality-rust/src/prove/prove_normalize.rs:22:1: no applicable rules for prove_normalize { p: i64, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+
+        crates/formality-rust/src/prove/prove_normalize.rs:22:1: no applicable rules for prove_normalize { p: i32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }"#]]);
+}
+
+#[test]
+fn test_comparison_result_is_not_an_integer() {
+    FormalityTest::new(crates![crate Foo {
+        fn foo() -> () { let x: i32 = 1_i32 < 2_i32; }
+    }])
+    .err(expect_test::expect![[r#"
+        crates/formality-rust/src/prove/prove_normalize.rs:22:1: no applicable rules for prove_normalize { p: bool, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+
+        crates/formality-rust/src/prove/prove_normalize.rs:22:1: no applicable rules for prove_normalize { p: i32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }"#]]);
+}
+
+#[test]
+fn test_comparison_boolean_and_integer() {
+    FormalityTest::new(crates![crate Foo {
+        fn foo() -> () { let x: bool = false < 1_i32; }
+    }])
+    .err(expect_test::expect![[r#"
+        crates/formality-rust/src/prove/prove_normalize.rs:22:1: no applicable rules for prove_normalize { p: i32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+
+        crates/formality-rust/src/prove/prove_normalize.rs:22:1: no applicable rules for prove_normalize { p: bool, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }"#]]);
+}
+
+#[test]
+fn test_comparison_integer_and_boolean() {
+    FormalityTest::new(crates![crate Foo {
+        fn foo() -> () { let x: bool = 1_i32 > true; }
+    }])
+    .err(expect_test::expect![[r#"
+        crates/formality-rust/src/prove/prove_normalize.rs:22:1: no applicable rules for prove_normalize { p: bool, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+
+        crates/formality-rust/src/prove/prove_normalize.rs:22:1: no applicable rules for prove_normalize { p: i32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }"#]]);
+}
+
+#[test]
+fn test_comparisons_through_references() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            let x: i32 = 4_i32;
+            exists<'a> {
+                let r: &'a i32 = &'a x;
+                let less: bool = *r < 5_i32;
+                let greater: bool = *r > 3_i32;
+                println!(less);
+                println!(greater);
+            }
+        }
+    }])
+    .rustc_ok()
+    .expect_output("true\ntrue\n")
+    .borrowck_ok();
+}
+
+#[test]
+fn test_comparison_last_use_of_mut_ref_on_left() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            let x: u32 = 4_u32;
+            exists<'a> {
+                let r: &'a mut u32 = &'a mut x;
+                println!(*r < x);
+            }
+        }
+    }])
+    .rustc_ok()
+    .expect_output("false\n")
+    .borrowck_ok();
+}
+
+#[test]
+fn test_comparison_last_use_of_mut_ref_on_right() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            let x: u32 = 4_u32;
+            exists<'a> {
+                let r: &'a mut u32 = &'a mut x;
+                println!(x < *r);
+            }
+        }
+    }])
+    .rustc_err(expect_test::expect![[r#"
+        error[E0503]: cannot use `x` because it was mutably borrowed
+         --> lib.rs
+          |
+        4 |         let mut r: &'_ mut u32 = &mut x;
+          |                                  ------ `x` is borrowed here
+        5 |         x < *r;
+          |         ^   -- borrow later used here
+          |         |
+          |         use of borrowed `x`
+
+        For more information about this error, try `rustc --explain E0503`.
+        error: could not compile `Foo` (lib) due to 1 previous error
+    "#]])
+    .borrowck_err(
+        BorrowCheckFailure::All,
+        expect_test::expect![[r#"
+        the rule "borrow of disjoint places" at (nll.rs) failed because
+          condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
+            &loan.place = x : u32
+            &access.place = x : u32
+
+        the rule "loan_cannot_outlive" at (nll.rs) failed because
+          condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+            outlived_by_loan = {?lt_1}
+            &lifetime.upcast() = ?lt_1
+
+        the rule "borrow of disjoint places" at (nll.rs) failed because
+          condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
+            &loan.place = x : u32
+            &access.place = x : u32
+
+        the rule "loan_cannot_outlive" at (nll.rs) failed because
+          condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+            outlived_by_loan = {?lt_1}
+            &lifetime.upcast() = ?lt_1"#]],
+    );
 }

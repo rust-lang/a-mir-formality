@@ -2,7 +2,7 @@ use crate::grammar::{
     ExistentialVar, Parameter, Substitution, UniversalVar, VarIndex, VarSubstitution, Variable,
 };
 use crate::rust::Term;
-use formality_core::{Deduplicate, Downcast, Upcast};
+use formality_core::{visit::CoreVisit, Deduplicate, Downcast, Upcast};
 
 use super::{Constraints, Env};
 
@@ -46,7 +46,15 @@ pub struct Minimization {
 /// *But* then we have a result that references the variable `A`  and that result must be
 /// translated back to reference the variable `B` in the original context.
 pub fn minimize<T: Term>(env_max: Env, term: T) -> (Env, T, Minimization) {
-    let fv = term.free_variables().deduplicate();
+    // The pending where-clauses stay in the environment, so the variables they
+    // mention stay in scope, and are renamed with the rest. (They come after
+    // those of the term, whose names then do not depend on what is pending.)
+    let fv = term
+        .free_variables()
+        .into_iter()
+        .chain(env_max.pending().iter().flat_map(|wc| wc.free_variables()))
+        .collect::<Vec<_>>()
+        .deduplicate();
 
     let renamed_fv: Vec<Variable> = fv
         .iter()

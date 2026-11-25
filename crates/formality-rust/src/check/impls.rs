@@ -5,7 +5,7 @@ use crate::grammar::{
     AdtBoundData, AdtId, AssociatedTy, AssociatedTyBoundData, AssociatedTyValue,
     AssociatedTyValueBoundData, AtomicPredicate, Binder, CrateId, Fallible, Fn, FnBoundData,
     ImplItem, MaybeFnBody, NegTraitImpl, NegTraitImplBoundData, Predicates, RigidName,
-    Substitution, Trait, TraitBoundData, TraitImpl, TraitImplBoundData, TraitItem, Ty,
+    Substitution, Trait, TraitBoundData, TraitId, TraitImpl, TraitImplBoundData, TraitItem, Ty,
 };
 use crate::prove::{enter_universally, with_variables, Env, Program, Safety};
 use crate::rust::Term;
@@ -21,6 +21,7 @@ judgment_fn! {
         (
             (let TraitImpl { binder, safety: _ } = &trait_impl)
             (scope(enter_universally(Env::default(), binder) => (env, TraitImplBoundData { trait_id, self_ty, trait_parameters, where_clauses, impl_items })) with()
+                (check_trait_manually_implementable(trait_id) => ())
                 (let trait_ref = trait_id.with(self_ty, trait_parameters))
 
                 (super::where_clauses::prove_where_clauses_well_formed(program, env, where_clauses, where_clauses) => ())
@@ -58,6 +59,7 @@ judgment_fn! {
 
         (
             (scope(enter_universally(Env::default(), binder) => (env, NegTraitImplBoundData { trait_id, self_ty, trait_parameters, where_clauses })) with()
+                (check_trait_manually_implementable(trait_id) => ())
                 (let trait_ref = trait_id.with(self_ty, trait_parameters))
                 (super::where_clauses::prove_where_clauses_well_formed(program, env, where_clauses, where_clauses) => ())
                 (super::prove_goal(program, env, where_clauses, AtomicPredicate::not_implemented(&trait_ref)) => ())
@@ -67,6 +69,28 @@ judgment_fn! {
 
             ---- ("check_neg_trait_impl")
             (check_neg_trait_impl(program, NegTraitImpl { binder, safety: Safety::Safe }) => ())
+        )
+    }
+}
+
+judgment_fn! {
+    /// Validate that the trait can be implemented by hand. `Sized` can't (rustc's E0322).
+    fn check_trait_manually_implementable(
+        trait_id: TraitId,
+    ) => () {
+        debug(trait_id)
+
+        (
+            (if trait_id.is_sized())!
+            (fail "explicit impls for the `Sized` trait are not permitted")
+            ---- ("Sized")
+            (check_trait_manually_implementable(trait_id) => ())
+        )
+
+        (
+            (if !trait_id.is_sized())!
+            ---- ("not Sized")
+            (check_trait_manually_implementable(trait_id) => ())
         )
     }
 }

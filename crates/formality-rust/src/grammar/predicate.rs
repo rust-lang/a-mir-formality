@@ -52,6 +52,11 @@ impl Predicates {
             .collect()
     }
 
+    /// Goal(s) to prove `a0: Sized` for all `a0` in `a`
+    pub fn all_sized(a: impl IntoIterator<Item = impl Upcast<Parameter>>) -> Predicates {
+        a.into_iter().map(AtomicPredicate::sized).collect()
+    }
+
     /// Iterate over where-clauses
     pub fn iter(&self) -> impl Iterator<Item = Predicate> + use<'_> {
         self.into_iter()

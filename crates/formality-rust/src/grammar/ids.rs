@@ -14,3 +14,17 @@ impl VariantId {
         VariantId::new("struct")
     }
 }
+
+impl TraitId {
+    const SIZED: &'static str = "Sized";
+
+    /// Returns the id of the `Sized` trait.
+    pub fn sized() -> Self {
+        TraitId::new(Self::SIZED)
+    }
+
+    /// True if this is the `Sized` trait.
+    pub fn is_sized(&self) -> bool {
+        self.as_str() == Self::SIZED
+    }
+}

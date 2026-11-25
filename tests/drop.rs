@@ -301,17 +301,21 @@ fn drop_impl_enum_extra_where_clause() {
         crate Foo {
             trait Clone {}
 
-            enum MyEnum<T> {
+            enum MyEnum<T> where T: Sized {
                 Value{value: T},
             }
 
-            impl<T> Drop for MyEnum<T> where T: Clone {
+            impl<T> Drop for MyEnum<T> where T: Sized, T: Clone {
                 fn drop<'a>(self: &'a mut MyEnum<T>) -> () where MyEnum<T>: 'a {}
             }
         }
     ])
     .err(expect_test::expect![[r#"
-        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Clone(!ty_0), via: Drop(MyEnum<!ty_0>), assumptions: {Drop(MyEnum<!ty_0>)}, env: Env { variables: [!ty_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Drop(MyEnum<!ty_0>), via: Sized(!ty_0), assumptions: {Sized(!ty_0)}, env: Env { variables: [!ty_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Clone(!ty_0), via: Drop(MyEnum<!ty_0>), assumptions: {Drop(MyEnum<!ty_0>), Sized(!ty_0)}, env: Env { variables: [!ty_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Clone(!ty_0), via: Sized(!ty_0), assumptions: {Drop(MyEnum<!ty_0>), Sized(!ty_0)}, env: Env { variables: [!ty_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
 
         the rule "trait implied bound" at (prove_predicate.rs) failed because
           expression evaluated to an empty collection: `decls.trait_invariants()`

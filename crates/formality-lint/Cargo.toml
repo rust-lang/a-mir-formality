@@ -1,0 +1,14 @@
+[package]
+name = "formality-lint"
+version = "0.1.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+description = "Source lints for formality judgment functions"
+publish = false
+
+[dependencies]
+annotate-snippets = "0.12"
+proc-macro2 = { version = "1.0.107", features = ["span-locations"] }
+
+[dev-dependencies]
+expect-test = "1"

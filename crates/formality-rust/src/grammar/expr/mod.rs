@@ -185,8 +185,14 @@ pub enum Expr {
     // Restrict the callee without restricting precedence inside the arguments.
     #[reject(Expr::Assign { .. }, _)]
     #[reject(Expr::AssignOp { .. }, _)]
+    #[reject(Expr::BitOr { .. }, _)]
+    #[reject(Expr::BitXor { .. }, _)]
+    #[reject(Expr::BitAnd { .. }, _)]
     #[reject(Expr::BinOp { .. }, _)]
+    #[reject(Expr::Compare { .. }, _)]
     #[reject(Expr::Mul { .. }, _)]
+    #[reject(Expr::Div { .. }, _)]
+    #[reject(Expr::Rem { .. }, _)]
     Call { callee: Arc<Expr>, args: Vec<Expr> },
 
     #[cast]
@@ -227,19 +233,68 @@ pub enum Expr {
         turbofish: Turbofish,
     },
 
+    /// `lhs | rhs`
+    ///
+    /// Bitwise OR of two integers. Binds more loosely than XOR,
+    /// so `a | b ^ c` means `a | (b ^ c)`.
+    #[grammar($lhs | $rhs)]
+    #[precedence(2)]
+    BitOr { lhs: Arc<Expr>, rhs: Arc<Expr> },
+
+    /// `lhs ^ rhs`
+    ///
+    /// Bitwise XOR of two integers. Binds more loosely than the
+    /// arithmetic operators, so `a ^ b + c` means `a ^ (b + c)`.
+    #[grammar($lhs ^ $rhs)]
+    #[precedence(3)]
+    BitXor { lhs: Arc<Expr>, rhs: Arc<Expr> },
+
+    /// `lhs & rhs`
+    ///
+    /// Bitwise AND of two integers. Binds more tightly than XOR but more
+    /// loosely than the arithmetic operators, so `a ^ b & c + d` means
+    /// `a ^ (b & (c + d))`.
+    #[grammar($lhs & $rhs)]
+    #[precedence(4)]
+    BitAnd { lhs: Arc<Expr>, rhs: Arc<Expr> },
+
     #[grammar($lhs $op $rhs)]
-    #[precedence(1)]
+    #[precedence(5)]
     #[reject(_, BinOpKind::Mul, _)]
+    #[reject(_, BinOpKind::Div, _)]
+    #[reject(_, BinOpKind::Rem, _)]
+    #[reject(_, BinOpKind::BitOr, _)]
+    #[reject(_, BinOpKind::BitXor, _)]
+    #[reject(_, BinOpKind::BitAnd, _)]
     BinOp {
         lhs: Arc<Expr>,
         op: BinOpKind,
         rhs: Arc<Expr>,
     },
 
+    // Arithmetic and bitwise operations come before comparisons. Comparisons cannot be chained.
+    #[grammar($lhs $op $rhs)]
+    #[precedence(1, none)]
+    Compare {
+        lhs: Arc<Expr>,
+        op: CompareOp,
+        rhs: Arc<Expr>,
+    },
+
     // Multiplication comes before addition.
     #[grammar($lhs * $rhs)]
-    #[precedence(2)]
+    #[precedence(6)]
     Mul { lhs: Arc<Expr>, rhs: Arc<Expr> },
+
+    // Division comes before addition and subtraction.
+    #[grammar($lhs / $rhs)]
+    #[precedence(6)]
+    Div { lhs: Arc<Expr>, rhs: Arc<Expr> },
+
+    // Remainder has the same precedence as multiplication.
+    #[grammar($lhs % $rhs)]
+    #[precedence(6)]
+    Rem { lhs: Arc<Expr>, rhs: Arc<Expr> },
 }
 
 // ANCHOR: PlaceExpr
@@ -340,6 +395,16 @@ pub enum BinOpKind {
     Sub,
     #[grammar(*)]
     Mul,
+    #[grammar(/)]
+    Div,
+    #[grammar(%)]
+    Rem,
+    #[grammar(|)]
+    BitOr,
+    #[grammar(^)]
+    BitXor,
+    #[grammar(&)]
+    BitAnd,
 }
 
 impl BinOpKind {
@@ -348,6 +413,28 @@ impl BinOpKind {
             BinOpKind::Add => "+",
             BinOpKind::Sub => "-",
             BinOpKind::Mul => "*",
+            BinOpKind::Div => "/",
+            BinOpKind::Rem => "%",
+            BinOpKind::BitOr => "|",
+            BinOpKind::BitXor => "^",
+            BinOpKind::BitAnd => "&",
+        }
+    }
+}
+
+#[term]
+pub enum CompareOp {
+    #[grammar(<)]
+    Lt,
+    #[grammar(>)]
+    Gt,
+}
+
+impl CompareOp {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Lt => "<",
+            Self::Gt => ">",
         }
     }
 }
