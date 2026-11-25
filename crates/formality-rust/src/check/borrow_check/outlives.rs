@@ -3,7 +3,7 @@ use crate::check::borrow_check::flow_state::PendingOutlives;
 
 use crate::grammar::{AtomicPredicate, Parameter, Predicates, Variable};
 use crate::prove::prove;
-use formality_core::{judgment_fn, Set, Upcast};
+use formality_core::{judgment_fn, Downcast, Set, Upcast};
 
 judgment_fn! {
     /// Verify that all pending outlives constraints between universal lifetime variables
@@ -18,8 +18,49 @@ judgment_fn! {
         (
             (for_all(v in env.env.variables())
                 (only_assumed_outlives(env, assumptions, outlives, v) => ()))
+            (for_all(po in outlives)
+                (non_variable_outlives(env, assumptions, po.a.clone(), po.b.clone()) => ()))
             --- ("verify_universal_outlives")
             (verify_universal_outlives(env, assumptions, outlives) => ())
+        )
+    }
+}
+
+judgment_fn! {
+    /// A pending `a: b` whose left side is not a variable, e.g. `<T as A>::Item: 'a`,
+    /// is never the start of a walk in `only_assumed_outlives`, so it must be proven
+    /// directly from the assumptions here (issue #530).
+    fn non_variable_outlives(
+        env: TypeckEnv,
+        assumptions: Predicates,
+        a: Parameter,
+        b: Parameter,
+    ) => () {
+        debug(a, b, assumptions, env)
+
+        // Variables on the left are handled by `only_assumed_outlives`.
+        (
+            (if let Some(_v) = a.downcast::<Variable>())
+            --- ("variable on the left")
+            (non_variable_outlives(_env, _assumptions, a, _b) => ())
+        )
+
+        // An existential target can still be inferred, so nothing to prove yet.
+        (
+            (if let None = a.downcast::<Variable>())
+            (if let Some(v) = b.downcast::<Variable>())
+            (if v.is_existential())
+            --- ("existential target")
+            (non_variable_outlives(_env, _assumptions, a, b) => ())
+        )
+
+        // Otherwise it must follow from the assumptions.
+        (
+            (if let None = a.downcast::<Variable>())
+            (prove(&env.program, &env.env, assumptions, AtomicPredicate::outlives(a, b)) => c)
+            (if c.unconditionally_true())
+            --- ("non-variable left side must be proven")
+            (non_variable_outlives(env, assumptions, a, b) => ())
         )
     }
 }
