@@ -380,15 +380,11 @@ macro_rules! judgment_fn {
 
                     failed_rules.clear();
 
-                    #[allow(unused)]
-                    let input_string = format!("{:?}", input);
-
                     $crate::push_rules!(
                         $name,
                         &input,
                         output,
                         failed_rules,
-                        &input_string,
                         ($($input_name),*) => $output,
                         $(($($rule)*))*
                     );
@@ -412,16 +408,16 @@ macro_rules! judgment_fn {
 
 #[macro_export]
 macro_rules! push_rules {
-    ($judgment_name:ident, $input_value:expr, $output:expr, $failed_rules:expr, $input_string:expr, $input_names:tt => $output_ty:ty, $($rule:tt)*) => {
-        $($crate::push_rules!(@rule ($judgment_name, $input_value, $output, $failed_rules, $input_string, $input_names => $output_ty) $rule);)*
+    ($judgment_name:ident, $input_value:expr, $output:expr, $failed_rules:expr, $input_names:tt => $output_ty:ty, $($rule:tt)*) => {
+        $($crate::push_rules!(@rule ($judgment_name, $input_value, $output, $failed_rules, $input_names => $output_ty) $rule);)*
     };
 
     // `@rule (builder) rule` phase: invoked for each rule, emits `push_rule` call
 
-    (@rule ($judgment_name:ident, $input_value:expr, $output:expr, $failed_rules:expr, $input_string:expr, $input_names:tt => $output_ty:ty) ($($m:tt)*)) => {
+    (@rule ($judgment_name:ident, $input_value:expr, $output:expr, $failed_rules:expr, $input_names:tt => $output_ty:ty) ($($m:tt)*)) => {
         // Start accumulating.
         $crate::push_rules!(@accum
-            args($judgment_name, $input_value, $output, $failed_rules, $input_string, $input_names => $output_ty)
+            args($judgment_name, $input_value, $output, $failed_rules, $input_names => $output_ty)
             accum(true;)
             input($($m)*)
         );
@@ -434,7 +430,7 @@ macro_rules! push_rules {
     // at 0. The `current_index` is also expected to start as the expression `0`.
 
     (@accum
-        args($judgment_name:ident, $input_value:expr, $output:expr, $failed_rules:expr, $input_string:expr, ($($input_names:ident),*) => $output_ty:ty)
+        args($judgment_name:ident, $input_value:expr, $output:expr, $failed_rules:expr, ($($input_names:ident),*) => $output_ty:ty)
         accum($match_default:tt; $($m:tt)*)
         input(
             ---$(-)* ($n:literal)
@@ -460,9 +456,10 @@ macro_rules! push_rules {
 
             if let Some(__JudgmentStruct($($input_names),*)) = Some($input_value) {
                 let __judgment_name = stringify!($judgment_name);
-                let __attributes: Vec<(String, String)> = vec![
-                    $((stringify!($input_names).to_string(), format!("{:?}", $input_names))),*
-                ];
+                // Only successful rule applications need proof attributes.
+                let __attributes = || -> Vec<(String, String)> {
+                    vec![$((stringify!($input_names).to_string(), format!("{:?}", $input_names))),*]
+                };
                 let mut __matched = $match_default;
                 $crate::push_rules!(@match
                     $conclusion_name
@@ -1201,7 +1198,7 @@ macro_rules! push_rules {
     ) => {
         {
             let result = $crate::Upcast::upcast($v);
-            let mut attributes = $input_attributes.clone();
+            let mut attributes = $input_attributes();
             attributes.push(("result".to_string(), format!("{:?}", result)));
             let (file, line, column) = $crate::respan!($rule_name ((file!(), line!(), column!())));
             let proof_tree = $crate::judgment::ProofTree::with_all(

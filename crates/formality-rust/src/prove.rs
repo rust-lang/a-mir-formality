@@ -112,21 +112,18 @@ pub fn prove(
     assert!(env.encloses(term_in));
 
     // Call `prove_predicate_list` to do the real work.
-    struct ProveFailureLabel(String);
-    let label = ProveFailureLabel(format!(
-        "prove {{ goal: {goal:?}, assumptions: {assumptions:?}, env: {env:?}, decls: {decls:?} }}"
-    ));
-    impl std::fmt::Debug for ProveFailureLabel {
-        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-            f.write_str(&self.0)
-        }
-    }
     let mut results = map![];
-    let result_set = if let Err(e) = prove_predicate_list(decls, &env, assumptions, goal)
+    let result_set = if let Err(e) = prove_predicate_list(&decls, &env, &assumptions, &goal)
         .each_proof(|(result, proof_tree)| {
             results.insert(result, proof_tree);
         }) {
-        ProvenSet::failed_rules(label, FailureLocation::caller(), set![FailedRule::new(e)])
+        ProvenSet::failed_rules(
+            format_args!(
+                "prove {{ goal: {goal:?}, assumptions: {assumptions:?}, env: {env:?}, decls: {decls:?} }}"
+            ),
+            FailureLocation::caller(),
+            set![FailedRule::new(e)],
+        )
     } else {
         ProvenSet::proven(results)
     };

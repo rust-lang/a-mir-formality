@@ -36,6 +36,7 @@
 //! [tracing]: https://crates.io/crates/tracing
 
 use std::fmt::{Debug, Display};
+use std::sync::LazyLock;
 
 use crate::judgment::FailedJudgment;
 
@@ -43,17 +44,17 @@ use crate::judgment::FailedJudgment;
 /// with just the filename `foo.rs`. This makes error messages resilient against changes to the source code
 /// while still showing which file the error came from.
 pub fn normalize_paths(s: impl Display) -> String {
+    // Capture the filename and strip its path, line and column.
+    static FORMALITY_PATH: LazyLock<regex::Regex> = LazyLock::new(|| {
+        regex::Regex::new(r"\((?:[^()]+[/\\])?([^()/\\]+\.rs):\d+:\d+\)").unwrap()
+    });
+    static RUSTC_PATH: LazyLock<regex::Regex> = LazyLock::new(|| {
+        regex::Regex::new(r"(-->|:::) (?:[^\r\n()]+[/\\])?([^()/\\]+\.rs):\d+:\d+").unwrap()
+    });
+
     let s = s.to_string();
-    // Capture the filename (without path) and strip line:column
-    // Handle both forward slashes (Unix) and backslashes (Windows) as path separators
-
-    // Matches paths in the formality output
-    let re = regex::Regex::new(r"\((?:[^()]+[/\\])?([^()/\\]+\.rs):\d+:\d+\)").unwrap();
-    let s = re.replace_all(&s, "($1)").to_string();
-
-    // Matches paths in the rustc output
-    let re = regex::Regex::new(r"(-->|:::) (?:[^\r\n()]+[/\\])?([^()/\\]+\.rs):\d+:\d+").unwrap();
-    re.replace_all(&s, "$1 $2").to_string()
+    let normalized = FORMALITY_PATH.replace_all(&s, "($1)").to_string();
+    RUSTC_PATH.replace_all(&normalized, "$1 $2").to_string()
 }
 
 /// Format an error, extracting just the leaf failures if it contains a FailedJudgment.

@@ -172,7 +172,19 @@ impl<J: Ord + Debug + Clone> ProvenSet<J> {
     where
         K: Ord + Debug + Clone,
     {
-        self.flat_map::<_, K>(|elem| ProvenSet::singleton(op(elem)))
+        match self.data {
+            ProvenSetData::Failure(e) => ProvenSet {
+                data: ProvenSetData::Failure(e),
+            },
+            ProvenSetData::Success(items) => {
+                let mut mapped = Map::new();
+                for item in items {
+                    let (value, proof) = op(item);
+                    mapped.insert(value, proof);
+                }
+                ProvenSet::proven(mapped)
+            }
+        }
     }
 
     /// Convenience function for tests: asserts that the proven values match expected.
@@ -195,12 +207,14 @@ impl<J: Ord + Debug + Clone> ProvenSet<J> {
                 expect_values.assert_eq(&format!("{values:?}"));
 
                 // Check proof tree contains required strings
-                let full_output = format!("{map:?}");
-                for s in must_contain {
-                    assert!(
-                        full_output.contains(s),
-                        "proof tree must contain {s:?} but didn't.\nFull output:\n{full_output}"
-                    );
+                if !must_contain.is_empty() {
+                    let full_output = format!("{map:?}");
+                    for s in must_contain {
+                        assert!(
+                            full_output.contains(s),
+                            "proof tree must contain {s:?} but didn't.\nFull output:\n{full_output}"
+                        );
+                    }
                 }
             }
         }
@@ -437,16 +451,23 @@ pub fn insert_smallest_proof<K: Ord + Clone>(
     key: K,
     proof: ProofTree,
 ) {
-    match map.get(&key) {
-        Some(existing) => {
-            let dominated = (proof.total_nodes(), format!("{:?}", proof))
-                < (existing.total_nodes(), format!("{:?}", existing));
-            if dominated {
-                map.insert(key, proof);
+    use std::collections::btree_map::Entry;
+
+    match map.entry(key) {
+        Entry::Occupied(mut entry) => {
+            let existing = entry.get();
+            if !Arc::ptr_eq(&proof.0, &existing.0)
+                && proof
+                    .total_nodes()
+                    .cmp(&existing.total_nodes())
+                    .then_with(|| format!("{proof:?}").cmp(&format!("{existing:?}")))
+                    .is_lt()
+            {
+                *entry.get_mut() = proof;
             }
         }
-        None => {
-            map.insert(key, proof);
+        Entry::Vacant(entry) => {
+            entry.insert(proof);
         }
     }
 }
@@ -1127,6 +1148,17 @@ mod shared_proof_tests {
 
     fn leaf() -> ProofTree {
         ProofTree::with_all("leaf", vec![], None, "test.rs", 1, 1, vec![])
+    }
+
+    #[test]
+    fn equal_size_proofs_are_ordered_by_their_rendered_text() {
+        let earlier = ProofTree::with_all("leaf", vec![], None, "z/a.rs", 1, 1, vec![]);
+        let later = ProofTree::with_all("leaf", vec![], None, "a/z.rs", 1, 1, vec![]);
+        let mut proofs = Map::from([((), later)]);
+
+        insert_smallest_proof(&mut proofs, (), earlier.clone());
+
+        assert_eq!(proofs[&()], earlier);
     }
 
     #[test]
