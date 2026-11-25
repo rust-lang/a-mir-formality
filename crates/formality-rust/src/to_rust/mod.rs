@@ -262,6 +262,17 @@ fn generic_param_from_kind(name: String, kind: ParameterKind) -> syntax::Generic
 
 #[cfg(test)]
 mod test {
+    use super::*;
+    use crate::grammar::{BoundVar, Const, DebruijnIndex, Ty, VarIndex, Variable};
+
+    fn bound_const_at_zero(kind: ParameterKind) -> Const {
+        Const::Variable(Variable::BoundVar(BoundVar {
+            debruijn: Some(DebruijnIndex { index: 0 }),
+            var_index: VarIndex { index: 0 },
+            kind,
+        }))
+    }
+
     #[test]
     fn empty_crate() {
         crate::assert_rust!(
@@ -372,5 +383,35 @@ mod test {
 
                 pub trait B where for<'a10> &'a10 u32: A { }"#]]
         )
+    }
+
+    #[test]
+    fn type_of_const_rejects_type_parameter() {
+        let mut ctx = context::Context::with(vec![vec!["T0".into()]]);
+        let where_clause =
+            WhereClause::TypeOfConst(bound_const_at_zero(ParameterKind::Ty), Ty::bool());
+
+        let error =
+            lower_generics_for_binder(&mut ctx, &[ParameterKind::Ty], &[where_clause], false)
+                .unwrap_err();
+        assert_eq!(
+            error.to_string(),
+            "`TypeOfConst` bound refers to `T0`, which is a type parameter, not a const parameter"
+        );
+    }
+
+    #[test]
+    fn type_of_const_rejects_lifetime_parameter() {
+        let mut ctx = context::Context::with(vec![vec!["'a0".into()]]);
+        let where_clause =
+            WhereClause::TypeOfConst(bound_const_at_zero(ParameterKind::Lt), Ty::bool());
+
+        let error =
+            lower_generics_for_binder(&mut ctx, &[ParameterKind::Lt], &[where_clause], false)
+                .unwrap_err();
+        assert_eq!(
+            error.to_string(),
+            "`TypeOfConst` bound refers to `'a0`, which is a lifetime parameter, not a const parameter"
+        );
     }
 }
