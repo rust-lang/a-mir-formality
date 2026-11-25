@@ -2,11 +2,14 @@ use std::collections::HashSet;
 
 use crate::check::{prove_goal, where_clauses::prove_where_clauses_well_formed};
 use crate::grammar::Fallible;
-use crate::grammar::{Adt, AdtBoundData, AdtItem, AtomicPredicate, Field, Predicates, Variant};
+use crate::grammar::{
+    Adt, AdtBoundData, AdtItem, AtomicPredicate, Field, ParameterKind, Predicates, Variant,
+};
 use crate::prove::{enter_universally, Env, Program};
 use anyhow::bail;
 use formality_core::judgment::ProofTree;
 use formality_core::judgment_fn;
+use formality_core::visit::CoreVisit;
 
 judgment_fn! {
     pub(super) fn check_adt(
@@ -19,6 +22,7 @@ judgment_fn! {
             (check_adt_variant_names_unique(adt) => ())
             (scope(enter_universally(Env::default(), &adt.binder) => (env, AdtBoundData { where_clauses, variants })) with()
                 (prove_where_clauses_well_formed(program, env, where_clauses, where_clauses) => ())
+                (check_adt_params_used(env, variants) => ())
                 (for_all(variant in variants)
                     (let Variant { fields, .. } = variant)
                     (for_all(field in fields)
@@ -57,6 +61,24 @@ judgment_fn! {
             (check_fields_sized(program, env, assumptions, AdtItem::Enum(_), fields) => ())
         )
     }
+}
+
+/// Every type and lifetime parameter must appear in a field (rustc error E0392).
+/// Uses in `where` clauses don't count, and unused const parameters are allowed.
+fn check_adt_params_used(env: &Env, variants: &[Variant]) -> Fallible<ProofTree> {
+    let used = variants.to_vec().free_variables();
+    for v in env.variables() {
+        if matches!(v.kind(), ParameterKind::Const) {
+            continue;
+        }
+        if !used.contains(v) {
+            bail!("parameter `{v:?}` is never used in a field of the type");
+        }
+    }
+
+    Ok(ProofTree::leaf(
+        "check_adt_params_used: every type and lifetime parameter is used",
+    ))
 }
 
 fn check_adt_variant_names_unique(adt: &Adt) -> Fallible<ProofTree> {

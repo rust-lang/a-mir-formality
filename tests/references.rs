@@ -5,7 +5,7 @@ use a_mir_formality::{crates, FormalityTest};
 fn recursive_reference_validity() {
     FormalityTest::new(crates![crate core {
                 trait Trait {}
-                struct A<X> where X: Trait {}
+                struct A<X> where X: Trait { value: X }
                 fn invalid<'a, X>(x: &'a A<X>) -> ()
                 where
                     X: 'a,
@@ -25,7 +25,7 @@ fn recursive_reference_validity() {
 fn reference_validity() {
     FormalityTest::new(crates![crate core {
         trait Trait {}
-        struct A<X> where X: Trait {}
+        struct A<X> where X: Trait { value: X }
         fn valid<'a, X>(x: &'a A<X>) -> ()
         where
             X: 'a,

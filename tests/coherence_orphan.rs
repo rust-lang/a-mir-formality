@@ -89,7 +89,7 @@ fn mirror_FooStruct() {
 fn covered_VecT() {
     FormalityTest::new(crates![crate core {
         trait CoreTrait<T> {}
-        struct Vec<T> {}
+        struct Vec<T> { value: T }
     },
     crate foo {
         struct FooStruct {}

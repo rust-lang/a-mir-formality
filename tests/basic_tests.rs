@@ -231,7 +231,7 @@ fn non_lifetime_binder_in_struct_where_clause_pass() {
 
         trait B { }
 
-        struct S<T> where for<U> u32: A<U> { }
+        struct S<T> where for<U> u32: A<U> { value: T }
 
         impl <T> B for T {}
     }])

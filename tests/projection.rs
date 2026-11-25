@@ -6,7 +6,7 @@ const NORMALIZE_BASIC: &str = "[
             type Item : [];
         }
 
-        struct Vec<T> {}
+        struct Vec<T> { value: T }
 
         struct Foo {}
 
@@ -66,7 +66,7 @@ const NORMALIZE_INTO_ITERATOR: &str = "[
             type Item : [];
         }
 
-        struct Vec<T> {}
+        struct Vec<T> { value: T }
 
         struct Foo {}
 
